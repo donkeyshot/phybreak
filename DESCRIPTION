@@ -1,0 +1,19 @@
+Package: phybreakCO
+Type: Package
+Title: Analysis of Outbreaks with Sequence Data
+Version: 0.1
+Date: 2015-12-23
+Author: Don Klinkenberg
+Maintainer: Don Klinkenberg <don@xs4all.nl>
+Description: The package includes functions implementing the outbreak analysis
+    method described by Klinkenberg et al (in prep).
+License: GPL (>=2)
+LazyData: TRUE
+Depends:
+    R(>= 3.1.0),
+    coda,
+    phangorn,
+    OutbreakTools
+Imports:
+    Rcpp (>= 0.12.1)
+LinkingTo: Rcpp
