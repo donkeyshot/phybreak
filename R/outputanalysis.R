@@ -331,7 +331,7 @@ treedists.phybreak <- function(phybreak.object, samplesize = 100, thin = 10) {
 }
 
 MLtrans <- function(phybreak.object,
-                    method = c("count", "edmunds", "mpc", "mcc", "cc.construct"),
+                    method = c("count", "edmunds", "mpc", "mtcc", "cc.construct"),
                     support = FALSE, infectornames = FALSE, samplesize = Inf) {
   chainlength <- length(phybreak.object$s$mu)
   if(samplesize > chainlength & samplesize < Inf) {
@@ -355,7 +355,7 @@ MLtrans <- function(phybreak.object,
       phybreak.object$s$nodehosts[obs:(2*obs-1),
                                   (1:samplesize) + chainlength - samplesize])
   }
-  if(method[1] == "mcc") {
+  if(method[1] == "mtcc") {
     res <- matrix(.CCtranstree(
       phybreak.object$s$nodehosts[obs:(2*obs-1),
                                   (1:samplesize) + chainlength - samplesize],
@@ -372,7 +372,7 @@ MLtrans <- function(phybreak.object,
 
   if(length(res) == 0) {
     stop("incorrect method provided, choose \"count\", \"edmunds\",
-\"mcc\", or \"cc.construct\"")
+\"mpc\", \"mtcc\", or \"cc.construct\"")
   }
 
   if(infectornames) {
@@ -399,6 +399,110 @@ MLtrans <- function(phybreak.object,
 
 
 }
+
+.makephyloparset <- function(parentset) {
+  obs <- (1 + length(parentset))/3
+  res <- parentset
+  while(max(res) >= 2*obs) {
+    res[res >= 2*obs] <- parentset[res][res >= 2*obs]
+  }
+  return(res[1 : (2*obs-1)])
+}
+
+.makephyloparsets <- function(nodeparentsets) {
+  apply(nodeparentsets,
+        MARGIN = 2, .makephyloparset)
+}
+
+.makephylo2 <- function(nodeparents) {
+  ###topology
+  Nhosts <- (1+length(nodeparents))/2
+  indexc <- (1:length(nodeparents))[nodeparents == 0]
+  edgestart <- nodeparents[nodeparents != 0]
+  edgeend <- (1:length(nodeparents))[nodeparents != 0]
+  edgelengths <- rep(1,length(nodeparents)-1)
+  
+  if(indexc != Nhosts + 1) {
+    edgestart[edgestart == indexc] <- 0
+    edgeend[edgeend == indexc] <- 0
+    edgestart[edgestart == Nhosts + 1] <- indexc
+    edgeend[edgeend == Nhosts + 1] <- indexc
+    edgestart[edgestart == 0] <- Nhosts + 1
+    edgeend[edgeend == 0] <- Nhosts + 1
+  }
+  
+  edges <- matrix(c(edgestart,edgeend),ncol=2)
+  
+  
+  
+  res <- list(
+    edge = edges,
+    edge.length = edgelengths,
+    Nnode = Nhosts - 1,
+    tip.label = 1:Nhosts
+  )
+  class(res) <- "phylo"
+  res <- reorder(res)
+  res <- ladderize(res)
+  return(res)
+  
+}
+
+
+MLphylo <- function(phybreak.object,
+                    method = c("mcc", "cc.construct"),
+                    support = FALSE, phylo.class = TRUE, samplesize = Inf) {
+  chainlength <- length(phybreak.object$s$mu)
+  if(samplesize > chainlength & samplesize < Inf) {
+    warning("desired 'samplesize' larger than number of available samples")
+  }
+  samplesize <- min(samplesize, chainlength)
+  obs <- phybreak.object$p$obs
+  
+  res <- c()
+  
+  if(method[1] == "mcc") {
+    res <- matrix(.CCphylotree(
+      .makephyloparsets(phybreak.object$s$nodeparents[,
+                                                     (1:samplesize) + chainlength - samplesize]),
+      c(obs, samplesize)
+    ), ncol = 2)
+  }
+  if(method[1] == "cc.construct") {
+    res <- matrix(.CCphylotreeconstruct(
+      .makephyloparsets(phybreak.object$s$nodeparents[,
+                                                     (1:samplesize) + chainlength - samplesize]),
+      c(obs, samplesize)
+    ), ncol = 2)
+  }
+  
+  if(length(res) == 0) {
+    stop("incorrect method provided, choose \"mcc\" or \"cc.construct\"")
+  }
+  
+  parents.out <- matrix(res[,1],ncol = 1,
+                          dimnames=list(1:(2*obs-1),"parent"))
+  if(support) {
+    return(
+      data.frame(
+        parents = parents.out,
+        support = res[,2]
+      )
+    )
+  } else {
+    if(phylo.class) {
+      return(.makephylo2(res[,1]))
+    } else
+    return(
+      data.frame(
+        parents = parents.out
+      )
+    )
+  }
+  
+  
+}
+
 
 comparephybreak.infectors <- function(phybreak.object, sim.object) {
   res <- rep(NA,length(phybreak.object$s$logLik))
