@@ -2,38 +2,38 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 .CCphylotreeconstruct <- function(pars, dims) {
-    .Call('phybreakCO_CCphyloconstruct', PACKAGE = 'phybreakCO', pars, dims)
+    .Call('phybreak_CCphyloconstruct', PACKAGE = 'phybreak', pars, dims)
 }
 
 .CCphylotree <- function(pars, dims) {
-    .Call('phybreakCO_CCphylotree', PACKAGE = 'phybreakCO', pars, dims)
+    .Call('phybreak_CCphylotree', PACKAGE = 'phybreak', pars, dims)
 }
 
 .CCtranstreeconstruct <- function(pars, dims) {
-    .Call('phybreakCO_CCtranstreeconstruct', PACKAGE = 'phybreakCO', pars, dims)
+    .Call('phybreak_CCtranstreeconstruct', PACKAGE = 'phybreak', pars, dims)
 }
 
 .CCtranstree <- function(pars, dims) {
-    .Call('phybreakCO_CCtranstree', PACKAGE = 'phybreakCO', pars, dims)
+    .Call('phybreak_CCtranstree', PACKAGE = 'phybreak', pars, dims)
 }
 
 .likseq <- function(SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, obs) {
-    .Call('phybreakCO_likseq', PACKAGE = 'phybreakCO', SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, obs)
+    .Call('phybreak_likseq', PACKAGE = 'phybreak', SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, obs)
 }
 
 .likseqenv <- function(pbenv, nodestochange, tips) {
-    .Call('phybreakCO_likseqenv', PACKAGE = 'phybreakCO', pbenv, nodestochange, tips)
+    .Call('phybreak_likseqenv', PACKAGE = 'phybreak', pbenv, nodestochange, tips)
 }
 
 .MLphylotree_MCC <- function(pars, dims) {
-    .Call('phybreakCO_MLphylotree_MCC', PACKAGE = 'phybreakCO', pars, dims)
+    .Call('phybreak_MLphylotree_MCC', PACKAGE = 'phybreak', pars, dims)
 }
 
 .ptr <- function(pars, ID) {
-    .Call('phybreakCO_ptr', PACKAGE = 'phybreakCO', pars, ID)
+    .Call('phybreak_ptr', PACKAGE = 'phybreak', pars, ID)
 }
 
 .sct <- function(tle) {
-    .Call('phybreakCO_sct', PACKAGE = 'phybreakCO', tle)
+    .Call('phybreak_sct', PACKAGE = 'phybreak', tle)
 }
 

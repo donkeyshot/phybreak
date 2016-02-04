@@ -141,7 +141,7 @@ make.phyDat <- function(phybreak.object) {
   }
   ord <- order(ordinf$lengths,decreasing = TRUE)
   if(support) {
-    return(c(ordinf[[2]][ord[ranknr]],ordinf[[1]][ord[ranknr]]/chainlength))
+    return(c(ordinf[[2]][ord[ranknr]],ordinf[[1]][ord[ranknr]]))
     } else {
       return(ordinf[[2]][ord[ranknr]])
     }
@@ -167,36 +167,6 @@ MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, 
   }
 }
 
-#return 'maximum parent credibility' tree with posterior support
-.mpcinfector <- function(inf.chain) {
-  parcounts <- apply(inf.chain+1,1,tabulate,nbins=nrow(inf.chain) + 1)
-  parcred <- function(hostID, samplenr) {
-    parcounts[inf.chain[hostID, samplenr]+1, hostID]
-  }
-  parcreds <- colSums(
-    log(
-      matrix(
-        mapply(
-          parcred,
-          rep(1:nrow(inf.chain),ncol(inf.chain)),
-          rep(1:ncol(inf.chain),each=nrow(inf.chain))
-        ),nrow = nrow(inf.chain)
-      )
-    )
-  )
-  bestpars <- which(parcreds == max(parcreds))
-  return(
-    matrix(
-      c(
-        inf.chain[,bestpars],
-        mapply(parcred,
-               1:nrow(inf.chain),
-               rep(bestpars,nrow(inf.chain))
-        )
-      ),ncol = 2
-    )
-  )
-}
 
 
 #return ordered most likely infectors, with posterior support
@@ -253,12 +223,37 @@ MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, 
   return(ranks)
 }
 
-#worker function to obtain a transmission tree based on most likely infectors, using Edmunds's algorithm to remove cycles and multiple roots)
-.postinftree <- function(phybreak.object, samplesize) {
+#worker function to obtain a transmission tree based on most likely infector, possibly containing cycles and multiple roots
+.transtreecount <- function(phybreak.object, samplesize) {
   chainlength <- length(phybreak.object$s$mu)
   obsize <- phybreak.object$p$obs
+  samplerange <- (chainlength-samplesize+1):chainlength
+  
+  res <- t(matrix(with(phybreak.object,
+                       apply(s$nodehosts[obsize:(2*obsize-1),samplerange],
+                             1,.postinfector,support = TRUE)),nrow = 2))
+  
+  timesums <- with(phybreak.object,
+                   rowSums(s$nodetimes[obsize:(2*obsize-1),samplerange]*(
+                     s$nodehosts[obsize:(2*obsize-1),samplerange] == res[,1]
+                     )))  
+  timesumsqs <- with(phybreak.object,
+                   rowSums((s$nodetimes[obsize:(2*obsize-1),samplerange]^2)*(
+                     s$nodehosts[obsize:(2*obsize-1),samplerange] == res[,1]
+                     )))  
+  res <- cbind(res, timesums/res[,2])
+  res <- cbind(res, sqrt((timesumsqs - res[,3]^2*res[,2])/(res[,2]-1)))
+  return(res)
+}
 
-  infectorset <- .infarray(phybreak.object$s$nodehosts[obsize:(2*obsize-1),(chainlength-samplesize+1):chainlength])
+
+#worker function to obtain a transmission tree based on most likely infectors, using Edmunds's algorithm to remove cycles and multiple roots
+.transtreeedmunds <- function(phybreak.object, samplesize) {
+  chainlength <- length(phybreak.object$s$mu)
+  obsize <- phybreak.object$p$obs
+  samplerange <- (chainlength-samplesize+1):chainlength
+  
+  infectorset <- .infarray(phybreak.object$s$nodehosts[obsize:(2*obsize-1),samplerange])
 
   besttreeranks <- rep(1,obsize)
   besttree <- infectorset[cbind(1:obsize,1,besttreeranks)]
@@ -276,8 +271,76 @@ MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, 
   res <- matrix(c(besttree,
            infectorset[cbind(1:obsize,2,besttreeranks)]),
            ncol=2)
+
+  timesums <- with(phybreak.object,
+                   rowSums(s$nodetimes[obsize:(2*obsize-1),samplerange]*(
+                     s$nodehosts[obsize:(2*obsize-1),samplerange] == res[,1]
+                   )))  
+  timesumsqs <- with(phybreak.object,
+                     rowSums((s$nodetimes[obsize:(2*obsize-1),samplerange]^2)*(
+                       s$nodehosts[obsize:(2*obsize-1),samplerange] == res[,1]
+                     )))  
+  res <- cbind(res, timesums/res[,2])
+  res <- cbind(res, sqrt((timesumsqs - res[,3]^2*res[,2])/(res[,2]-1)))
+  
   return(res)
 }
+
+#return 'maximum parent credibility' tree with posterior support and node times
+.mpcinfector <- function(phybreak.object, samplesize) {
+  chainlength <- length(phybreak.object$s$mu)
+  obsize <- phybreak.object$p$obs
+  samplerange <- (chainlength-samplesize+1):chainlength
+  
+  parcounts <- apply(
+    phybreak.object$s$nodehosts[obsize:(2*obsize-1), samplerange] + 1,
+    1, tabulate, nbins=obsize + 1)
+  parcred <- function(hostID, samplenr) {
+    parcounts[
+      phybreak.object$s$nodehosts[hostID + obsize - 1, samplenr] + 1,
+      hostID]
+  }
+  parcreds <- colSums(
+    log(
+      matrix(
+        mapply(
+          parcred,
+          rep(1:obsize,samplesize),
+          rep(samplerange,each=obsize)
+        ),nrow = obsize
+      )
+    )
+  )
+  bestpars <- which(parcreds == max(parcreds))[1]
+  res <- matrix(
+    c(
+      phybreak.object$s$nodehosts[obsize:(2*obsize-1),
+                                  bestpars + samplerange[1] - 1],
+      mapply(parcred,
+             1:obsize,
+             rep(bestpars + samplerange[1] - 1,obsize)
+      )
+    ),ncol = 2
+  )
+  
+  
+  timesums <- with(phybreak.object,
+                   rowSums(s$nodetimes[obsize:(2*obsize-1),samplerange]*(
+                     s$nodehosts[obsize:(2*obsize-1),samplerange] == res[,1]
+                   )))  
+  timesumsqs <- with(phybreak.object,
+                     rowSums((s$nodetimes[obsize:(2*obsize-1),samplerange]^2)*(
+                       s$nodehosts[obsize:(2*obsize-1),samplerange] == res[,1]
+                     )))  
+  res <- cbind(res, timesums/res[,2])
+  res <- cbind(res, sqrt((timesumsqs - res[,3]^2*res[,2])/(res[,2]-1)))
+  res <- cbind(res, phybreak.object$s$nodetimes[obsize:(2*obsize-1),
+                                                bestpars + samplerange[1] - 1])
+  
+  
+  return(res)
+}
+
 
 #wrapper function to obtain the most-likely infector-based transmission tree, based on Edmunds's algorithm
 MLtree.infector <- function(phybreak.object, infectornames = TRUE, samplesize = Inf) {
@@ -287,7 +350,7 @@ MLtree.infector <- function(phybreak.object, infectornames = TRUE, samplesize = 
   }
   samplesize <- min(samplesize, chainlength)
 
-  res <- .postinftree(phybreak.object, samplesize)
+  res <- .transtreeedmunds(phybreak.object, samplesize)
 
   if(infectornames) {
     infectors.out <- matrix(c("index",phybreak.object$d$names)[1+res[,1]],ncol = 1,
@@ -299,7 +362,9 @@ MLtree.infector <- function(phybreak.object, infectornames = TRUE, samplesize = 
   return(
     data.frame(
       infectors = infectors.out,
-      support = res[,2]
+      support = res[,2],
+      tmean = res[,3],
+      tsd = res[,4]
     )
   )
 }
@@ -348,7 +413,7 @@ MLtrans <- function(phybreak.object,
                              1,.postinfector,support = TRUE)),nrow = 2))
   }
   if(method[1] == "edmunds") {
-    res <- .postinftree(phybreak.object, samplesize)
+    res <- .transtreeedmunds(phybreak.object, samplesize)
   }
   if(method[1] == "mpc") {
     res <- .mpcinfector(

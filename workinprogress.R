@@ -102,6 +102,8 @@ CCtranstree.phybreak <- function(phybreak.object, samplesize = Inf) {
   return(.CCtranstree(
     phybreak.object$s$nodehosts[obs:(2*obs-1),
                                 (1:samplesize) + chainlength - samplesize],
+    phybreak.object$s$nodetimes[obs:(2*obs-1),
+                                (1:samplesize) + chainlength - samplesize],
     c(obs, samplesize)
   ))
 

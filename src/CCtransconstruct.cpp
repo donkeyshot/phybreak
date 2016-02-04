@@ -4,24 +4,13 @@
 #include <cmath>
 #include <utility>
 #include <functional>
+#include "CCtrans_support.h"
 using namespace Rcpp;
 
 // [[Rcpp::plugins("cpp11")]]
 
 // Calculation of the path to the root in a tree,
 // given a parent vector and node/host ID
-
-std::vector<int> ptroot2(std::vector<int> pars, int ID) {
-  std::vector<int> ans;
-  ans.push_back(ID);
-  int nextID = pars[ID - 1];
-  while(nextID > 0) {
-    ans.push_back(nextID);
-    nextID = pars[nextID - 1];
-  }
-  return(ans);
-}
-
 
 
 
@@ -36,7 +25,7 @@ std::vector<int> CCtranstreeconstruct(std::vector<int> pars, std::vector<int> di
       parset[ii] = pars[i*dims[0] + ii];
     }
     for(int j = 0; j < dims[0]; ++j) {
-      pos = ptroot2(parset, j + 1);
+      pos = ptroottrans(parset, j + 1);
       for(unsigned int k = 0; k < pos.size(); ++k) {
         cladearray[i*dims[0]*dims[0] + (pos[k]-1)*dims[0] + j] = true;
       }

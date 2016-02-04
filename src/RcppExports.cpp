@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // CCphyloconstruct
 std::vector<int> CCphyloconstruct(std::vector<int> pars, std::vector<int> dims);
-RcppExport SEXP phybreakCO_CCphyloconstruct(SEXP parsSEXP, SEXP dimsSEXP) {
+RcppExport SEXP phybreak_CCphyloconstruct(SEXP parsSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -19,7 +19,7 @@ END_RCPP
 }
 // CCphylotree
 std::vector<int> CCphylotree(std::vector<int> pars, std::vector<int> dims);
-RcppExport SEXP phybreakCO_CCphylotree(SEXP parsSEXP, SEXP dimsSEXP) {
+RcppExport SEXP phybreak_CCphylotree(SEXP parsSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -31,7 +31,7 @@ END_RCPP
 }
 // CCtranstreeconstruct
 std::vector<int> CCtranstreeconstruct(std::vector<int> pars, std::vector<int> dims);
-RcppExport SEXP phybreakCO_CCtranstreeconstruct(SEXP parsSEXP, SEXP dimsSEXP) {
+RcppExport SEXP phybreak_CCtranstreeconstruct(SEXP parsSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -43,7 +43,7 @@ END_RCPP
 }
 // CCtranstree
 std::vector<int> CCtranstree(std::vector<int> pars, std::vector<int> dims);
-RcppExport SEXP phybreakCO_CCtranstree(SEXP parsSEXP, SEXP dimsSEXP) {
+RcppExport SEXP phybreak_CCtranstree(SEXP parsSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -55,7 +55,7 @@ END_RCPP
 }
 // likseq
 double likseq(CharacterVector SNPs, IntegerVector SNPfreqs, IntegerVector nodeparents, NumericVector nodetimes, double mutrate, int obs);
-RcppExport SEXP phybreakCO_likseq(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP nodeparentsSEXP, SEXP nodetimesSEXP, SEXP mutrateSEXP, SEXP obsSEXP) {
+RcppExport SEXP phybreak_likseq(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP nodeparentsSEXP, SEXP nodetimesSEXP, SEXP mutrateSEXP, SEXP obsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -71,7 +71,7 @@ END_RCPP
 }
 // likseqenv
 double likseqenv(Environment pbenv, IntegerVector nodestochange, IntegerVector tips);
-RcppExport SEXP phybreakCO_likseqenv(SEXP pbenvSEXP, SEXP nodestochangeSEXP, SEXP tipsSEXP) {
+RcppExport SEXP phybreak_likseqenv(SEXP pbenvSEXP, SEXP nodestochangeSEXP, SEXP tipsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -84,7 +84,7 @@ END_RCPP
 }
 // MLphylotree_MCC
 std::vector<double> MLphylotree_MCC(std::vector<int> pars, std::vector<int> dims);
-RcppExport SEXP phybreakCO_MLphylotree_MCC(SEXP parsSEXP, SEXP dimsSEXP) {
+RcppExport SEXP phybreak_MLphylotree_MCC(SEXP parsSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -96,7 +96,7 @@ END_RCPP
 }
 // ptr
 std::vector<int> ptr(IntegerVector pars, int ID);
-RcppExport SEXP phybreakCO_ptr(SEXP parsSEXP, SEXP IDSEXP) {
+RcppExport SEXP phybreak_ptr(SEXP parsSEXP, SEXP IDSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -108,7 +108,7 @@ END_RCPP
 }
 // sct
 NumericVector sct(NumericVector tle);
-RcppExport SEXP phybreakCO_sct(SEXP tleSEXP) {
+RcppExport SEXP phybreak_sct(SEXP tleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;

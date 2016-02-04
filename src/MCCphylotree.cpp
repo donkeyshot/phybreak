@@ -7,15 +7,15 @@ using namespace Rcpp;
 // Calculation of the path to the root in a tree,
 // given a parent vector and node/host ID
 
-std::vector<int> ptroot1(std::vector<int> pars, int ID) {
-  std::vector<int> ans;
-  int nextID = pars[ID - 1];
-  while(nextID > 0) {
-    ans.push_back(nextID);
-    nextID = pars[nextID - 1];
-  }
-  return(ans);
-}
+std::vector<int> ptrootphylo(std::vector<int>, int ); //{
+//   std::vector<int> ans;
+//   int nextID = pars[ID - 1];
+//   while(nextID > 0) {
+//     ans.push_back(nextID);
+//     nextID = pars[nextID - 1];
+//   }
+//   return(ans);
+// }
 
 
 
@@ -46,7 +46,7 @@ std::vector<double> MLphylotree_MCC(std::vector<int> pars, std::vector<int> dims
       parset[ii] = pars[i*(2*dims[0]-1) + ii];
     }
     for(int j = 0; j < dims[0]; ++j) {
-      pos = ptroot1(parset, j + 1);
+      pos = ptrootphylo(parset, j + 1);
       for(unsigned int k = 0; k < pos.size(); ++k) {
         cladearray[i*dims[0]*dims[0] + (pos[k]-1-dims[0])*dims[0] + j] = true;
       }
