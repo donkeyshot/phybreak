@@ -9,7 +9,7 @@ Analyse posterior samples of the transmission and phylogenetic trees.%%  ~~funct
 Various methods to create summary transmission trees or phylogenetic trees from phybreak mcmc-output.%%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-MLtrans(phybreak.object, method = c("count", "edmunds", "mpc", "mcc", "cc.construct"), support = FALSE, infectornames = FALSE, samplesize = Inf)
+MLtrans(phybreak.object, method = c("count", "edmunds", "mpc", "mtcc", "cc.construct"), support = FALSE, infectornames = FALSE, samplesize = Inf)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -36,15 +36,15 @@ MLtrans(phybreak.object, method = c("count", "edmunds", "mpc", "mcc", "cc.constr
 }
 \details{
 Five methods are supported for transmission tree reconstruction (who infected whom). 
-\item{count }{the most frequent infector from the posterior samples. Note that this may result in an improper tree (multiple roots and/or cycles). Support is measured by the frequency of the infector in the posterior distribution.}
-\item{edmunds }{starting from the most frequent infector (method "count"), multiple roots and cycles are removed by selecting one by one the next most frequent option that minimizes the loss in support. Support is measured by the frequency of the infector in the posterior distribution.}
-\item{mpc }{maximum parent credibility tree as described in Hall et al (2015). This is the tree in the posterior with maximum support = product of frequencies among all posterior samples. Support is measured by the frequency of the infector in the posterior distribution.}
-\item{mtcc }{maximum transmission clade credibility tree as (will be) described in Klinkenberg et al (in prep). Equivalent to the mcc phylogenetic tree, with clades defined as host + all progeny. Support is measured by the frequency of the clade in the posterior distribution.}
-\item{cc_construct }{constructed transmission clade credibility tree as (will be) described in Klinkenberg et al (in prep). Posterior transmission clades are combined to create a tree with maximal support, which may not be among the actually sampled trees. Support is measured by the frequency of the clade in the posterior distribution.}
+- "count" gives the most frequent infector from the posterior samples. Note that this may result in an improper tree (multiple roots and/or cycles). Support is measured by the frequency of the infector in the posterior distribution.
+- "edmunds" starts from the most frequent infector (method "count"), multiple roots and cycles are removed by selecting one by one the next most frequent option that minimizes the loss in support. Support is measured by the frequency of the infector in the posterior distribution.
+- "mpc" gives the maximum parent credibility tree as described in Hall et al (2015). This is the tree in the posterior with maximum support = product of frequencies among all posterior samples. Support is measured by the frequency of the infector in the posterior distribution.
+- "mtcc" gives the maximum transmission clade credibility tree as (will be) described in Klinkenberg et al (in prep). Equivalent to the mcc phylogenetic tree, with clades defined as host + all progeny. Support is measured by the frequency of the clade in the posterior distribution.
+- "cc.construct" gives the constructed transmission clade credibility tree as (will be) described in Klinkenberg et al (in prep). Posterior transmission clades are combined to create a tree with maximal support, which may not be among the actually sampled trees. Support is measured by the frequency of the clade in the posterior distribution.
 
 Two methods are supported for phylogenetic tree reconstruction.
-\item{mcc }{maximum clade credibility.}
-\item{cc_construct }{constructed phylogenetic tree, as described above.}
+- "mcc" gives the maximum clade credibility tree.
+- "cc.construct" gives the constructed phylogenetic tree, as described above.
 %%  ~~ If necessary, more details than the description above ~~
 }
 \value{

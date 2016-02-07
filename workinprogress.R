@@ -6,6 +6,20 @@ setwd("S:/R/klinkend/Phylomodellen/ResultsJan16/Simulations")
 
 load("sims_wh1")
 
+library(phybreak)
+simulatie <- sim.phybreak.gentime(20)
+curstate <- make.phybreak.obkData(simulatie)
+curstate <- burnin.phybreak(curstate, 500)
+curstate <- sample.phybreak(curstate, 1000, 10)
+
+for(i in 1:2786) {
+  for(j in (i+1):2787) {
+    if(all(testres2[(i*20-19):(i*20)] == testres2[(j*20-19):(j*20)])) {
+      print(c(i,j))
+    }
+  }
+}
+
 
 makephyloparset <- function(parentset) {
   obs <- (1 + length(parentset))/3

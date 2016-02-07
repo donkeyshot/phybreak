@@ -9,12 +9,12 @@
     .Call('phybreak_CCphylotree', PACKAGE = 'phybreak', pars, dims)
 }
 
-.CCtranstreeconstruct <- function(pars, dims) {
-    .Call('phybreak_CCtranstreeconstruct', PACKAGE = 'phybreak', pars, dims)
+.CCtranstreeconstruct <- function(pars, tims, dims) {
+    .Call('phybreak_CCtranstreeconstruct', PACKAGE = 'phybreak', pars, tims, dims)
 }
 
-.CCtranstree <- function(pars, dims) {
-    .Call('phybreak_CCtranstree', PACKAGE = 'phybreak', pars, dims)
+.CCtranstree2 <- function(pars, tims, dims) {
+    .Call('phybreak_CCtranstree2', PACKAGE = 'phybreak', pars, tims, dims)
 }
 
 .likseq <- function(SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, obs) {

@@ -9,211 +9,90 @@ using namespace Rcpp;
 
 // [[Rcpp::plugins("cpp11")]]
 
-// Calculation of the path to the root in a tree,
-// given a parent vector and node/host ID
+
+
+  
+
+  
+
 
 
 
 // [[Rcpp::export(name=".CCtranstreeconstruct")]]
-std::vector<int> CCtranstreeconstruct(std::vector<int> pars, std::vector<int> dims) {
-  std::vector<bool> cladearray(dims[0] * dims[0] * dims[1]); //dims[0] = obs, dims[1] = samplesize
-  std::vector<int> parset(dims[0]);
-  std::vector<int> pos;
+std::vector<double> CCtranstreeconstruct(const std::vector<int> &pars, 
+                                      const std::vector<double> &tims,
+                                      std::vector<int> dims) {
+  
+  //The ss*n vector with n parents in each of ss trees is transformed into
+  //a n_clade*n uniquecladearray, an ss*n vector indicating which n clades
+  //are in each of the ss trees, and an n_clade long vector with clade frequencies
+  std::vector<bool> uniq_clades;
+  std::vector<int> which_clades(dims[0] * dims[1]);
+  std::vector<int> clade_freqs;
+  int n_clade = 0;
+  buildclades(uniq_clades, clade_freqs, which_clades, n_clade,
+              pars, dims[0], dims[1]);
+  
 
-  for(int i = 0; i < dims[1]; ++i) {
-    for(int ii = 0; ii< dims[0]; ++ii) {
-      parset[ii] = pars[i*dims[0] + ii];
-    }
-    for(int j = 0; j < dims[0]; ++j) {
-      pos = ptroottrans(parset, j + 1);
-      for(unsigned int k = 0; k < pos.size(); ++k) {
-        cladearray[i*dims[0]*dims[0] + (pos[k]-1)*dims[0] + j] = true;
-      }
-    }
-  }
-
-  std::vector<int> uniquecladepos;
-  std::vector<int> uniquecladecount;
-  std::vector<int> whichclade(dims[0] * dims[1]);
-  bool cladeequal = false;
-  bool nodeequal = true;
-  unsigned int nextclade = 0;
-  int nextnode = 0;
-  uniquecladepos.push_back(0);
-  uniquecladecount.push_back(1);
-  for(int i = 1; i < dims[0] * dims[1]; ++i) {
-    while(!cladeequal && nextclade < uniquecladepos.size()) {
-      while(nodeequal && nextnode < dims[0]) {
-        if(cladearray[i*dims[0] + nextnode] !=
-           cladearray[uniquecladepos[nextclade]*dims[0] + nextnode]) {
-          nodeequal = false;
-        }
-        ++nextnode;
-      }
-      cladeequal = nodeequal;
-      nodeequal = true;
-      ++nextclade;
-      nextnode = 0;
-    }
-    if(!cladeequal) {
-      uniquecladepos.push_back(i);
-      uniquecladecount.push_back(1);
-      whichclade[i] = uniquecladepos.size() - 1;
-    } else {
-      ++uniquecladecount[nextclade - 1];
-      whichclade[i] = nextclade - 1;
-    }
-    cladeequal = false;
-    nodeequal = true;
-    nextclade = 0;
-    nextnode = 0;
-  }
-
-  std::vector<std::pair<int, int> > orderpos(uniquecladepos.size());
-  for(unsigned int i = 0; i < orderpos.size(); ++i) {
-    orderpos[i].first = -uniquecladecount[i];
-    orderpos[i].second = uniquecladepos[i];
+  //The vector 'orderpos' contains the paired 'clade_freqs' and corresponding position in uniq_clades,
+  //ordered from most frequent to least frequent
+  std::vector<std::pair<int, int> > orderpos(n_clade);
+  for(unsigned int i = 0; i < n_clade; ++i) {
+    orderpos[i].first = -clade_freqs[i];
+    orderpos[i].second = i;
   }
   std::sort(orderpos.begin(), orderpos.end());
 
+  //The vector 'postclades' contains the tree with highest maximum clade support,
+  //though not guaranteed so. It is constructed by sequentially testing the next highest
+  //supported clade for compatibility with already accepted clades, and accepting
+  //if compatible, until the tree is complete. The clades are sorted by root host.
+  std::vector<int> postclades(dims[0]);
 
-  std::vector<bool> bestcladetree(dims[0] * dims[0]);
-  std::vector<bool> freeelements(dims[0] * dims[0]);
-  std::vector<int> besttreescores(dims[0]);
-  for(int i = 0; i < dims[0]; ++i) {
-    bestcladetree[i] = cladearray[orderpos[0].second * dims[0] + i];
-    bestcladetree[i + dims[0]] =
-      cladearray[orderpos[1].second * dims[0] + i];
-  }
-  besttreescores[0] = -orderpos[0].first;
-  besttreescores[1] = -orderpos[1].first;
-  int clade0size = 0;
-  int clade1size = 0;
-  for(int i = 0; i < dims[0]; ++i) {
-    clade0size += bestcladetree[i];
-    clade1size += bestcladetree[i + dims[0]];
-  }
-  if(clade0size == 1 && clade1size == 1) {
-    freeelements = bestcladetree;
-  } else if(clade0size > clade1size) {
-    for(int i = 0; i < dims[0]; ++i) {
-      freeelements[i] = bestcladetree[i] && !bestcladetree[i + dims[0]];
-      freeelements[i + dims[0]] = bestcladetree[i + dims[0]];
-    }
-  } else {
-    for(int i = 0; i < dims[0]; ++i) {
-      freeelements[i] = bestcladetree[i];
-      freeelements[i + dims[0]] = !bestcladetree[i] && bestcladetree[i + dims[0]];
-    }
-  }
+  selectclades(postclades, uniq_clades, 
+                orderpos, dims[0]);
+  
+  
 
-  nextclade = 2;
-  int cladecount = 2;
-  bool cladeaccept;
-  bool overlap, newmore, bestmore, anyfree;
-  std::vector<bool> newfree(dims[0]);
-  int newclade = 0;
-
-
-  while(cladecount < dims[0]) {
-    newclade = orderpos[nextclade].second * dims[0];
-    for(int i = 0; i < dims[0]; ++i) {
-      newfree[i] = cladearray[newclade + i];
-    }
-    cladeaccept = true;
-    for(int i = 0; i < cladecount * dims[0] && cladeaccept; i += dims[0]) {
-      overlap = false;
-      newmore = false;
-      bestmore = false;
-      anyfree = false;
-      for(int j = 0; j < dims[0]; ++j) {
-        if(cladearray[newclade + j] && bestcladetree[i + j]) {overlap = true;}
-        if(cladearray[newclade + j] && !bestcladetree[i + j]) {newmore = true;}
-        if(!cladearray[newclade + j] && bestcladetree[i + j]) {bestmore = true;}
-      }
-      if(overlap && newmore && bestmore) {
-        cladeaccept = false;
-      } else if(overlap && bestmore) {
-        for(int j = 0; j < dims[0]; ++j) {
-          if(!cladearray[newclade + j] && freeelements[i + j]) {anyfree = true;}
-        }
-        cladeaccept = anyfree;
-      } else if(overlap && newmore) {
-        for(int j = 0; j < dims[0]; ++j) {
-          if(newfree[j]) {
-            if(bestcladetree[i + j]) {
-              newfree[j] = false;
-            } else {anyfree = true;}
-          }
-        }
-        cladeaccept = anyfree;
-      } else {cladeaccept = true;}
-    }
-    if(cladeaccept) {
-      for(int i = 0; i < cladecount * dims[0]; i += dims[0]) {
-        for(int j = 0; j < dims[0]; ++j) {
-          freeelements[i + j] = freeelements[i + j] & !newfree[j];
-        }
-      }
-      for(int j = 0; j < dims[0]; ++j) {
-        bestcladetree[cladecount * dims[0] + j] = cladearray[newclade + j];
-        freeelements[cladecount * dims[0] + j] = newfree[j];
-      }
-      besttreescores[cladecount] = -orderpos[nextclade].first;
-      ++cladecount;
-    }
-    ++nextclade;
-  }
-
-  std::vector<int> cladesizes(dims[0] + 2);
+  
+  
+  //The 'parents' vector contains the infector for each host, and 'scores' the corresponding score
   std::vector<int> parents(dims[0]);
-  int smallest = 0;
-  int secsmallest = 0;
-  for(int i = 0; i < dims[0]; ++i) {
-    for(int j = 0; j < dims[0]; ++j) {
-      cladesizes[i] += bestcladetree[i * dims[0] + j];
-    }
-  }
-  cladesizes[dims[0]] = dims[0] + 1;
-  cladesizes[dims[0] + 1] = dims[0] + 2;
-  for(int i = 0; i < dims[0]; ++i) {
-    smallest = dims[0];
-    secsmallest = dims[0] + 1;
-    for(int j = 0; j < dims[0]; ++j) {
-      if(bestcladetree[j * dims[0] + i]) {
-        if(cladesizes[j] < cladesizes[smallest]) {
-          secsmallest = smallest;
-          smallest = j;
-        } else if(cladesizes[j] < cladesizes[secsmallest]) {
-          secsmallest = j;
-        }
-      }
-    }
-    if(secsmallest == dims[0]) {
-      parents[i] = 0;
-    } else for(int j = 0; j < dims[0]; ++j) {
-      if(freeelements[secsmallest * dims[0] + j]) {
-        parents[i] = j + 1;
-        }
-    }
-  }
 
+  findparents(parents, postclades, uniq_clades, dims[0]);
+  
+  
+  //For each posterior clade, the sums and sums-of-squares of the infection
+  //times of the root hosts are calculated
+  std::vector<double> cladetimesums(dims[0]);
+  std::vector<double> cladetimesumsqs(dims[0]);
+  cladetimestats(cladetimesums, cladetimesumsqs, tims,
+                 postclades, which_clades, uniq_clades, dims[0], dims[1]);
+  
 
-  std::vector<int> result(2 * dims[0]);
+  //Make vector with results: parents, clade support,
+  //tree infection time,
+  //mean infection time, SD(infection time)
+  std::vector<double> result(4 * dims[0]);
   for(int i = 0; i < dims[0]; ++i) {
     result[i] = parents[i];
-    for(int j = 0; j < dims[0]; ++j) {
-      if(freeelements[j * dims[0] + i]) {
-        result[i + dims[0]] = besttreescores[j];
-      }
-    }
+    result[i + dims[0]] = clade_freqs[postclades[i]];
+    
+    result[i + 2*dims[0]] = 
+      cladetimesums[i] / result[i + dims[0]];
+    
+    result[i + 3*dims[0]] = std::sqrt((
+      cladetimesumsqs[i] -
+        result[i + 2*dims[0]] * result[i + 2*dims[0]] * result[i + dims[0]]
+    ) / (result[i + dims[0]] - 1) );
+    
   }
+  
+//   std::vector<double> result2(20);
+//   for(int i = 0; i < 20; ++i) {
+//     result2[i] = parents[i];
+//   }
   //     std::vector<int> result2(200);
-  //     for(int i = 0; i < 100; ++i) {
-//       result2[2*i] = uniquecladepos[i];
-//       result2[2*i+1] = uniquecladecount[i];
-//     }
-//     std::vector<int> result2(200);
 //     for(int i = 0; i < 100; ++i) {
 //       result2[2*i] = orderpos[i].first;
 //       result2[2*i+1] = orderpos[i].second;

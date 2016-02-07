@@ -5,91 +5,77 @@
 #include "CCtrans_support.h"
 using namespace Rcpp;
 
-// Calculation of the path to the root in a tree,
-// given a parent vector and node/host ID
-
-// std::vector<int> ptroottrans(std::vector<int> , int );
-// 
-// void makecladearray(std::vector<bool> , const std::vector<int> , 
-//                     int , int );
-// 
-// void tallyclades(std::vector<int> , std::vector<int> ,
-//                  std::vector<int> , const std::vector<bool> ,
-//                  int , int );
-// 
-// void cladetimestats(std::vector<double> , std::vector<double> ,
-//                     const std::vector<double> , 
-//                     const std::vector<int> , 
-//                     const std::vector<int> ,
-//                     const std::vector<bool> , int , int );
 
 
-// [[Rcpp::export(name=".CCtranstree")]]
-std::vector<double> CCtranstree(const std::vector<int> &pars, 
+
+
+
+
+// [[Rcpp::export(name=".CCtranstree2")]]
+std::vector<double> CCtranstree2(const std::vector<int> &pars, 
                              const std::vector<double> &tims,
                              std::vector<int> dims) {
 
-  //For each posterior tree, an obs*obs array of clades is created.
-  //Each tree contains 'obs' clades, which are described by vectors
-  //of length 'obs'. Each position i in such vector indicates host
-  //with ID=i is part of that clade.
-  std::vector<bool> cladearray(dims[0] * dims[0] * dims[1]); //dims[0] = obs, dims[1] = no.of.trees
-  makecladearray(cladearray, pars, dims[0], dims[1]);
-  
-  //Clades are identified by their position in cladearray, the first time
-  //they appear. The vector 'uniquecladepos' contains these positions,
-  //and 'uniquecladecount' records how frequent each clade is observed.
-  //Finally, 'whichclade' indicates the cladeID for each clade in cladearray.
-  std::vector<int> uniquecladepos;
-  std::vector<int> uniquecladecount;
-  std::vector<int> whichclade(dims[0] * dims[1]);
-  tallyclades(uniquecladepos, uniquecladecount, whichclade,
-              cladearray, dims[0], dims[1]);
-
-  //For each unique clade, the sums and sums-of-squares of the infection
-  //times of the root hosts are calculated
-  std::vector<double> cladetimesums(uniquecladepos.size());
-  std::vector<double> cladetimesumsqs(uniquecladepos.size());
-  cladetimestats(cladetimesums, cladetimesumsqs, tims,
-                 uniquecladepos, whichclade, cladearray, dims[0], dims[1]);
+  //The ss*n vector with n parents in each of ss trees is transformed into
+  //a n_clade*n uniquecladearray, an ss*n vector indicating which n clades
+  //are in each of the ss trees, and an n_clade long vector with clade frequencies
+  std::vector<bool> uniq_clades;
+  std::vector<int> which_clades(dims[0] * dims[1]);
+  std::vector<int> clade_freqs;
+  int n_clade = 0;
+  buildclades(uniq_clades, clade_freqs, which_clades, n_clade,
+              pars, dims[0], dims[1]);
 
   //For each clade, its log(frequency)
   std::vector<double> cladescores(dims[0] * dims[1]);
   for(int i = 0; i < dims[0]*dims[1]; ++i) {
-    cladescores[i] = std::log(uniquecladecount[whichclade[i]]);
+    cladescores[i] = std::log(clade_freqs[which_clades[i]]);
   }
 
   //Determine the posterior tree with highest sum(log(frequency))
-  int postsample = 0;
+  int posttree = 0;
   std::vector<double> treescores(dims[1]);
   for(int i = 0; i < dims[1]; ++i) {
     for(int j = 0; j < dims[0]; ++j) {
       treescores[i] += cladescores[i * dims[0] + j];
     }
-    if(treescores[i] > treescores[postsample]) {
-      postsample = i;
+    if(treescores[i] > treescores[posttree]) {
+      posttree = i;
     }
   }
 
+  //Determine the posterior clades
+  std::vector<int> postclades(dims[0]);
+  for(int i = 0; i < dims[0]; ++i) {
+    postclades[i] = which_clades[posttree * dims[0] + i];
+  }
+  
+  //For each posterior clade, the sums and sums-of-squares of the infection
+  //times of the root hosts are calculated
+  std::vector<double> cladetimesums(dims[0]);
+  std::vector<double> cladetimesumsqs(dims[0]);
+  cladetimestats(cladetimesums, cladetimesumsqs, tims,
+                 postclades, which_clades, uniq_clades, dims[0], dims[1]);
+  
 
   //Make vector with results: parents, clade support,
   //tree infection time,
   //mean infection time, SD(infection time)
   std::vector<double> result(5 * dims[0]);
   for(int i = 0; i < dims[0]; ++i) {
-    result[i] = pars[dims[0] * postsample + i];
-    result[i + dims[0]] = uniquecladecount[whichclade[dims[0] * postsample + i]];
+    result[i] = pars[dims[0] * posttree + i];
+    result[i + dims[0]] = clade_freqs[postclades[i]];
     
     result[i + 2*dims[0]] = 
-      cladetimesums[whichclade[dims[0] * postsample + i]] / result[i + dims[0]];
+      cladetimesums[i] / result[i + dims[0]];
     
     result[i + 3*dims[0]] = std::sqrt((
-      cladetimesumsqs[whichclade[dims[0] * postsample + i]] -
+      cladetimesumsqs[i] -
         result[i + 2*dims[0]] * result[i + 2*dims[0]] * result[i + dims[0]]
     ) / (result[i + dims[0]] - 1) );
     
     result[i + 4*dims[0]] = 
-      tims[dims[0] * postsample + i];
+      tims[dims[0] * posttree + i];
   }
   
 

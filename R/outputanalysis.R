@@ -147,26 +147,6 @@ make.phyDat <- function(phybreak.object) {
     }
 }
 
-#return most likely infector for each host from an phybreak-object
-MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, samplesize = Inf) {
-  chainlength <- length(phybreak.object$s$mu)
-  if(samplesize > chainlength & samplesize < Inf) {
-    warning("desired 'samplesize' larger than number of available samples")
-  }
-  samplesize <- min(samplesize, chainlength)
-  res <- matrix(with(phybreak.object,
-                     apply(s$nodehosts[p$obs:(2*p$obs-1),(chainlength-samplesize+1):chainlength],
-                           1,.postinfector,support = support)),nrow = 1 + support)
-  if(infectornames) res[1,] <- c("index",phybreak.object$d$names)[1+res[1,]]
-  if(!support) {
-    return(as.data.frame(t(res),ncol=1,dimnames=list(phybreak.object$d$names,"infectors")))
-  } else {
-    rownames(res) <- c("infectors","support")
-    colnames(res) <- phybreak.object$d$names
-    return(as.data.frame(t(res)))
-  }
-}
-
 
 
 #return ordered most likely infectors, with posterior support
@@ -223,7 +203,8 @@ MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, 
   return(ranks)
 }
 
-#worker function to obtain a transmission tree based on most likely infector, possibly containing cycles and multiple roots
+#worker function to obtain a transmission tree based on most likely infector, possibly containing cycles and multiple roots,
+#plus means and standard deviations of infection times
 .transtreecount <- function(phybreak.object, samplesize) {
   chainlength <- length(phybreak.object$s$mu)
   obsize <- phybreak.object$p$obs
@@ -247,7 +228,8 @@ MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, 
 }
 
 
-#worker function to obtain a transmission tree based on most likely infectors, using Edmunds's algorithm to remove cycles and multiple roots
+#worker function to obtain a transmission tree based on most likely infectors, using Edmunds's algorithm 
+#to remove cycles and multiple roots, plus means and standard deviations of infection times
 .transtreeedmunds <- function(phybreak.object, samplesize) {
   chainlength <- length(phybreak.object$s$mu)
   obsize <- phybreak.object$p$obs
@@ -286,7 +268,8 @@ MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, 
   return(res)
 }
 
-#return 'maximum parent credibility' tree with posterior support and node times
+#return 'maximum parent credibility' tree with posterior support and means and standard deviations of 
+#infection times, and infection times of the mpc tree itself
 .mpcinfector <- function(phybreak.object, samplesize) {
   chainlength <- length(phybreak.object$s$mu)
   obsize <- phybreak.object$p$obs
@@ -341,33 +324,78 @@ MLinfectors <- function(phybreak.object, support = FALSE, infectornames = TRUE, 
   return(res)
 }
 
-
-#wrapper function to obtain the most-likely infector-based transmission tree, based on Edmunds's algorithm
-MLtree.infector <- function(phybreak.object, infectornames = TRUE, samplesize = Inf) {
+#### WRAPPER to get posterior mean transmission trees
+MLtrans <- function(phybreak.object,
+                    method = c("count", "edmunds", "mpc", "mtcc", "cc.construct"),
+                    samplesize = Inf) {
   chainlength <- length(phybreak.object$s$mu)
   if(samplesize > chainlength & samplesize < Inf) {
     warning("desired 'samplesize' larger than number of available samples")
   }
   samplesize <- min(samplesize, chainlength)
-
-  res <- .transtreeedmunds(phybreak.object, samplesize)
-
-  if(infectornames) {
-    infectors.out <- matrix(c("index",phybreak.object$d$names)[1+res[,1]],ncol = 1,
-                            dimnames=list(phybreak.object$d$names,"infector"))
-  } else {
-    infectors.out <- matrix(res[,1],ncol = 1,
-                            dimnames=list(phybreak.object$d$names,"infector"))
+  obs <- phybreak.object$p$obs
+  
+  res <- c()
+  
+  if(method[1] == "count") {
+    res <- .transtreecount(phybreak.object, samplesize)
   }
-  return(
-    data.frame(
-      infectors = infectors.out,
-      support = res[,2],
-      tmean = res[,3],
-      tsd = res[,4]
+  if(method[1] == "edmunds") {
+    res <- .transtreeedmunds(phybreak.object, samplesize)
+  }
+  if(method[1] == "mpc") {
+    res <- .mpcinfector(phybreak.object, samplesize)
+  }
+  if(method[1] == "mtcc") {
+    res <- matrix(.CCtranstree2(
+      phybreak.object$s$nodehosts[obs:(2*obs-1),
+                                  (1:samplesize) + chainlength - samplesize],
+      phybreak.object$s$nodetimes[obs:(2*obs-1),
+                                  (1:samplesize) + chainlength - samplesize],
+      c(obs, samplesize)
+    ), ncol = 5)
+  }
+  if(method[1] == "cc.construct") {
+    res <- matrix(.CCtranstreeconstruct(
+      phybreak.object$s$nodehosts[obs:(2*obs-1),
+                                  (1:samplesize) + chainlength - samplesize],
+      phybreak.object$s$nodetimes[obs:(2*obs-1),
+                                  (1:samplesize) + chainlength - samplesize],
+      c(obs, samplesize)
+    ), ncol = 4)
+  }
+  
+  if(length(res) == 0) {
+    stop("incorrect method provided, choose \"count\", \"edmunds\",
+\"mpc\", \"mtcc\", or \"cc.construct\"")
+  }
+  
+  infectors.out <- matrix(res[,1],ncol = 1,
+                          dimnames=list(phybreak.object$d$names,"infector"))
+  if(method[1] == "mpc" || method[1] == "mtcc") {
+    return(
+      data.frame(
+        infectors = infectors.out,
+        support = res[,2],
+        inftime.mean = res[,3],
+        inftime.sd = res[,4],
+        inftime.mc = res[,5]
+      )
     )
-  )
+  } else {
+    return(
+      data.frame(
+        infectors = infectors.out,
+        support = res[,2],
+        inftime.mean = res[,3],
+        inftime.sd = res[,4]
+      )
+    )
+  }
+  
+  
 }
+
 
 
 #count equal elements in two vectors (such as infectors)
@@ -395,75 +423,6 @@ treedists.phybreak <- function(phybreak.object, samplesize = 100, thin = 10) {
   return(as.dist(obsize-res))
 }
 
-MLtrans <- function(phybreak.object,
-                    method = c("count", "edmunds", "mpc", "mtcc", "cc.construct"),
-                    support = FALSE, infectornames = FALSE, samplesize = Inf) {
-  chainlength <- length(phybreak.object$s$mu)
-  if(samplesize > chainlength & samplesize < Inf) {
-    warning("desired 'samplesize' larger than number of available samples")
-  }
-  samplesize <- min(samplesize, chainlength)
-  obs <- phybreak.object$p$obs
-
-  res <- c()
-
-  if(method[1] == "count") {
-    res <- t(matrix(with(phybreak.object,
-                       apply(s$nodehosts[p$obs:(2*p$obs-1),(chainlength-samplesize+1):chainlength],
-                             1,.postinfector,support = TRUE)),nrow = 2))
-  }
-  if(method[1] == "edmunds") {
-    res <- .transtreeedmunds(phybreak.object, samplesize)
-  }
-  if(method[1] == "mpc") {
-    res <- .mpcinfector(
-      phybreak.object$s$nodehosts[obs:(2*obs-1),
-                                  (1:samplesize) + chainlength - samplesize])
-  }
-  if(method[1] == "mtcc") {
-    res <- matrix(.CCtranstree(
-      phybreak.object$s$nodehosts[obs:(2*obs-1),
-                                  (1:samplesize) + chainlength - samplesize],
-      c(obs, samplesize)
-    ), ncol = 2)
-  }
-  if(method[1] == "cc.construct") {
-    res <- matrix(.CCtranstreeconstruct(
-      phybreak.object$s$nodehosts[obs:(2*obs-1),
-                                  (1:samplesize) + chainlength - samplesize],
-      c(obs, samplesize)
-    ), ncol = 2)
-  }
-
-  if(length(res) == 0) {
-    stop("incorrect method provided, choose \"count\", \"edmunds\",
-\"mpc\", \"mtcc\", or \"cc.construct\"")
-  }
-
-  if(infectornames) {
-    infectors.out <- matrix(c("index",phybreak.object$d$names)[1+res[,1]],ncol = 1,
-                            dimnames=list(phybreak.object$d$names,"infector"))
-  } else {
-    infectors.out <- matrix(res[,1],ncol = 1,
-                            dimnames=list(phybreak.object$d$names,"infector"))
-  }
-  if(support) {
-    return(
-      data.frame(
-        infectors = infectors.out,
-        support = res[,2]
-      )
-    )
-  } else {
-    return(
-      data.frame(
-        infectors = infectors.out
-      )
-    )
-  }
-
-
-}
 
 .makephyloparset <- function(parentset) {
   obs <- (1 + length(parentset))/3
