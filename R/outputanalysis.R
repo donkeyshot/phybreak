@@ -474,7 +474,7 @@ treedists.phybreak <- function(phybreak.object, samplesize = 100, thin = 10) {
 }
 
 
-MLphylo2 <- function(phybreak.object,
+MLphylo <- function(phybreak.object,
                     method = c("mcc", "cc.construct"),
                     phylo.class = TRUE, mc.times = TRUE, samplesize = Inf) {
   chainlength <- length(phybreak.object$s$mu)
@@ -501,8 +501,11 @@ MLphylo2 <- function(phybreak.object,
     res <- matrix(.CCphylotreeconstruct(
       .makephyloparsets(phybreak.object$s$nodeparents[,
                                                      (1:samplesize) + chainlength - samplesize]),
+      phybreak.object$s$nodetimes[1:(obs - 1),
+                                  (1:samplesize) + chainlength - samplesize],
       c(obs, samplesize)
-    ), ncol = 2)
+    ), ncol = 4)
+    res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs]
   }
   
   if(length(res) == 0) {

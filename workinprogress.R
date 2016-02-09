@@ -10,7 +10,7 @@ library(phybreak)
 simulatie <- sim.phybreak.gentime(20)
 curstate <- make.phybreak.obkData(simulatie)
 curstate <- burnin.phybreak(curstate, 500)
-curstate <- sample.phybreak(curstate, 1000, 10)
+curstate <- sample.phybreak(curstate, 100, 10)
 
 for(i in 1:2786) {
   for(j in (i+1):2787) {

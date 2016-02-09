@@ -13,15 +13,15 @@ using namespace Rcpp;
 //   http://gallery.rcpp.org/
 //
 
-std::vector<int> ptrootphylo(std::vector<int> pars, int ID) {
-  std::vector<int> ans;
-  int nextID = pars[ID - 1];
-  while(nextID > 0) {
-    ans.push_back(nextID);
-    nextID = pars[nextID - 1];
-  }
-  return(ans);
-}
+// std::vector<int> ptrootphylo(std::vector<int> pars, int ID) {
+//   std::vector<int> ans;
+//   int nextID = pars[ID - 1];
+//   while(nextID > 0) {
+//     ans.push_back(nextID);
+//     nextID = pars[nextID - 1];
+//   }
+//   return(ans);
+// }
 
 // std::vector<int> ptroottrans(std::vector<int> pars, int ID) {
 //   std::vector<int> ans;
