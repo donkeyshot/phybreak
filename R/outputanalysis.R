@@ -75,6 +75,7 @@ make.coda <- function(phybreak.object, samplesize = Inf) {
   )
   class(res) <- "phylo"
   res <- reorder(res)
+  res <- ladderize(res)
   return(res)
 
 }
@@ -438,13 +439,13 @@ treedists.phybreak <- function(phybreak.object, samplesize = 100, thin = 10) {
         MARGIN = 2, .makephyloparset)
 }
 
-.makephylo2 <- function(nodeparents) {
+.makephylo2 <- function(nodeparents, nodetimes) {
   ###topology
   Nhosts <- (1+length(nodeparents))/2
   indexc <- (1:length(nodeparents))[nodeparents == 0]
   edgestart <- nodeparents[nodeparents != 0]
   edgeend <- (1:length(nodeparents))[nodeparents != 0]
-  edgelengths <- rep(1,length(nodeparents)-1)
+  edgelengths <- nodetimes[edgeend] - nodetimes[edgestart]
   
   if(indexc != Nhosts + 1) {
     edgestart[edgestart == indexc] <- 0
@@ -473,9 +474,9 @@ treedists.phybreak <- function(phybreak.object, samplesize = 100, thin = 10) {
 }
 
 
-MLphylo <- function(phybreak.object,
+MLphylo2 <- function(phybreak.object,
                     method = c("mcc", "cc.construct"),
-                    support = FALSE, phylo.class = TRUE, samplesize = Inf) {
+                    phylo.class = TRUE, mc.times = TRUE, samplesize = Inf) {
   chainlength <- length(phybreak.object$s$mu)
   if(samplesize > chainlength & samplesize < Inf) {
     warning("desired 'samplesize' larger than number of available samples")
@@ -489,8 +490,12 @@ MLphylo <- function(phybreak.object,
     res <- matrix(.CCphylotree(
       .makephyloparsets(phybreak.object$s$nodeparents[,
                                                      (1:samplesize) + chainlength - samplesize]),
+      phybreak.object$s$nodetimes[1:(obs - 1),
+                                    (1:samplesize) + chainlength - samplesize],
       c(obs, samplesize)
-    ), ncol = 2)
+    ), ncol = 5)
+    res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs]
+    res[1:obs, 5] <- phybreak.object$v$nodetimes[1:obs]
   }
   if(method[1] == "cc.construct") {
     res <- matrix(.CCphylotreeconstruct(
@@ -503,23 +508,37 @@ MLphylo <- function(phybreak.object,
   if(length(res) == 0) {
     stop("incorrect method provided, choose \"mcc\" or \"cc.construct\"")
   }
-  
+
   parents.out <- matrix(res[,1],ncol = 1,
                           dimnames=list(1:(2*obs-1),"parent"))
-  if(support) {
-    return(
-      data.frame(
-        parents = parents.out,
-        support = res[,2]
+  if(method[1] == "mcc") {
+    if(phylo.class) {
+      if(mc.times) {
+        return(.makephylo2(res[,1],res[,5]))
+      } else {
+        return(.makephylo2(res[,1],res[,3]))
+      }
+    } else {
+      return(
+        data.frame(
+          parents = parents.out,
+          support = res[,2],
+          nodetime.mean = res[,3],
+          nodetime.sd = res[,4],
+          nodetime.mc = res[,5]
+        )
       )
-    )
+    }
   } else {
     if(phylo.class) {
-      return(.makephylo2(res[,1]))
+      return(.makephylo2(res[,1],res[,3]))
     } else
     return(
       data.frame(
-        parents = parents.out
+        parents = parents.out,
+        support = res[,2],
+        nodetime.mean = res[,3],
+        nodetime.sd = res[,4]
       )
     )
   }

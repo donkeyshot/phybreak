@@ -59,8 +59,8 @@ std::vector<double> CCtranstree2(const std::vector<int> &pars,
   
 
   //Make vector with results: parents, clade support,
-  //tree infection time,
   //mean infection time, SD(infection time)
+  //tree infection time,
   std::vector<double> result(5 * dims[0]);
   for(int i = 0; i < dims[0]; ++i) {
     result[i] = pars[dims[0] * posttree + i];

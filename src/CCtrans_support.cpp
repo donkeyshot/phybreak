@@ -98,31 +98,19 @@ void buildclades(std::vector<bool> &uc, std::vector<int> &cf, std::vector<int> &
 
 
 
+
 void cladetimestats(std::vector<double> &sums, std::vector<double> &ssq,
                     const std::vector<double> &tims, 
                     const std::vector<int> &pc, 
                     const std::vector<int> &wc,
                     const std::vector<bool> &uc, int n, int ss) {
-  bool anytime = false;
-  double mintime = 0;
-  
+
   for(int i = 0; i < n; ++i) { //each clade in best tree
     for(int j = 0; j < ss; ++j) { //each post tree
       for(int k = 0; k < n; ++k) { //each clade in post tree
         if(pc[i] == wc[j * n + k]) {          //if clades are equal
-          for(int l = 0; l < n; ++l) { //each host
-            if(uc[pc[i] * n + l]) { //is host in clade?
-              if(!anytime) { //is it first host in clade?
-                mintime = tims[j * n + l]; //mintime = time of host
-                anytime = true;
-              } else if(mintime > tims[j * n + l]) { //is time of host smallest?
-                mintime = tims[j * n + l]; //mintime = time of host
-              }
-            }
-          }
-          sums[i] += mintime;
-          ssq[i] += mintime*mintime;
-          anytime = false;
+          sums[i] += tims[j * n + k];
+          ssq[i] += tims[j * n + k] * tims[j * n + k];
         }
       }
     }
