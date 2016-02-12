@@ -51,15 +51,17 @@
                tail(leafparents,sum(ntypes=="t")))
       return(res)
     },{
-      cnodes <- nIDs[ntypes=="c"]
-      cnodeparents <- c(rootnode,head(cnodes,-1))
-      leafparents <- c(cnodes,tail(cnodes,1))
-      res <- c(head(leafparents,sum(ntypes=="s")),
-               cnodeparents,
-               tail(leafparents,sum(ntypes=="t")))
+      cnodes <- sort(nIDs[ntypes=="c"],decreasing = TRUE)
+      res <- c(rep(NA,sum(ntypes=="s")),
+               rootnode,tail(-nIDs[ntypes=="c"],-1),
+               rep(NA,sum(ntypes=="t")))
+      for(i in cnodes) {
+        res[sample(which(is.na(res)),2)] <- i
+        res[res == -i] <- NA
+      }
       return(res)
     }
-    )
+  )
   IDs <- nIDs[order(ntimes,ntypes)]
   tys <- ntypes[order(ntimes,ntypes)]
   if(tys[1] != "c") {
