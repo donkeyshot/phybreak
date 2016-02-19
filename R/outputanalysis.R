@@ -397,6 +397,30 @@ MLtrans <- function(phybreak.object,
   
 }
 
+##sets of possible infectors per host, based on 'count' method
+infectorsets <- function(phybreak.object, percentile = 0.95, 
+                         minsupport = 0, samplesize = Inf) {
+  chainlength <- length(phybreak.object$s$mu)
+  if(samplesize > chainlength & samplesize < Inf) {
+    warning("desired 'samplesize' larger than number of available samples")
+  }
+  samplesize <- min(samplesize, chainlength)
+  obs <- phybreak.object$p$obs
+  
+  inffreqs <- .infarray(phybreak.object$s$nodehosts[obs:(2*obs-1),])
+  
+  includemat <- inffreqs[,2,] > minsupport * samplesize
+  cumfreqincl <- t(rbind(rep(TRUE, obs),
+                         apply(inffreqs[,2,],1,cumsum) < percentile * samplesize)[-(obs+1),])
+  includemat <- includemat & cumfreqincl
+  
+  res <- list()
+  for(i in 1:obs) {
+    res[[i]] <- inffreqs[i,1,][includemat[i,]]
+  }
+  names(res) <- phybreak.object$d$names
+  return(res)
+}
 
 
 #count equal elements in two vectors (such as infectors)

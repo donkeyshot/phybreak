@@ -1,3 +1,5 @@
+NumError <- 10^-14
+
 ###Key functions in updating process
 
 .samplecoaltimes <- function(tleaves, WHmodel = 3, lambda = 0, rate0 = 1) {
@@ -200,7 +202,7 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
     nodetypes <- c(rep("s",obs), rep("c",obs - 1),
                    rep("t",obs))  #initialize nodes: will contain node type (sampling, coalescent, transmission)
 
-    for(i in 1:obs) {
+    for(i in 1:50) {
       #host by host, start in sampling node
       curedge <- i #edge ending in node i
       curhost <- i
@@ -212,7 +214,7 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
         is.na(nodehosts[nodeparents[curedge]]) |
         is.na(nodeparents[curhost+2*obs-1])
         ) {
-        if(curtime - edgelengths[curedge] > nextttrans) {
+        if(curtime - edgelengths[curedge] > nextttrans + NumError) {
           #if no transmission node on current edge
           #then go to previous edge and assign time and host
           curtime <- curtime - edgelengths[curedge]

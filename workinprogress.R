@@ -1,4 +1,4 @@
-setwd("S:/R/klinkend/Phylomodellen/ResultsJan16/Results")
+setwd("S:/R/klinkend/Phylomodellen/ResultsJan16/Resultsplus")
 
 res <- readRDS("res1__wh1")
 
