@@ -195,59 +195,45 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
                      tail(phylobegin[order(phyloend)],obs-2),
                      rep(NA,obs))
     nodetimes <- c(samtimes, rep(NA,obs-1), inftimes)   #initialize nodes: will contain time of node
-    nodehosts <- c(1:obs, which(infectors==0), rep(NA,2*obs-2))   #initialize nodes: will contain host carrying the node
+    nodetimes <- c(rep(NA,2*obs-1), inftimes)   #initialize nodes: will contain time of node
+    nodehosts <- c(1:obs, which(infectors==0), rep(NA,obs-2), infectors)   #initialize nodes: will contain host carrying the node
     edgelengths <- c(head(phylolengths[order(phyloend)],obs),
                      0, tail(phylolengths[order(phyloend)],obs-2),
                      rep(NA,obs))
     nodetypes <- c(rep("s",obs), rep("c",obs - 1),
                    rep("t",obs))  #initialize nodes: will contain node type (sampling, coalescent, transmission)
-
-    for(i in 1:50) {
-      #host by host, start in sampling node
-      curedge <- i #edge ending in node i
-      curhost <- i
-      curtime <- samtimes[i]
-      nextttrans <- inftimes[i]
-      while(
-        #upstream node still empty OR transmission node of
-        #current host still empty
-        is.na(nodehosts[nodeparents[curedge]]) |
-        is.na(nodeparents[curhost+2*obs-1])
-        ) {
-        if(curtime - edgelengths[curedge] > nextttrans + NumError) {
-          #if no transmission node on current edge
-          #then go to previous edge and assign time and host
-          curtime <- curtime - edgelengths[curedge]
-          curedge <- nodeparents[curedge]
-          nodehosts[curedge] <- curhost
-          nodetimes[curedge] <- curtime
-          if(curedge == obs+1) {
-            #if on root of phylotree
-            #then assign length of edge
-            edgelengths[curedge] <- curtime - nextttrans
-            }
+    while(any(is.na(nodetimes))) {
+      nodetimes[1:(2*obs - 1)] <- nodetimes[nodeparents[1:(2*obs - 1)]] + edgelengths[1:(2*obs - 1)]
+    }
+    nodetimes <- round(nodetimes, digits = 12)
+    edgelengths[1:(2*obs - 1)] <- nodetimes[1:(2*obs - 1)] - nodetimes[nodeparents[1:(2*obs - 1)]]
+    
+    nodeparents[(2*obs - 1) + setdiff(1:obs,nodehosts[(2*obs):(3*obs-1)])] <- nodeparents[setdiff(1:obs,nodehosts[(2*obs):(3*obs-1)])]
+    nodeparents[setdiff(1:obs,nodehosts[(2*obs):(3*obs-1)])] <- (2*obs - 1) + setdiff(1:obs,nodehosts[(2*obs):(3*obs-1)])
+    nodehosts[nodeparents[sort(unique(nodehosts[(2*obs):(3*obs-1)]))[-1]]] <- sort(unique(nodehosts[(2*obs):(3*obs-1)]))[-1]
+    
+    #nh[np[sameparentsamehost]] <- nh[sameparentsamehost]
+    while(any(is.na(nodehosts))) {
+      whichnodes <- tail(which(!is.na(nodehosts) & !is.na(nodeparents)),-obs)
+      whichnodes <- whichnodes[order(nodeparents[whichnodes])]
+      sameparent.wn <- which(duplicated(nodeparents[whichnodes]))
+      for(i in sameparent.wn) {
+        if(nodehosts[whichnodes[i]] == nodehosts[whichnodes[i-1]]) {
+          nodehosts[nodeparents[whichnodes[i]]] <- nodehosts[whichnodes[i]]
         } else {
-          #if transmission node on edge, then split edge
-          nextedge <- curhost + 2*obs-1
-
-          #first, split lengths
-          edgelengths[nextedge] <- edgelengths[curedge] + nextttrans - curtime
-          edgelengths[curedge] <- curtime - nextttrans
-
-          #second, define new parentnodes
-          nodeparents[nextedge] <- nodeparents[curedge]
-          nodeparents[curedge] <- nextedge
-
-          #go to the previous host and edge and assign host
-          curhost <- infectors[curhost]
-          curtime <- nextttrans
-          curedge <- nextedge
-          nextttrans <- inftimes[curhost]
-          nodehosts[curedge] <- curhost
+          posshosts <- nodehosts[whichnodes[i - 1:0]]
+          posshosts <- c(posshosts, infectors[posshosts])
+          nodehosts[nodeparents[whichnodes[i]]] <- posshosts[duplicated(posshosts)]
         }
       }
+      
     }
-    nodeparents[nodehosts == 0] <- 0
+    
+    nodeparents[nodehosts[which(nodehosts[nodeparents[(obs+1):(2*obs-1)]] != nodehosts[(obs+1):(2*obs-1)])+obs]+2*obs-1] <- nodeparents[which(nodehosts[nodeparents[(obs+1):(2*obs-1)]] != nodehosts[(obs+1):(2*obs-1)])+obs]
+    nodeparents[which(nodehosts[nodeparents[(obs+1):(2*obs-1)]] != nodehosts[(obs+1):(2*obs-1)])+obs] <- nodehosts[which(nodehosts[nodeparents[(obs+1):(2*obs-1)]] != nodehosts[(obs+1):(2*obs-1)])+obs]+2*obs-1
+    nodeparents[nodehosts==0] <- 0
+    
+
     varlist <- list(
       nodetimes = nodetimes,
       nodehosts = nodehosts,
