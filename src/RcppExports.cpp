@@ -121,3 +121,14 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// sctwh3
+NumericVector sctwh3(NumericVector tle);
+RcppExport SEXP phybreak_sctwh3(SEXP tleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericVector >::type tle(tleSEXP);
+    __result = Rcpp::wrap(sctwh3(tle));
+    return __result;
+END_RCPP
+}

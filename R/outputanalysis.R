@@ -29,6 +29,15 @@ make.coda <- function(phybreak.object, samplesize = Inf) {
     res <- cbind(phybreak.object$s$mG[(chainlength-samplesize+1):chainlength], res)
     parnames <- c("mG",parnames)
   }
+  if(phybreak.object$h$est.wh) {
+    if(phybreak.object$p$wh.model == 3) {
+      res <- cbind(phybreak.object$s$r0[(chainlength-samplesize+1):chainlength], res)
+      parnames <- c("r0",parnames)
+    } else {
+      res <- cbind(phybreak.object$s$slope[(chainlength-samplesize+1):chainlength], res)
+      parnames <- c("slope",parnames)
+    }
+  }
   res <- cbind(phybreak.object$s$mu[(chainlength-samplesize+1):chainlength], res,
                phybreak.object$s$logLik[(chainlength-samplesize+1):chainlength])
   parnames <- c("mu",parnames,"logLik")
@@ -38,7 +47,7 @@ make.coda <- function(phybreak.object, samplesize = Inf) {
 
 ###phangorn functionality
 #include 'phangorn'
-.makephylo <- function(nodetimes, nodeparents) {
+.makephylo <- function(nodetimes, nodeparents, nodenames) {
   ###topology
   Nhosts <- (1+length(nodetimes))/3
   indext <- (1:length(nodetimes))[nodeparents == 0]
@@ -64,14 +73,15 @@ make.coda <- function(phybreak.object, samplesize = Inf) {
   }
 
   edges <- matrix(c(edgestart,edgeend),ncol=2)
-
+  
+  toname <- nodenames
 
 
   res <- list(
     edge = edges,
     edge.length = edgelengths,
     Nnode = Nhosts - 1,
-    tip.label = 1:Nhosts
+    tip.label = toname
   )
   class(res) <- "phylo"
   res <- reorder(res)
@@ -79,18 +89,120 @@ make.coda <- function(phybreak.object, samplesize = Inf) {
   return(res)
 
 }
-.makephyDat <- function(SNPs, SNPfreqs) {
+.makephylosimmap <- function(nodetimes, nodeparents, nodehosts, nodenames) {
+  ###topology for phylo
+  Nhosts <- (1+length(nodetimes))/3
+  indext <- (1:length(nodetimes))[nodeparents == 0]
+  indexc <- (1:length(nodetimes))[nodeparents == indext]
+  edgestart <- nodeparents[nodeparents != 0 & nodeparents != indext]
+  edgeend <- (1:length(nodetimes))[nodeparents != 0 & nodeparents != indext]
+  edgelengths <- nodetimes[edgeend] - nodetimes[edgestart]
+  
+  toremove <- (edgeend >= 2*Nhosts)
+  toreplace <- (edgestart >= 2*Nhosts)
+  edgelengths[toreplace] <- edgelengths[toreplace] + edgelengths[toremove][match(edgestart[toreplace],edgeend[toremove])]
+  edgestart[toreplace] <- edgestart[toremove][match(edgestart[toreplace],edgeend[toremove])]
+  edgestart <- edgestart[!toremove]
+  edgeend <- edgeend[!toremove]
+  edgelengths <- edgelengths[!toremove]
+  
+  edges <- matrix(c(edgestart,edgeend),ncol=2)
+  
+  ###items for simmap (phytools)  
+  whichcolor <- function(iors, path) {
+    if(path[1] == 0) {
+      return(length(path) %% 3)
+    } else {
+      return(whichcolor(iors, c(iors[path[1]], path)))
+    }
+  }
+  
+  tipstates <- c("red","blue","black")[1+sapply(1:Nhosts, whichcolor, 
+                                                iors=tail(nodehosts,Nhosts))]
+  nodestates <- matrix(tipstates[nodehosts[edges]], ncol = 2)
+  edgemaps <- list()
+  for(i in 1:(2 * (Nhosts - 1))) {
+    if(nodestates[i,1] == nodestates[i,2]) {
+      edgemaps[[i]] <- edgelengths[i]
+      names(edgemaps[[i]]) <- nodestates[i,1]
+    } else {
+      nodes <- edges[i,]
+      ntimes <- nodetimes[c(nodes[1],nodeparents[nodes[2]],nodes[2])]
+      edgemaps[[i]] <- ntimes[2:3] - ntimes[1:2]
+      names(edgemaps[[i]]) <- nodestates[i,]
+    }
+  }
+  
+  mappededge <- matrix(nrow = 2 * (Nhosts - 1), ncol = 3)
+  for(i in 1:(2 * (Nhosts - 1))) {
+    mappededge[i,] <- edgemaps[[i]][c("blue","black","red")]
+  }
+  mappededge[is.na(mappededge)] <- 0
+  colnames(mappededge) <- c("blue","black","red")
+  rownames(mappededge) <- paste0(edges[,1],",",edges[,2])
+  
+  
+  ###give first coalescent node number Nhosts+1
+  if(indexc != Nhosts + 1) {
+    edgestart[edgestart == indexc] <- 0
+    edgeend[edgeend == indexc] <- 0
+    edgestart[edgestart == Nhosts + 1] <- indexc
+    edgeend[edgeend == Nhosts + 1] <- indexc
+    edgestart[edgestart == 0] <- Nhosts + 1
+    edgeend[edgeend == 0] <- Nhosts + 1
+  }
+  edges <- matrix(c(edgestart,edgeend),ncol=2)
+  
+  ###make preliminary result for ladderizing
+  respreladder <- list(
+    edge = edges,
+    edge.length = edgelengths,
+    Nnode = Nhosts - 1,
+    tip.label = nodenames
+  )
+  class(respreladder) <- c("phylo")
+  respreladder <- reorder(respreladder)
+  
+  ###ladderize to determine reordering of edges
+  edgeladder <- ladderize(respreladder)$edge[,2]
+  newedgeorder <- match(edgeladder, edgeend)
+  newtiporder <- match(respreladder$tip.label, nodenames)
+  
+  reorderedmaps <- list()
+  for(i in 1:(2*(Nhosts-1))) {
+    reorderedmaps[[i]] <- edgemaps[[newedgeorder[i]]]
+  }
+  
+  
+  res <- list(
+    edge = edges[newedgeorder,],
+    edge.length = edgelengths[newedgeorder],
+    Nnode = Nhosts - 1,
+    tip.label = nodenames[newtiporder],
+    node.state = nodestates[newedgeorder,],
+    states = tipstates[newtiporder],
+    maps = reorderedmaps,
+    mapped.edge = mappededge[newedgeorder,]
+  )
+  class(res) <- c("simmap","phylo")
+  attr(res,"order") <- "cladewise"
+  
+  return(res)
+  
+}
+
+.makephyDat <- function(SNPs, SNPfreqs, nodenames) {
   Nhosts <- nrow(SNPs)
 
   ###sequences
   dnadata <- t(matrix(rep(t(SNPs),rep(SNPfreqs,Nhosts)),ncol=Nhosts))
-  rownames(dnadata) <- 1:Nhosts
+  rownames(dnadata) <- nodenames
 
   return(phyDat(dnadata))
 }
 
 
-make.phylo.phybreak <- function(phybreak.object, samplenr = 0) {
+make.phylo.phybreak <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
   if(samplenr > length(phybreak.object$s$mu)) {
     warning("requested 'samplenr' not available; current state used")
     samplenr <- 0
@@ -99,16 +211,34 @@ make.phylo.phybreak <- function(phybreak.object, samplenr = 0) {
   if(samplenr == 0) {
     nodetimes <- phybreak.object$v$nodetimes
     nodeparents <- phybreak.object$v$nodeparents
+    nodehosts <- phybreak.object$v$nodehosts
   } else {
     nodetimes <- with(phybreak.object,
                       c(v$nodetimes[1:p$obs],
                         s$nodetimes[,samplenr]))
     nodeparents <- phybreak.object$s$nodeparents[,samplenr]
+    nodehosts <- with(phybreak.object,
+                      c(v$nodehosts[1:p$obs],
+                        s$nodehosts[,samplenr]))
   }
+  nodenames <- phybreak.object$d$names
 
-  return(.makephylo(nodetimes, nodeparents))
+  if(simmap) {
+    return(.makephylosimmap(nodetimes, nodeparents, nodehosts, nodenames))
+  } else {
+    return(.makephylo(nodetimes, nodeparents, nodenames))
+  }
 }
 
+treeplot.phybreak <- function(phybreak.object, plot.mpc = FALSE, samplenr = 0, ...) {
+  if(plot.mpc) {
+    plotSimmap(MLtrans(phybreak.object, "mpc", phylo.class = TRUE),
+               colors = setNames(nm = c("black","red","blue")), ...)
+  } else {
+    plotSimmap(make.phylo.phybreak(phybreak.object, samplenr, TRUE),
+               colors = setNames(nm = c("black","red","blue")), ...)
+  }
+}
 
 make.multiPhylo <- function(phybreak.object, samplesize = Inf) {
   chainlength <- length(phybreak.object$s$mu)
@@ -127,8 +257,9 @@ make.multiPhylo <- function(phybreak.object, samplesize = Inf) {
 }
 
 make.phyDat <- function(phybreak.object) {
+  nodenames <- phybreak.object$d$names
   return(with(phybreak.object$d,
-              .makephyDat(SNP, SNPfr)))
+              .makephyDat(SNP, SNPfr, nodenames)))
 }
 
 
@@ -162,47 +293,80 @@ make.phyDat <- function(phybreak.object) {
   return(res)
 }
 
-#returns input vector IDs, with parent node of IDs[1] from 'parset' added as first element...
-#...unless IDs[1] == 0 (root) or IDs[1] is twice present in IDs (cycle): then it returns IDs.
-#If a single hostID is given, the recursive call gives the path to the root or to a cycle.
+#return distribution of infectors for hostID, including 0-counts, starting with root 0
+.infectordist <- function(hostID, posterior, obs) {
+  res <- tabulate(posterior[hostID,] + 1,nbins = obs+1)
+  return(res - max(res))
+}
+
+#return support for infector of hostID
+.infectorsupport <- function(hostID, infectors, posterior) {
+  sum(posterior[hostID,]==infectors[hostID])
+}
+
+#return most frequent number in vector
+.MLinfector <- function(infdistcolumn) {
+  which(infdistcolumn == max(infdistcolumn))[1]
+}
+
+#return path to the root from IDs[1], iteratively calling this function
+#stop if a cycle is encountered
 .pathtoroot <- function(parset, IDs) {
-  if(IDs[1] == 0 | length(IDs) > length(unique(IDs))) {
+  if(IDs[1] == 1 | length(IDs) > length(unique(IDs))) {
     return(IDs)
   } else {
     return(.pathtoroot(parset, c(parset[IDs[1]],IDs)))
   }
 }
 
-#returns first element of 'pathtoroot', indicating a direct path to the root (if 0) or a member of a cycle
-.hostroot <- function(parset, hostID) {
-  .pathtoroot(parset,hostID)[1]
+#return if ID is in a cycle
+.cycleYN <- function(parset, ID) {
+  .pathtoroot(parset, ID)[1] == ID && ID != 1
 }
 
-#returns treeroots for each host, indicating a direct path to the root (if 0) or a member of a cycle
-.treeroots <- function(parset) {
-  roots <- sapply(1:length(parset), .hostroot, parset = parset)
-  return(roots)
+#iterative call to edmond's algorithm, as long as there are cycles
+.edmondsiterative <- function(infdistmat, samplesize, obs) {
+  parentset <- apply(infdistmat, 2, .MLinfector)
+  cycleIDs <- which(sapply(1:obs, 
+                           .cycleYN, 
+                           parset = parentset))
+  if(length(cycleIDs) == 0) {
+    return(parentset)
+  }
+  cycletonode <- unique(.pathtoroot(parentset, cycleIDs[1]))
+  cycleinfector <- parentset[cycletonode]
+  
+  whichincoming <- cycletonode[apply(infdistmat[cycletonode,],2,which.max)]
+  whichoutgoing <- cycletonode[apply(infdistmat[,cycletonode],1,which.max)]
+  
+  infdistmat[cycletonode[1],] <- 
+    apply(infdistmat[cycletonode,], 2, max)
+  
+  infdistmat[tail(cycletonode,-1),] <- -samplesize
+  
+  infdistmat[cycletonode,cycletonode] <- -samplesize
+  
+  infdistmat[,cycletonode[1]] <- 
+    apply(infdistmat[,cycletonode], 1, max) - max(infdistmat[,cycletonode])
+  
+  infdistmat[,tail(cycletonode,-1)] <- -samplesize
+  infdistmat[1,tail(cycletonode,-1)] <- 0
+  
+  treeres <- .edmondsiterative(infdistmat, samplesize, obs)
+  
+  
+  incoming <- which(treeres == cycletonode[1])
+  outgoing <- treeres[cycletonode[1]]
+  
+  treeres[incoming] <- whichincoming[incoming]
+  cycleinfector[cycletonode == whichoutgoing[outgoing]] <- outgoing
+  treeres[cycletonode] <- cycleinfector
+  
+  
+  return(treeres)
+  
 }
 
-#change one of the ranks, to remove a root from the transmission tree (Edmunds's algorithm: smallest loss of support)
-.removeroot <- function(parset, ranks, infarray) {
-  indices <- which(parset == 0)
-  supportloss <- infarray[cbind(indices,2,ranks[indices])] -
-    infarray[cbind(indices,2,ranks[indices] + 1)]
-  indextolose <- indices[which(supportloss == min(supportloss))][1]
-  ranks[indextolose] <- ranks[indextolose] + 1
-  return(ranks)
-}
-
-#change one of the ranks, to remove a cycle from the transmission tree (Edmunds's algorithm: smallest loss of support)
-.removecycle <- function(parset, ranks, roots, infarray) {
-  cycle <- unique(.pathtoroot(parset,max(roots)))
-  supportloss <- infarray[cbind(cycle,2,ranks[cycle])] -
-    infarray[cbind(cycle,2,ranks[cycle] + 1)]
-  nodetobreak <- cycle[which(supportloss == min(supportloss))][1]
-  ranks[nodetobreak] <- ranks[nodetobreak] + 1
-  return(ranks)
-}
 
 #worker function to obtain a transmission tree based on most likely infector, possibly containing cycles and multiple roots,
 #plus means and standard deviations of infection times
@@ -229,32 +393,65 @@ make.phyDat <- function(phybreak.object) {
 }
 
 
-#worker function to obtain a transmission tree based on most likely infectors, using Edmunds's algorithm 
-#to remove cycles and multiple roots, plus means and standard deviations of infection times
-.transtreeedmunds <- function(phybreak.object, samplesize) {
+#worker function to obtain a transmission tree based on most likely infectors, using Edmonds's algorithm 
+#to remove cycles, applied with multiple root candidates, plus means and standard deviations of infection times
+.transtreeedmonds <- function(phybreak.object, samplesize) {
   chainlength <- length(phybreak.object$s$mu)
   obsize <- phybreak.object$p$obs
   samplerange <- (chainlength-samplesize+1):chainlength
   
-  infectorset <- .infarray(phybreak.object$s$nodehosts[obsize:(2*obsize-1),samplerange])
-
-  besttreeranks <- rep(1,obsize)
-  besttree <- infectorset[cbind(1:obsize,1,besttreeranks)]
-
-  roots <- .treeroots(besttree)
-  while(!all(roots == 0) | sum(besttree == 0) != 1) {
-    if(sum(besttree == 0) > 1) {
-      besttreeranks <- .removeroot(besttree, besttreeranks, infectorset)
-    } else {
-      besttreeranks <- .removecycle(besttree, besttreeranks, roots, infectorset)
+  infdistmatrix <- cbind(
+    c(0, rep(-1,obsize)),
+    sapply(1:obsize,.infectordist,
+           posterior=phybreak.object$s$nodehosts[obsize:(2*obsize-1), samplerange],
+           obs=obsize))
+  candidateroots <- as.numeric(
+    names( sort( table( 
+      apply(phybreak.object$s$nodehosts[obsize:(2*obsize-1),]==0,2,which)
+      ),decreasing = TRUE)))
+  rootsupports <- as.numeric(
+    sort( table(
+      apply(phybreak.object$s$nodehosts[obsize:(2*obsize-1),]==0,2,which)
+      ),decreasing = TRUE))
+  bestYN <- FALSE
+  nextcandidate <- 1
+  alltrees <- c()
+  allsupports <- c()
+  while(!bestYN) {
+    infdistmat <- infdistmatrix
+    infdistmat[1,] <- -samplesize
+    infdistmat[1,candidateroots[nextcandidate] + 1] <- 0
+    
+    thistree <- .edmondsiterative(infdistmat, samplesize, obsize)[-1] - 1
+    alltrees <- c(alltrees, thistree)
+    thissupport <- sapply(1:obsize, .infectorsupport, 
+                          infectors = thistree,
+                          posterior = phybreak.object$s$nodehosts[obsize:(2*obsize-1), 
+                                                                  samplerange])              
+    allsupports <- c(allsupports, thissupport)
+    
+    bestYN <- TRUE                 
+    for(i in tail(candidateroots,-nextcandidate)) {
+      if(thissupport[i] < rootsupports[candidateroots==i]) {
+        bestYN <- FALSE
+      }
     }
-    besttree <- infectorset[cbind(1:obsize,1,besttreeranks)]
-    roots <- .treeroots(besttree)
+    nextcandidate <- nextcandidate + 1
   }
-  res <- matrix(c(besttree,
-           infectorset[cbind(1:obsize,2,besttreeranks)]),
-           ncol=2)
+  
+  dim(alltrees) <- c(obsize,length(alltrees)/obsize)
+  dim(allsupports) <- dim(alltrees)
+  
+  besttree <- alltrees[,which(colSums(allsupports)==max(colSums(allsupports)))]
 
+  treesupport <- sapply(1:obsize, .infectorsupport, 
+                        infectors = besttree,
+                        posterior = phybreak.object$s$nodehosts[obsize:(2*obsize-1), 
+                                                                samplerange])
+  res <- matrix(c(besttree,
+                  treesupport),
+                ncol=2)
+  
   timesums <- with(phybreak.object,
                    rowSums(s$nodetimes[obsize:(2*obsize-1),samplerange]*(
                      s$nodehosts[obsize:(2*obsize-1),samplerange] == res[,1]
@@ -267,11 +464,13 @@ make.phyDat <- function(phybreak.object) {
   res <- cbind(res, sqrt((timesumsqs - res[,3]^2*res[,2])/(res[,2]-1)))
   
   return(res)
+  
 }
+
 
 #return 'maximum parent credibility' tree with posterior support and means and standard deviations of 
 #infection times, and infection times of the mpc tree itself
-.mpcinfector <- function(phybreak.object, samplesize) {
+.mpcinfector <- function(phybreak.object, samplesize, phylo.class = FALSE) {
   chainlength <- length(phybreak.object$s$mu)
   obsize <- phybreak.object$p$obs
   samplerange <- (chainlength-samplesize+1):chainlength
@@ -296,6 +495,7 @@ make.phyDat <- function(phybreak.object) {
     )
   )
   bestpars <- which(parcreds == max(parcreds))[1]
+  if(phylo.class) return(bestpars + samplerange[1] - 1)
   res <- matrix(
     c(
       phybreak.object$s$nodehosts[obsize:(2*obsize-1),
@@ -327,8 +527,9 @@ make.phyDat <- function(phybreak.object) {
 
 #### WRAPPER to get posterior mean transmission trees
 MLtrans <- function(phybreak.object,
-                    method = c("count", "edmunds", "mpc", "mtcc", "cc.construct"),
-                    samplesize = Inf) {
+                    method = c("count", "edmonds", "mpc", "mtcc", "cc.construct"),
+                    samplesize = Inf, infector.name = TRUE, support.ntrees = FALSE,
+                    phylo.class = FALSE) {
   chainlength <- length(phybreak.object$s$mu)
   if(samplesize > chainlength & samplesize < Inf) {
     warning("desired 'samplesize' larger than number of available samples")
@@ -341,11 +542,12 @@ MLtrans <- function(phybreak.object,
   if(method[1] == "count") {
     res <- .transtreecount(phybreak.object, samplesize)
   }
-  if(method[1] == "edmunds") {
-    res <- .transtreeedmunds(phybreak.object, samplesize)
+  if(method[1] == "edmonds") {
+    res <- .transtreeedmonds(phybreak.object, samplesize)
   }
   if(method[1] == "mpc") {
-    res <- .mpcinfector(phybreak.object, samplesize)
+    res <- .mpcinfector(phybreak.object, samplesize, phylo.class)
+    if(phylo.class) return(make.phylo.phybreak(phybreak.object, res, TRUE))
   }
   if(method[1] == "mtcc") {
     res <- matrix(.CCtranstree2(
@@ -367,17 +569,28 @@ MLtrans <- function(phybreak.object,
   }
   
   if(length(res) == 0) {
-    stop("incorrect method provided, choose \"count\", \"edmunds\",
+    stop("incorrect method provided, choose \"count\", \"edmonds\",
 \"mpc\", \"mtcc\", or \"cc.construct\"")
   }
   
-  infectors.out <- matrix(res[,1],ncol = 1,
-                          dimnames=list(phybreak.object$d$names,"infector"))
+  if(infector.name) {
+    infectors.out <- matrix(c("index",phybreak.object$d$names)[1+res[,1]],
+                            ncol = 1,
+                            dimnames=list(phybreak.object$d$names,"infector"))
+  } else {
+    infectors.out <- matrix(res[,1],ncol = 1,
+                            dimnames=list(phybreak.object$d$names,"infector"))
+  }
+  if(support.ntrees) {
+    support.out <- res[,2]
+  } else {
+    support.out <- res[,2] / samplesize
+  }
   if(method[1] == "mpc" || method[1] == "mtcc") {
     return(
       data.frame(
         infectors = infectors.out,
-        support = res[,2],
+        support = support.out,
         inftime.mean = res[,3],
         inftime.sd = res[,4],
         inftime.mc = res[,5]
@@ -387,7 +600,7 @@ MLtrans <- function(phybreak.object,
     return(
       data.frame(
         infectors = infectors.out,
-        support = res[,2],
+        support = support.out,
         inftime.mean = res[,3],
         inftime.sd = res[,4]
       )
@@ -463,7 +676,7 @@ treedists.phybreak <- function(phybreak.object, samplesize = 100, thin = 10) {
         MARGIN = 2, .makephyloparset)
 }
 
-.makephylo2 <- function(nodeparents, nodetimes) {
+.makephylo2 <- function(nodeparents, nodetimes, nodenames) {
   ###topology
   Nhosts <- (1+length(nodeparents))/2
   indexc <- (1:length(nodeparents))[nodeparents == 0]
@@ -488,7 +701,7 @@ treedists.phybreak <- function(phybreak.object, samplesize = 100, thin = 10) {
     edge = edges,
     edge.length = edgelengths,
     Nnode = Nhosts - 1,
-    tip.label = 1:Nhosts
+    tip.label = nodenames
   )
   class(res) <- "phylo"
   res <- reorder(res)
@@ -541,9 +754,9 @@ MLphylo <- function(phybreak.object,
   if(method[1] == "mcc") {
     if(phylo.class) {
       if(mc.times) {
-        return(.makephylo2(res[,1],res[,5]))
+        return(.makephylo2(res[,1],res[,5],phybreak.object$d$names))
       } else {
-        return(.makephylo2(res[,1],res[,3]))
+        return(.makephylo2(res[,1],res[,3],phybreak.object$d$names))
       }
     } else {
       return(
@@ -558,7 +771,7 @@ MLphylo <- function(phybreak.object,
     }
   } else {
     if(phylo.class) {
-      return(.makephylo2(res[,1],res[,3]))
+      return(.makephylo2(res[,1],res[,3],phybreak.object$d$names))
     } else
     return(
       data.frame(

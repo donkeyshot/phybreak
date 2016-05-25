@@ -37,3 +37,7 @@
     .Call('phybreak_sct', PACKAGE = 'phybreak', tle)
 }
 
+.sctwh3 <- function(tle) {
+    .Call('phybreak_sctwh3', PACKAGE = 'phybreak', tle)
+}
+

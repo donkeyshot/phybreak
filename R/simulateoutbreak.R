@@ -1,80 +1,88 @@
-.samplecoaltimes <- function(tleaves, WHmodel = 3, lambda = 0, rate0 = 1) {
-  if(length(tleaves) < 2) return(c())
-
-  switch(
-    WHmodel,
-    return(head(sort(tleaves),-1)),
-    return(0*tleaves[-1]),
-    {
-      # transform times so that fixed rate 1 can be used
-      if(lambda == 0) {
-        ttrans <- sort(tleaves/rate0,decreasing = TRUE)
-      } else {
-        ttrans <- sort((1-exp(-lambda*tleaves))/(lambda*rate0), decreasing = TRUE)
-      }
-      #       tnodetrans <- c(0)
-      #       for( i in 1:length(ttrans)) {
-      #         currentnodetime <- ttrans[i]    #starting at leaf i
-      #         nodetimesinpast <- tnodetrans[tnodetrans < currentnodetime]
-      #         totalrate <- sum(currentnodetime - nodetimesinpast)   #total coal rate to be exposed to
-      #         cumratetocoalescence <- -log(runif(1,exp(-totalrate),1))          #conditional on coalescence within this host
-      #         while(cumratetocoalescence > (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)) {
-      #           cumratetocoalescence <- cumratetocoalescence - (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)
-      #           currentnodetime <- nodetimesinpast[1]
-      #           nodetimesinpast <- nodetimesinpast[-1]
-      #         }
-      #         tnodetrans <- sort(c(tnodetrans, currentnodetime - cumratetocoalescence / length(nodetimesinpast)), decreasing = TRUE)
-      #       }
-      tnodetrans <- .sct(ttrans)
-
-      if(lambda == 0) {
-        return(sort(rate0 * tnodetrans))
-      } else {
-        return(sort(-log(1-rate0*lambda*tnodetrans)/lambda))
-      }
-    }
-  )
-}
-
-.sampletopology <- function(nIDs, ntimes, ntypes, rootnode, WHmodel = 3) {
-  if(length(nIDs) == 1) return(rootnode)
-  switch(
-    WHmodel,{
-      cnodes <- nIDs[ntypes=="c"]
-      cnodeparents <- c(rootnode,head(cnodes,-1))
-      leafparents <- c(cnodes,tail(cnodes,1))
-      leafparents <- leafparents[rank(ntimes[ntypes != "c"],ties.method="first")]
-      res <- c(head(leafparents,sum(ntypes=="s")),
-               cnodeparents,
-               tail(leafparents,sum(ntypes=="t")))
-      return(res)
-    },{
-      cnodes <- nIDs[ntypes=="c"]
-      cnodeparents <- c(rootnode,head(cnodes,-1))
-      leafparents <- c(cnodes,tail(cnodes,1))
-      res <- c(head(leafparents,sum(ntypes=="s")),
-               cnodeparents,
-               tail(leafparents,sum(ntypes=="t")))
-      return(res)
-    }
-  )
-  IDs <- nIDs[order(ntimes, ntypes)]
-  tys <- ntypes[order(ntimes, ntypes)]
-  if(tys[1] != "c") {
-    stop("host topology does not start with coalescence node")
-  }
-  res <- rep(rootnode, length(nIDs))
-  tochoose <- rep(IDs[1], 2)
-  for(i in 2:length(nIDs)) {
-    res[i] <- tochoose[1]
-    if(tys[i] == "c") {
-      tochoose <- sample(c(tochoose[-1], IDs[i], IDs[i]))
-    } else {
-      tochoose <- tochoose[-1]
-    }
-  }
-  return(res[order(IDs)])
-}
+# .samplecoaltimes <- function(tleaves, WHmodel = 4, lambda = 0, rate0 = 1, slope = 1) {
+#   if(length(tleaves) < 2) return(c())
+#   
+#   switch(
+#     WHmodel,
+#     return(head(sort(tleaves),-1)),
+#     return(0*tleaves[-1]),
+#     {
+#       # transform times so that fixed rate 1 can be used
+#       if(lambda == 0) {
+#         ttrans <- sort(tleaves/rate0,decreasing = TRUE)
+#       } else {
+#         ttrans <- sort((1-exp(-lambda*tleaves))/(lambda*rate0), decreasing = TRUE)
+#       }
+#       #       tnodetrans <- c(0)
+#       #       for( i in 1:length(ttrans)) {
+#       #         currentnodetime <- ttrans[i]    #starting at leaf i
+#       #         nodetimesinpast <- tnodetrans[tnodetrans < currentnodetime]
+#       #         totalrate <- sum(currentnodetime - nodetimesinpast)   #total coal rate to be exposed to
+#       #         cumratetocoalescence <- -log(runif(1,exp(-totalrate),1))          #conditional on coalescence within this host
+#       #         while(cumratetocoalescence > (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)) {
+#       #           cumratetocoalescence <- cumratetocoalescence - (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)
+#       #           currentnodetime <- nodetimesinpast[1]
+#       #           nodetimesinpast <- nodetimesinpast[-1]
+#       #         }
+#       #         tnodetrans <- sort(c(tnodetrans, currentnodetime - cumratetocoalescence / length(nodetimesinpast)), decreasing = TRUE)
+#       #       }
+#       tnodetrans <- .sct(ttrans)
+#       
+#       if(lambda == 0) {
+#         return(sort(rate0 * tnodetrans))
+#       } else {
+#         return(sort(-log(1-rate0*lambda*tnodetrans)/lambda))
+#       }
+#     },
+#     {
+#       # transform times so that fixed rate 1 can be used
+#       ttrans <- sort(log(tleaves)/(slope), decreasing = TRUE)
+#       tnodetrans <- .sctwh3(ttrans)
+#       
+#       return(sort(exp(slope*tnodetrans)))
+#     }
+#     
+#   )
+# }
+# 
+# .sampletopology <- function(nIDs, ntimes, ntypes, rootnode, WHmodel = 4) {
+#   if(length(nIDs) == 1) return(rootnode)
+#   switch(
+#     WHmodel,{
+#       cnodes <- nIDs[ntypes=="c"]
+#       cnodeparents <- c(rootnode,head(cnodes,-1))
+#       leafparents <- c(cnodes,tail(cnodes,1))
+#       leafparents <- leafparents[rank(ntimes[ntypes != "c"],ties.method="first")]
+#       res <- c(head(leafparents,sum(ntypes=="s")),
+#                cnodeparents,
+#                tail(leafparents,sum(ntypes=="t")))
+#       return(res)
+#     },{
+#       cnodes <- nIDs[ntypes=="c"]
+#       cnodeparents <- c(rootnode,head(cnodes,-1))
+#       leafparents <- c(cnodes,tail(cnodes,1))
+#       res <- c(head(leafparents,sum(ntypes=="s")),
+#                cnodeparents,
+#                tail(leafparents,sum(ntypes=="t")))
+#       return(res)
+#     }
+#   )
+#   IDs <- nIDs[order(ntimes, ntypes)]
+#   tys <- ntypes[order(ntimes, ntypes)]
+#   if(tys[1] != "c") {
+#     stop("host topology does not start with coalescence node")
+#   }
+#   res <- rep(rootnode, length(nIDs))
+#   tochoose <- rep(IDs[1], 2)
+#   for(i in 2:length(nIDs)) {
+#     res[i] <- tochoose[1]
+#     if(tys[i] == "c") {
+#       tochoose <- sample(c(tochoose[-1], IDs[i], IDs[i]))
+#     } else {
+#       tochoose <- tochoose[-1]
+#     }
+#   }
+#   return(res[order(IDs)])
+# }
 
 
 .sim.outbreak.gentime <- function(Npop = 100, R0 = 1.5, aG = 3, mG = 1, aS = 3, mS = 1,
@@ -194,7 +202,7 @@
 }
 
 
-.sim.phylotree <- function (sim.object, wh.model = 3, lambda = 0, rate0 = 1) {
+.sim.phylotree <- function (sim.object, wh.model = 4, lambda = 0, rate0 = 1, slope = 1) {
   with(
     sim.object,
     {
@@ -228,7 +236,7 @@
         nodetimes[nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
           nodetimes[i + 2*obs - 1] +                      #...to the infection time +
           .samplecoaltimes(nodetimes[nodehosts == i & nodetypes != "c"] - nodetimes[i + 2*obs - 1],
-                          wh.model, lambda, rate0)  #...sampled coalescence times
+                          wh.model, lambda, rate0, slope)  #...sampled coalescence times
       }
       ## sample for each node its parent node
       for(i in 1:obs) {
@@ -306,7 +314,7 @@
   )
 }
 
-.makephylo <- function(nodetimes, nodeparents) {
+.makephylo <- function(nodetimes, nodeparents, nodenames) {
   ###topology
   Nhosts <- (1+length(nodetimes))/3
   indext <- (1:length(nodetimes))[nodeparents == 0]
@@ -339,7 +347,7 @@
     edge = edges,
     edge.length = edgelengths,
     Nnode = Nhosts - 1,
-    tip.label = 1:Nhosts
+    tip.label = nodenames
   )
   class(res) <- "phylo"
   res <- reorder(res)
@@ -350,15 +358,15 @@
 
 sim.phybreak.gentime <- function(obsize = 50, R0 = 1.5, shape.gen = 3,
                                  mean.gen = 1, shape.sample = 3, mean.sample = 1,
-                                 nSUP = 0, multSUP = 10, disp = Inf, wh.model = 3,
-                                 lambda = 0, rate0 = 1, mutrate = 1, nr.sites = 10000) {
+                                 nSUP = 0, multSUP = 10, disp = Inf, wh.model = 4,
+                                 lambda = 0, rate0 = 1, slope = 1, mutrate = 1, nr.sites = 10000) {
   res <- .sim.outbreak.gentime.size(obsize,R0,shape.gen,mean.gen,
                                     shape.sample,mean.sample,nSUP,multSUP,disp)
-  res <- .sim.phylotree(res,wh.model,lambda,rate0)
+  res <- .sim.phylotree(res,wh.model,lambda,rate0,slope)
   res <- .sim.sequences(res,mutrate,nr.sites)
 
   treesout <- vector('list',1)
-  treesout[[1]] <- .makephylo(res$nodetimes, res$nodeparents)
+  treesout[[1]] <- .makephylo(res$nodetimes, res$nodeparents, 1:obsize)
   class(treesout) <- "multiPhylo"
 
   toreturn <- new("obkData",
@@ -386,10 +394,10 @@ sim.phybreak.gentime <- function(obsize = 50, R0 = 1.5, shape.gen = 3,
 }
 
 sim.phybreak.SIR <- function(obsize = 50, R0 = 1.5, shape.infper = 3, mean.infper = 1,
-                                 nSUP = 0, multSUP = 10, wh.model = 3, lambda = 0, rate0 = 1,
-                                 mutrate = 1, nr.sites = 10000) {
+                                 nSUP = 0, multSUP = 10, wh.model = 4, lambda = 0, rate0 = 1,
+                                 slope = 1, mutrate = 1, nr.sites = 10000) {
   res <- .sim.outbreak.SIR.size(obsize,R0,shape.infper,mean.infper,nSUP,multSUP)
-  res <- .sim.phylotree(res,wh.model,lambda,rate0)
+  res <- .sim.phylotree(res,wh.model,lambda,rate0,slope)
   res <- .sim.sequences(res,mutrate,nr.sites)
 
   treesout <- vector('list',1)
@@ -421,8 +429,8 @@ sim.phybreak.SIR <- function(obsize = 50, R0 = 1.5, shape.infper = 3, mean.infpe
 }
 
 resim.phybreak <- function(obk.object, wh.resim = TRUE, seq.resim = TRUE,
-                           wh.model = 3, lambda = 0, rate0 = 1,
-                           mutrate = 1, nr.sites = 10000) {
+                           wh.model = 4, lambda = 0, rate0 = 1,
+                           slope = 1, mutrate = 1, nr.sites = 10000) {
   refdate <- min(obk.object@individuals$date)
   if(wh.resim) {
     res <- list(
@@ -431,11 +439,11 @@ resim.phybreak <- function(obk.object, wh.resim = TRUE, seq.resim = TRUE,
       infectiontimes = as.numeric(obk.object@individuals$date - refdate),
       infectors = obk.object@individuals$infector
     )
-    res <- .sim.phylotree(res,wh.model,lambda,rate0)
+    res <- .sim.phylotree(res,wh.model,lambda,rate0,slope)
     res <- .sim.sequences(res,mutrate,nr.sites)
 
     treesout <- vector('list',1)
-    treesout[[1]] <- .makephylo(res$nodetimes, res$nodeparents)
+    treesout[[1]] <- .makephylo(res$nodetimes, res$nodeparents, obk.object@dna@meta$individualID)
     class(treesout) <- "multiPhylo"
 
     toreturn <- new("obkData",
@@ -462,7 +470,7 @@ resim.phybreak <- function(obk.object, wh.resim = TRUE, seq.resim = TRUE,
     res <- .sim.sequences(res,mutrate,nr.sites)
 
     treesout <- vector('list',1)
-    treesout[[1]] <- .makephylo(res$nodetimes, res$nodeparents)
+    treesout[[1]] <- .makephylo(res$nodetimes, res$nodeparents, obk.object@dna@meta$individualID)
     class(treesout) <- "multiPhylo"
 
     toreturn <- new("obkData",

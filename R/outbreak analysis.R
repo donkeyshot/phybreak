@@ -1,8 +1,6 @@
-NumError <- 10^-14
-
 ###Key functions in updating process
 
-.samplecoaltimes <- function(tleaves, WHmodel = 3, lambda = 0, rate0 = 1) {
+.samplecoaltimes <- function(tleaves, WHmodel = 4, lambda = 0, rate0 = 1, slope = 1) {
   if(length(tleaves) < 2) return(c())
 
   switch(
@@ -16,31 +14,46 @@ NumError <- 10^-14
       } else {
         ttrans <- sort((1-exp(-lambda*tleaves))/(lambda*rate0), decreasing = TRUE)
       }
-#       tnodetrans <- c(0)
-#       for( i in 1:length(ttrans)) {
-#         currentnodetime <- ttrans[i]    #starting at leaf i
-#         nodetimesinpast <- tnodetrans[tnodetrans < currentnodetime]
-#         totalrate <- sum(currentnodetime - nodetimesinpast)   #total coal rate to be exposed to
-#         cumratetocoalescence <- -log(runif(1,exp(-totalrate),1))          #conditional on coalescence within this host
-#         while(cumratetocoalescence > (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)) {
-#           cumratetocoalescence <- cumratetocoalescence - (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)
-#           currentnodetime <- nodetimesinpast[1]
-#           nodetimesinpast <- nodetimesinpast[-1]
-#         }
-#         tnodetrans <- sort(c(tnodetrans, currentnodetime - cumratetocoalescence / length(nodetimesinpast)), decreasing = TRUE)
-#       }
+      #       tnodetrans <- c(0)
+      #       for( i in 1:length(ttrans)) {
+      #         currentnodetime <- ttrans[i]    #starting at leaf i
+      #         nodetimesinpast <- tnodetrans[tnodetrans < currentnodetime]
+      #         totalrate <- sum(currentnodetime - nodetimesinpast)   #total coal rate to be exposed to
+      #         cumratetocoalescence <- -log(runif(1,exp(-totalrate),1))          #conditional on coalescence within this host
+      #         while(cumratetocoalescence > (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)) {
+      #           cumratetocoalescence <- cumratetocoalescence - (currentnodetime - nodetimesinpast[1]) * length(nodetimesinpast)
+      #           currentnodetime <- nodetimesinpast[1]
+      #           nodetimesinpast <- nodetimesinpast[-1]
+      #         }
+      #         tnodetrans <- sort(c(tnodetrans, currentnodetime - cumratetocoalescence / length(nodetimesinpast)), decreasing = TRUE)
+      #       }
       tnodetrans <- .sct(ttrans)
-
+      
       if(lambda == 0) {
         return(sort(rate0 * tnodetrans))
       } else {
         return(sort(-log(1-rate0*lambda*tnodetrans)/lambda))
       }
+    },
+    {
+      # transform times so that fixed rate 1 can be used
+      ttrans <- sort(log(tleaves)/(slope), decreasing = TRUE)
+      tnodetrans <- .sctwh3(ttrans)
+      
+#       while(min(slope*tnodetrans) < -10) {
+#         tnodetrans <- .sctwh3(ttrans)
+#       }
+      res <- sort(exp(slope*tnodetrans))
+      res <- apply(cbind(res,
+                         min(10^-5,tleaves/length(tleaves))*(1:length(res))),1,max)
+
+      return(res)
     }
+    
   )
 }
 
-.sampletopology <- function(nIDs, ntimes, ntypes, rootnode, WHmodel = 3) {
+.sampletopology <- function(nIDs, ntimes, ntypes, rootnode, WHmodel = 4) {
   if(length(nIDs) == 1) return(rootnode)
   switch(
     WHmodel,{
@@ -96,6 +109,104 @@ NumError <- 10^-14
              shape = shapeS, scale = meanS/shapeS, log=TRUE))
 }
 
+.lik.coaltimes <- function(obs, wh.model, wh.rate0, lambda, slope, nodetimes, nodehosts, nodetypes) {
+  if(wh.model == 1 || wh.model == 2) return(0)
+  
+  coalnodes <- nodetypes == "c"
+  orderednodes <- order(nodehosts, nodetimes)
+  orderedtouse <- orderednodes[c(duplicated(nodehosts[orderednodes])[-1], FALSE)]
+    #only use hosts with secondary infections
+  
+    ##make vectors with information on intervals between nodes
+  coalno <- c(FALSE, head(coalnodes[orderedtouse],-1)) #interval starts with coalescence
+  nodeho <- nodehosts[orderedtouse] #host in which interval resides
+  coalmultipliers <- choose(2 + cumsum(2*coalno - 1),2) #coalescence coefficient
+  
+  if(wh.model == 3) {
+    coalmultplus1 <- choose(3 + cumsum(2*coalno - 1),2) #coalescence coefficient with extra lineage
+    if(lambda == 0) {
+      noderates <- 1/wh.rate0  #coalescence rate (per pair of lineages)
+      nodeescrates <- nodetimes[orderedtouse]/wh.rate0 - 
+        tail(nodetimes/wh.rate0,obs)[nodeho]
+      #cumulative coalescence rate since infection of host (per pair of lineages)
+    } else {
+      whtimes <- nodetimes - c(0,tail(nodetimes,obs))[1+nodehosts]
+      noderates <- exp(-lambda*whtimes[orderedtouse])/wh.rate0  
+      #coalescence rate (per pair of lineages)
+      nodeescrates <- (1-exp(-lambda*whtimes[orderedtouse]))/(lambda*wh.rate0)
+      #cumulative coalescence rate since infection of host (per pair of lineages)
+    }
+    
+  } else {  ##wh.model == 4
+    whtimes <- nodetimes - c(0,tail(nodetimes,obs))[1+nodehosts]
+    
+#    print(whtimes[orderedtouse])
+    noderates <- 1/(slope*whtimes[orderedtouse])  
+    #coalescence rate (per pair of lineages)
+    nodeescrates <- log(whtimes[orderedtouse])/(slope)
+    #cumulative coalescence rate since 1 + infection of host (per pair of lineages)
+    
+  }
+  
+  
+  escratediffs <- nodeescrates - c(0, head(nodeescrates,-1))
+  escratediffs[!duplicated(nodeho)] <- nodeescrates[!duplicated(nodeho)]
+    #cumulative coalescence rate within interval (per pair of lineages)
+  
+  if(wh.model == 3) {
+    cumescrates <- cumsum(escratediffs * coalmultplus1)
+    testvec <- rep(0,obs)
+    testvec[unique(nodeho)] <- c(0,cumescrates[c((!duplicated(nodeho))[-1],FALSE)])
+    cumescrates <- cumescrates - testvec[nodeho]
+    #cumulative coalescence rates since infection of host, for extra lineage
+  } 
+  
+  ##First: coalescence rates at coalescence nodes
+  logcoalrates <- log(noderates[c(coalno[-1],FALSE)])
+  
+  #Second: probability to escape coalescence in all intervals
+  logescapes <- -escratediffs*coalmultipliers
+  
+  #Third: probability of coalescence within infectious period of host
+  #(to correct for censored coalescence due to bottleneck of size 1)
+  if(wh.model == 3) {
+    logcoalprobs <- log(1 - 
+                          exp(-(escratediffs[coalno]*coalmultipliers[coalno] + 
+                                  cumescrates[c(coalno[-1],FALSE)]))
+    )
+  } else logcoalprobs <- 0
+  if(is.nan(sum(logcoalrates) + sum(logescapes) - sum(logcoalprobs))) {
+    print(c(slope, nodetimes, nodehosts))
+    return(-Inf)
+  }  else {
+    return(sum(logcoalrates) + sum(logescapes) - sum(logcoalprobs))
+  }
+}
+
+# .lik.coaltimes2 <- function(obs, wh.model, wh.rate0, lambda, nodetimes, nodehosts, nodetypes) {
+#   if(wh.model == 1 || wh.model == 2) return(0)
+#   
+#   coalnodes <- nodetypes == "c"
+#   orderednodes <- order(nodehosts, nodetimes)
+#   orderedtouse <- orderednodes[c(duplicated(nodehosts[orderednodes])[-1], FALSE)]
+#   coalno <- coalnodes[orderedtouse]
+#   coalmultipliers <- choose(1 + cumsum(2*coalno - 1),2)
+#   if(lambda == 0) {
+#     noderates <- 1/wh.rate0
+#     nodecumrates <- nodetimes[orderedtouse]/wh.rate0
+#   } else {
+#     whtimes <- nodetimes
+#     for(i in 1:obs) {
+#       whtimes[nodehosts == i] <- nodetimes[nodehosts == i] - nodetimes[2*obs - 1 + i]
+#     }
+#     noderates <- exp(-lambda*whtimes[orderedtouse])/wh.rate0
+#     nodecumrates <- (1-exp(-lambda*whtimes[orderedtouse]))/(lambda*wh.rate0)
+#   }
+#   logcoalrates <- log((coalmultipliers*noderates)[coalno])
+#   logescapes <- -head(coalmultipliers, -1) * (nodecumrates[-1] - head(nodecumrates, -1))
+#   
+#   return(sum(logcoalrates) + sum(logescapes))
+# }
 
 
 ###For initialization
@@ -120,26 +231,38 @@ NumError <- 10^-14
   res <- matrix(0, nrow = nrow(SNPs), ncol = nrow(SNPs))
   for(i in 1:nrow(SNPs)) {
     for(j in i:nrow(SNPs)) {
-      res[i,j] <- sum((SNPs[i,]!=SNPs[j,])*SNPfreqs)
+      res[i,j] <- sum((SNPs[i,]!=SNPs[j,] & SNPs[i,]!="n" & SNPs[j,]!="n")*SNPfreqs)
       res[j,i] <- res[i,j]
     }
   }
-  return(2^res)
+  nscore <- max(res)/sum(SNPfreqs)
+  for(i in 1:nrow(SNPs)) {
+    for(j in i:nrow(SNPs)) {
+      res[i,j] <- res[i,j] + sum((SNPs[i,]=="n" | SNPs[j,]=="n")*SNPfreqs)*nscore
+      res[j,i] <- res[i,j]
+    }
+  }
+  
+  return((res+1)/max(res+1))
 }
 
 #the actual initialization, given data, wh-model, and (initial) parameters, resulting in an phybreak-object
 make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen = 1,
-                                  shape.sample = 3, mean.sample = 1, wh.model = 3,
-                                  wh.lambda= 0, wh.rate0 = 1,
-                                  est.mean.gen = TRUE, est.mean.sample = TRUE,
-                                  prior.mean.gen.shape = 0, prior.mean.gen.scale = 0,
-                                  prior.mean.sample.shape = 0, prior.mean.sample.scale = 0,
+                                  shape.sample = 3, mean.sample = 1, wh.model = 4,
+                                  wh.lambda= 0, wh.rate0 = 1, wh.slope = 1,
+                                  est.mean.gen = TRUE, est.mean.sample = TRUE, est.wh = TRUE,
+                                  prior.mean.gen.shape = 0, prior.mean.gen.mean = 0,
+                                  prior.mean.sample.shape = 0, prior.mean.sample.mean = 0,
+                                  prior.wh.rate0.shape = 1, prior.wh.rate0.mean = 1,
+                                  prior.wh.slope.shape = 1, prior.wh.slope.mean = 1,
                                   use.tree = FALSE) {
   obs <- nrow(obk.object@dna@dna[[1]])  #outbreaksize
   hostnames <- rownames(obk.object@dna@dna[[1]])
 
   refdate <- min(obk.object@dna@meta$date)
 
+  
+  
   if(!use.tree) {
     inftimes <- .rinftimes(as.numeric(obk.object@dna@meta$date - refdate), mean.sample, shape.sample)[1:obs]
     infectors <- .rinfectors(inftimes, mean.gen, shape.gen)
@@ -167,7 +290,7 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
       nodetimes[nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
         nodetimes[i + 2*obs - 1] +                      #...to the infection time +
         .samplecoaltimes(nodetimes[nodehosts == i & nodetypes != "c"] - nodetimes[i + 2*obs - 1],
-                         wh.model, wh.lambda, wh.rate0)  #...sampled coalescence times
+                         wh.model, wh.lambda, wh.rate0, wh.slope)  #...sampled coalescence times
     }
     ## sample for each node its parent node
     for(i in 1:obs) {
@@ -202,6 +325,7 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
                      rep(NA,obs))
     nodetypes <- c(rep("s",obs), rep("c",obs - 1),
                    rep("t",obs))  #initialize nodes: will contain node type (sampling, coalescent, transmission)
+    edgelengths[obs+1] <- -inftimes[which(infectors==0)]-node.depth.edgelength(obk.object@trees[[1]])[1]
     while(any(is.na(nodetimes))) {
       nodetimes[1:(2*obs - 1)] <- nodetimes[nodeparents[1:(2*obs - 1)]] + edgelengths[1:(2*obs - 1)]
     }
@@ -242,6 +366,7 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
     )
   }
 
+
   SNP.sample <- c()
   SNP.frequencies <- c()
   for(i in 1:length(obk.object@dna@dna)) {
@@ -260,12 +385,21 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
       }
     }
   }
-
+  
+  seq.sample[seq.sample != 1 & seq.sample != 2 & seq.sample != 3 & seq.sample != 4] <- "n"
   seq.sample[seq.sample == 1] <- "a"
   seq.sample[seq.sample == 2] <- "c"
   seq.sample[seq.sample == 3] <- "g"
   seq.sample[seq.sample == 4] <- "t"
-
+  
+  
+  if(wh.model == 3) {
+    pr.wh.sh <- prior.wh.rate0.shape
+    pr.wh.me <- prior.wh.rate0.mean
+  } else {
+    pr.wh.sh <- prior.wh.slope.shape
+    pr.wh.me <- prior.wh.slope.mean
+  }
 
   res <- list(
     d = list(
@@ -283,23 +417,30 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
       shape.sample = shape.sample,
       wh.model = wh.model,
       wh.lambda = wh.lambda,
-      wh.rate0 = wh.rate0
+      wh.rate0 = wh.rate0,
+      wh.slope = wh.slope
     ),
-    h = list(si = c(rep(c(mu,2*mu),50),rep(NA,400)),
+    h = list(si = c(rep(c(mu,2*mu),50),rep(NA,900)),
+             si.wh = if(wh.model == 3) c(rep(c(wh.rate0,2*wh.rate0),50),rep(NA,900)) else c(rep(c(wh.slope,2*wh.slope),50),rep(NA,900)),
              dist = .distmatrix(seq.sample, SNP.frequencies),
              est.mG = est.mean.gen,
              est.mS = est.mean.sample,
+             est.wh = est.wh,
              mG.sh = prior.mean.gen.shape,
-             mG.sc = prior.mean.gen.scale,
+             mG.av = prior.mean.gen.mean,
              mS.sh = prior.mean.sample.shape,
-             mS.sc = prior.mean.sample.scale),
+             mS.av = prior.mean.sample.mean,
+             wh.sh = pr.wh.sh,
+             wh.av = pr.wh.me),
     s = list(
       nodetimes = c(),
       nodehosts = c(),
       nodeparents = c(),
       mu = c(),
-      mean.gen = c(),
-      mean.sample = c(),
+      mG = c(),
+      mS = c(),
+      r0 = c(),
+      slope = c(),
       logLik = c()
     )
   )
@@ -312,10 +453,12 @@ make.phybreak.obkData <- function(obk.object, mu = .01, shape.gen = 3, mean.gen 
 
 make.phybreak <- function (t.sample, SNP.sample, SNP.freqs = c(), hostnames = NULL, mu = .01,
                            shape.gen = 3, mean.gen = 1, shape.sample = 3, mean.sample = 1,
-                           wh.model = 3, wh.lambda= 0, wh.rate0 = 1,
-                           est.mean.gen = TRUE, est.mean.sample = TRUE,
-                           prior.mean.gen.shape = 0, prior.mean.gen.scale = 0,
-                           prior.mean.sample.shape = 0, prior.mean.sample.scale = 0) {
+                           wh.model = 3, wh.lambda= 0, wh.rate0 = 1, wh.slope = 1,
+                           est.mean.gen = TRUE, est.mean.sample = TRUE, est.wh = TRUE,
+                           prior.mean.gen.shape = 0, prior.mean.gen.mean = 0,
+                           prior.mean.sample.shape = 0, prior.mean.sample.mean = 0,
+                           prior.wh.rate0.shape = 1, prior.wh.rate0.mean = 1,
+                           prior.wh.slope.shape = 1, prior.wh.slope.mean = 1) {
   obs <- length(t.sample)  #outbreaksize
   if(length(hostnames) != obs) {
     if(is.null(names(t.sample))) {
@@ -382,6 +525,14 @@ make.phybreak <- function (t.sample, SNP.sample, SNP.freqs = c(), hostnames = NU
     }
   }
 
+  if(wh.model == 3) {
+    pr.wh.sh <- prior.wh.rate0.shape
+    pr.wh.me <- prior.wh.rate0.mean
+  } else {
+    pr.wh.sh <- prior.wh.slope.shape
+    pr.wh.me <- prior.wh.slope.mean
+  }
+  
   res <- list(
     d = list(
       names = hostnames,
@@ -398,23 +549,30 @@ make.phybreak <- function (t.sample, SNP.sample, SNP.freqs = c(), hostnames = NU
       shape.sample = shape.sample,
       wh.model = wh.model,
       wh.lambda = wh.lambda,
-      wh.rate0 = wh.rate0
+      wh.rate0 = wh.rate0,
+      wh.slope = wh.slope
     ),
-    h = list(si = c(rep(c(mu,2*mu),50),rep(NA,400)),
+    h = list(si = c(rep(c(mu,2*mu),50),rep(NA,900)),
+             si.wh = if(wh.model == 3) c(rep(c(wh.rate0,2*wh.rate0),50),rep(NA,900)) else c(rep(c(wh.slope,2*wh.slope),50),rep(NA,900)),
              dist = .distmatrix(seq.sample, SNP.frequencies),
              est.mG = est.mean.gen,
              est.mS = est.mean.sample,
+             est.wh = est.wh,
              mG.sh = prior.mean.gen.shape,
-             mG.sc = prior.mean.gen.scale,
+             mG.av = prior.mean.gen.mean,
              mS.sh = prior.mean.sample.shape,
-             mS.sc = prior.mean.sample.scale),
+             mS.av = prior.mean.sample.mean,
+             wh.sh = pr.wh.sh,
+             wh.av = pr.wh.me),
     s = list(
       nodetimes = c(),
       nodehosts = c(),
       nodeparents = c(),
       mu = c(),
-      mean.gen = c(),
-      mean.sample = c(),
+      mG = c(),
+      mS = c(),
+      r0 = c(),
+      slope = c(),
       logLik = c()
     )
   )
@@ -434,6 +592,8 @@ clearsamples.phybreak <- function(phybreak.object, clearall = TRUE, nkeep = 1000
           mu = c(),
           mG = c(),
           mS = c(),
+          r0 = c(),
+          slope = c(),
           logLik = c()
         )
       )
@@ -451,6 +611,8 @@ clearsamples.phybreak <- function(phybreak.object, clearall = TRUE, nkeep = 1000
         mu = s$mu[tokeep],
         mG = s$mG[tokeep],
         mS = s$mS[tokeep],
+        r0 = s$r0[tokeep],
+        slope = s$slope[tokeep],
         logLik = s$logLik[tokeep]
       )
     )

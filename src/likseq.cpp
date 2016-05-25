@@ -40,11 +40,16 @@ double likseq(CharacterVector SNPs, IntegerVector SNPfreqs,
         likarray[i*nSNPs*4 + j*4 + 1] = 0;
         likarray[i*nSNPs*4 + j*4] = 0;
         likarray[i*nSNPs*4 + j*4 + 3] = 0;
-      } else {
+      } else if(SNPs[i*nSNPs + j] == "t") {
         likarray[i*nSNPs*4 + j*4 + 3] = 1;
         likarray[i*nSNPs*4 + j*4 + 1] = 0;
-        likarray[i*nSNPs*4 + j*4 + 2] = 0;
         likarray[i*nSNPs*4 + j*4] = 0;
+        likarray[i*nSNPs*4 + j*4 + 2] = 0;
+      } else {
+        likarray[i*nSNPs*4 + j*4 + 3] = 1;
+        likarray[i*nSNPs*4 + j*4 + 1] = 1;
+        likarray[i*nSNPs*4 + j*4 + 2] = 1;
+        likarray[i*nSNPs*4 + j*4] = 1;
       }
     }
   }
