@@ -21,7 +21,7 @@
 #change the values of mS/mG and logLikmS/logLikmG when these have been resampled.
 
 #fixed parameters
-tinf.prop.shape <- 144/2
+tinf.prop.shape <- 2
 whrate0.prior.exp <- 1
 whslope.prior.exp <- 1
 
