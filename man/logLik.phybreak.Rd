@@ -5,28 +5,32 @@
 Log-likelihood calculation for a phybreak-object.
 }
 \description{
-The likelihood of a phybreak-object is calculated, with the option to include or exclude parts of the likelihood for genetic data, generation times and sampling times.
+The likelihood of a phybreak-object is calculated, with the option to include or exclude parts of the likelihood for genetic data, phylogenetic tree (within-host model), sampling times and generation times.
 }
 \usage{
-logLik.phybreak(phybreak.obj, seq = TRUE, t.gen = FALSE, t.sample = FALSE)
+logLik.phybreak(phybreak.object, genetic = TRUE, withinhost = TRUE,
+                            sampling = TRUE, generation = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{phybreak.obj}{
-a phybreak-object.
+  \item{phybreak.object}{
+an object of class phybreak.
 }
-  \item{seq}{
+  \item{genetic}{
 whether to include the likelihood of the sequence data.
 }
-  \item{t.gen}{
-whether to include the likelihood of the generation times
+  \item{withinhost}{
+whether to include the likelihood of within-host (coalescent) model.
 }
-  \item{t.sample}{
-whether to include the likelihood of the sampling times
+  \item{sampling}{
+whether to include the likelihood of the sampling intervals.
+}
+  \item{generation}{
+whether to include the likelihood of the generation interval.
 }
 }
 \details{
-The sequence likelihood is calculated by Felsenstein's pruning algorithm, assuming a prior probability of 0.25 for each nucleotide. The generation time and sampling time likelihood are log-densities of the gamma distributions for these variables.
+The sequence likelihood is calculated by Felsenstein's pruning algorithm, assuming a prior probability of 0.25 for each nucleotide. The within-host likelihood is the likelihood of coalescence times given the within-host model and slope. The generation time and sampling time likelihood are log-densities of the gamma distributions for these variables.
 }
 \value{
 The log-likelihood.
@@ -48,10 +52,10 @@ Don Klinkenberg
 }
 \examples{
 #First create an MCMC-object
-simulation <- sim.phybreak.gentime()
-MCMCstate <- make.phybreak.obkData(simulation)
+simulation <- sim.phybreak()
+MCMCstate <- phybreak(simulation)
 
-logLik.phybreak(MCMCstate)
+logLik(MCMCstate)
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

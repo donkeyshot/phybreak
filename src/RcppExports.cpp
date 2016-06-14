@@ -5,58 +5,6 @@
 
 using namespace Rcpp;
 
-// CCphyloconstruct
-std::vector<double> CCphyloconstruct(const std::vector<int>& pars, const std::vector<double>& tims, std::vector<int> dims);
-RcppExport SEXP phybreak_CCphyloconstruct(SEXP parsSEXP, SEXP timsSEXP, SEXP dimsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const std::vector<int>& >::type pars(parsSEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type tims(timsSEXP);
-    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
-    __result = Rcpp::wrap(CCphyloconstruct(pars, tims, dims));
-    return __result;
-END_RCPP
-}
-// CCphylotree
-std::vector<double> CCphylotree(const std::vector<int>& pars, const std::vector<double>& tims, std::vector<int> dims);
-RcppExport SEXP phybreak_CCphylotree(SEXP parsSEXP, SEXP timsSEXP, SEXP dimsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const std::vector<int>& >::type pars(parsSEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type tims(timsSEXP);
-    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
-    __result = Rcpp::wrap(CCphylotree(pars, tims, dims));
-    return __result;
-END_RCPP
-}
-// CCtranstreeconstruct
-std::vector<double> CCtranstreeconstruct(const std::vector<int>& pars, const std::vector<double>& tims, std::vector<int> dims);
-RcppExport SEXP phybreak_CCtranstreeconstruct(SEXP parsSEXP, SEXP timsSEXP, SEXP dimsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const std::vector<int>& >::type pars(parsSEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type tims(timsSEXP);
-    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
-    __result = Rcpp::wrap(CCtranstreeconstruct(pars, tims, dims));
-    return __result;
-END_RCPP
-}
-// CCtranstree2
-std::vector<double> CCtranstree2(const std::vector<int>& pars, const std::vector<double>& tims, std::vector<int> dims);
-RcppExport SEXP phybreak_CCtranstree2(SEXP parsSEXP, SEXP timsSEXP, SEXP dimsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const std::vector<int>& >::type pars(parsSEXP);
-    Rcpp::traits::input_parameter< const std::vector<double>& >::type tims(timsSEXP);
-    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
-    __result = Rcpp::wrap(CCtranstree2(pars, tims, dims));
-    return __result;
-END_RCPP
-}
 // likseq
 double likseq(CharacterVector SNPs, IntegerVector SNPfreqs, IntegerVector nodeparents, NumericVector nodetimes, double mutrate, int obs);
 RcppExport SEXP phybreak_likseq(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP nodeparentsSEXP, SEXP nodetimesSEXP, SEXP mutrateSEXP, SEXP obsSEXP) {
@@ -86,15 +34,29 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// MLphylotree_MCC
-std::vector<double> MLphylotree_MCC(std::vector<int> pars, std::vector<int> dims);
-RcppExport SEXP phybreak_MLphylotree_MCC(SEXP parsSEXP, SEXP dimsSEXP) {
+// CCphylotree
+std::vector<double> CCphylotree(const std::vector<int>& pars, const std::vector<double>& tims, std::vector<int> dims);
+RcppExport SEXP phybreak_CCphylotree(SEXP parsSEXP, SEXP timsSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< std::vector<int> >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type tims(timsSEXP);
     Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
-    __result = Rcpp::wrap(MLphylotree_MCC(pars, dims));
+    __result = Rcpp::wrap(CCphylotree(pars, tims, dims));
+    return __result;
+END_RCPP
+}
+// CCtranstree
+std::vector<double> CCtranstree(const std::vector<int>& pars, const std::vector<double>& tims, std::vector<int> dims);
+RcppExport SEXP phybreak_CCtranstree(SEXP parsSEXP, SEXP timsSEXP, SEXP dimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type tims(timsSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
+    __result = Rcpp::wrap(CCtranstree(pars, tims, dims));
     return __result;
 END_RCPP
 }
@@ -107,17 +69,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerVector >::type pars(parsSEXP);
     Rcpp::traits::input_parameter< int >::type ID(IDSEXP);
     __result = Rcpp::wrap(ptr(pars, ID));
-    return __result;
-END_RCPP
-}
-// sct
-NumericVector sct(NumericVector tle);
-RcppExport SEXP phybreak_sct(SEXP tleSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< NumericVector >::type tle(tleSEXP);
-    __result = Rcpp::wrap(sct(tle));
     return __result;
 END_RCPP
 }

@@ -73,5 +73,5 @@ NumericVector sctwh3(NumericVector tle) { //in reverse order
 //
 
 /*** R
-.sct(c(4,3,2,1))
+.sctwh3(c(4,3,2,1))
 */

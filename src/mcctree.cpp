@@ -7,11 +7,10 @@ using namespace Rcpp;
 
 
 
-
-// [[Rcpp::export(name=".CCphylotreeconstruct")]]
-std::vector<double> CCphyloconstruct(const std::vector<int> &pars, 
-                                  const std::vector<double> &tims,
-                                  std::vector<int> dims) {
+// [[Rcpp::export(name=".mcctree")]]
+std::vector<double> CCphylotree(const std::vector<int> &pars, 
+                                const std::vector<double> &tims,
+                                std::vector<int> dims) {
   
   
   //The ss*n vector with n parents in each of ss trees is transformed into
@@ -24,29 +23,30 @@ std::vector<double> CCphyloconstruct(const std::vector<int> &pars,
   buildphyloclades(uniq_clades, clade_freqs, which_clades, n_clade,
                    pars, dims[0], dims[1]);
   
-  //The vector 'orderpos' contains the paired 'clade_freqs' and corresponding position in uniq_clades,
-  //ordered from most frequent to least frequent
-  std::vector<std::pair<int, int> > orderpos(n_clade);
-  for(int i = 0; i < n_clade; ++i) {
-    orderpos[i].first = -clade_freqs[i];
-    orderpos[i].second = i;
+  
+  //For each clade, its log(frequency)
+  std::vector<double> cladescores((dims[0] - 1) * dims[1]);
+  for(int i = 0; i < (dims[0]-1)*dims[1]; ++i) {
+    cladescores[i] = std::log(clade_freqs[which_clades[i]]);
   }
-  std::sort(orderpos.begin(), orderpos.end());
   
+  //Determine the posterior tree with highest sum(log(frequency))
+  int posttree = 0;
+  std::vector<double> treescores(dims[1]);
+  for(int i = 0; i < dims[1]; ++i) {
+    for(int j = 0; j < dims[0] - 1; ++j) {
+      treescores[i] += cladescores[i * (dims[0] - 1) + j];
+    }
+    if(treescores[i] > treescores[posttree]) {
+      posttree = i;
+    }
+  }
   
-  //The vector 'postclades' contains the tree with highest maximum clade support,
-  //though not guaranteed so. It is constructed by sequentially testing the next highest
-  //supported clade for compatibility with already accepted clades, and accepting
-  //if compatible, until the tree is complete. 
-  std::vector<int> postclades(dims[0]);
-  
-  selectphyloclades(postclades, uniq_clades, 
-               orderpos, dims[0]);
-  
-  //The 'parents' vector contains the parent for each node, and 'scores' the corresponding score
-  std::vector<int> parents(2*dims[0] - 1);
-  
-  findnodeparents(parents, postclades, uniq_clades, dims[0]);
+  //Determine the posterior clades
+  std::vector<int> postclades(dims[0] - 1);
+  for(int i = 0; i < dims[0] - 1; ++i) {
+    postclades[i] = which_clades[posttree * (dims[0] - 1) + i];
+  }
   
   //For each posterior clade, the sums and sums-of-squares of the infection
   //times of the root hosts are calculated
@@ -55,19 +55,20 @@ std::vector<double> CCphyloconstruct(const std::vector<int> &pars,
   phylocladetimestats(cladetimesums, cladetimesumsqs, tims,
                       postclades, which_clades, uniq_clades, dims[0], dims[1]);
   
-
+  
   //Make vector with results: parents, clade support,
   //mean node time, SD(node time)
   //tree infection time,
-  std::vector<double> result(4 * (2*dims[0] - 1));
+  std::vector<double> result(1 + 5 * (2*dims[0] - 1));
   for(int i = 0; i < dims[0]; ++i) {
-    result[i] = parents[i];
+    result[i] = pars[(2*dims[0]-1) * posttree + i];
     result[i + 2*dims[0] - 1] = dims[1];
     result[i + 2* (2*dims[0] - 1)] = 0;
     result[i + 3* (2*dims[0] - 1)] = 0;
+    result[i + 4* (2*dims[0] - 1)] = 0;
   }
   for(int i = 0; i < dims[0] - 1; ++i) {
-    result[i + dims[0]] = parents[i + dims[0]];
+    result[i + dims[0]] = pars[(2*dims[0]-1) * posttree + dims[0] + i];
     result[i + dims[0] + 2*dims[0] - 1] = clade_freqs[postclades[i]];
     result[i + dims[0] + 2*(2*dims[0] - 1)] = (
       cladetimesums[i] / result[i + dims[0] + 2*dims[0] - 1]);
@@ -77,21 +78,13 @@ std::vector<double> CCphyloconstruct(const std::vector<int> &pars,
         result[i + dims[0] + 2*(2*dims[0] - 1)] * 
         result[i + dims[0] + 2*dims[0] - 1]
     ) / (result[i + dims[0] + 2*dims[0] - 1] - 1) );
-
+    result[i + dims[0] + 4*(2*dims[0] - 1)] = tims[(dims[0]-1) * posttree + i];
   }
-  //
-//   std::vector<int> result2(2450);
-//   for(int i = 0; i < 2450; ++i) {
-//     result2[i] = bestcladetree[i];
-//   }
-  //     std::vector<int> result2(200);
-  //     for(int i = 0; i < 100; ++i) {
-  //       result2[2*i] = orderpos[i].first;
-  //       result2[2*i+1] = orderpos[i].second;
-  //     }
-
-
-
+  result[5 * (2*dims[0] - 1)] = posttree;
+  
+  
+  
+  
   return result;
 }
 

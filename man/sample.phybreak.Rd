@@ -8,18 +8,21 @@ Sampling from a phybreak MCMC-chain.
 Function to take (additional) samples from the posterior distribution of a phylogenetic and transmission tree (plus associated parameters), by use of a phybreak-object.
 }
 \usage{
-sample.phybreak(phybreak.object, nsample, thin)
+sample.phybreak(phybreak.object, nsample, thin, keepphylo = 0.2)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{phybreak.object}{
-a phybreak-object.
+an object of class 'phybreak'.
 }
   \item{nsample}{
 the number of samples to take.
 }
   \item{thin}{
-the thinning to use (values after every 'thin'th update will be sampled).
+the thinning to use (values after every 'thin'th update cycle will be included in the posterior).
+}
+  \item{keepphylo}{
+proportion of transmission tree updates keeping the phylotree intact.
 }
 }
 \details{

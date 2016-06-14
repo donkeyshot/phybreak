@@ -13,13 +13,13 @@ using namespace Rcpp;
 // changes "likarray" within the environment
 
 // [[Rcpp::export(name=".likseqenv")]]
-double likseqenv(Environment pbenv,
+double likseqenv(Environment pbenv, 
               IntegerVector nodestochange, IntegerVector tips) {
   List data = pbenv["d"];
   List vars = pbenv["v"];
   List pars = pbenv["p"];
   NumericVector likarray = pbenv["likarray"];
-  IntegerVector SNPfreqs = data["SNPfr"];
+  IntegerVector SNPfreqs = pbenv["likarrayfreq"];
   IntegerVector nodeparents = vars["nodeparents"];
   NumericVector nodetimes = vars["nodetimes"];
   double mu = pars["mu"];

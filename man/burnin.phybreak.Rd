@@ -8,15 +8,18 @@ MCMC updating of a phybreak-object without sampling.
 This function allows the MCMC chain to burn in. If used after samples have been taken, these samples will be returned unchanged in the output.
 }
 \usage{
-burnin.phybreak(phybreak.object, nburnin)
+burnin.phybreak(phybreak.object, ncycles, keepphylo = 0.2)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{phybreak.object}{
-a phybreak-object.
+an object of class 'phybreak'.
 }
-  \item{nburnin}{
+  \item{ncycles}{
 number of iterations to be carried out.
+}
+  \item{keepphylo}{
+proportion of transmission tree updates keeping the phylotree intact.
 }
 }
 \details{
@@ -42,10 +45,10 @@ Don Klinkenberg
 }
 \examples{
 #First create a phybreak-object
-simulation <- sim.phybreak.gentime()
-MCMCstate <- make.phybreak.obkData(simulation)
+simulation <- sim.phybreak(20)
+MCMCstate <- phybreak(simulation)
 
-MCMCstate <- burnin.phybreak(MCMCstate, nburnin = 50)
+MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

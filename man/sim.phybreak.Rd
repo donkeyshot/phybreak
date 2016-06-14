@@ -1,26 +1,26 @@
 \name{Outbreak simulation}
-\alias{sim.phybreak.gentime}
-\alias{sim.phybreak.SIR}
+\alias{sim.phybreak}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Simulating outbreaks in package "phybreak".
+Simulating outbreaks of class 'obkData' in package "phybreak".
 }
 \description{
-In sim.phybreak.gentime, gamma distributions are used for generation times and for times between infection and sampling. In sim.phybreak.SIR, a gamma distribution is used for the infectious period duration; infectiousness is constant during the infectious period, and sampling is done at the end of the infectious period.
+Simulate outbreaks of class 'obkData' (package OutbreakTools), with the outbreak model of phybreak. 
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-sim.phybreak.gentime(obsize = 50, R0 = 1.5, shape.gen = 3, mean.gen = 1, shape.sample = 3, mean.sample = 1, nSUP = 0, multSUP = 10, disp = Inf, wh.model = 3, lambda = 0, rate0 = 1, mutrate = 1, nr.sites = 10000)
-
-sim.phybreak.SIR(obsize = 50, R0 = 1.5, shape.infper = 3, mean.infper = 1, nSUP = 0, multSUP = 10, wh.model = 3, lambda = 0, rate0 = 1, mutrate = 1, nr.sites = 10000)
+sim.phybreak(obsize = 50, popsize = NA, R0 = 1.5, shape.gen = 10, mean.gen = 1, shape.sample = 10, mean.sample = 1, wh.model = 3, slope = 1, mutrate = 0.0001, sequence.length = 10000)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{obsize}{
-the outbreak size (number of cases) to obtain
+the outbreak size (number of cases) to obtain.
+}
+  \item{popsize}{
+the population size in which to simulate. If it is not defined (default), an optimal population size will be chosen based on R0 and obsize.
 }
   \item{R0}{
-the basic reproduction ratio used for simulation, not including the superspreaders. The offspring distribution is Poisson, unless 'disp' < Inf.
+the basic reproduction ratio used for simulation. The offspring distribution is Poisson.
 }
   \item{shape.gen}{
 the shape parameter of the gamma-distributed generation time.
@@ -40,38 +40,26 @@ the shape parameter of the gamma-distributed infectious period.
   \item{mean.infper}{
 the mean infectious period.
 }
-  \item{nSUP}{
-the number of superspreaders in the population (NOTE: not necessarily in the outbreak!)
-}
-  \item{multSUP}{
-the proportional infectivity of the superspreaders.
-}
-  \item{disp}{
-the dispersion parameter of the offspring distribution. The individual expected offspring is drawn from a gamma distribution with mean 'R0' and shape parameter 'disp' (or mean 'R0*multSUP' in case of a superspreader).
-}
   \item{wh.model}{
 the model for within-host pathogen dynamics (effective pathogen population size = N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
 \enumerate{
 \item{effective size = 0, so coalescence occurs 'just before' transmission in the infector}
 \item{effective size = Inf, so coalescence occurs 'just after' transmission in the infectee}
-\item{effective size at time t after infection = rate0 * exp(lambda * t)}
+\item{effective size at time t after infection = slope * t}
 }
 }
-  \item{lambda}{
-within-host exponential growth rate, used if wh.model = 3
-}
-  \item{rate0}{
-within-host initial effective pathogen population size, used if wh.model = 3
+  \item{slope}{
+within-host increase of population size, used if wh.model = 3.
 }
   \item{mutrate}{
-expected number of mutations per unit of time along each branch
+expected number of mutations per nucleotide per unit of time along each lineage.
 }
-  \item{nr.sites}{
-number of available sites for mutations, so that the per-site mutation rate mu = mutrate/nr.sites
+  \item{sequence.length}{
+number of available nucleotides for mutations.
 }
 }
 \details{
-The population size is calculated by solving N from the final size equation << S/N == exp(-Rmean * (1 - S/N)) >> (rounded upwards), in which << Rmean = R0 * (1 + nSUP*(multSUP-1)/N) >>, i.e. the mean basic reproduction ratio.
+If popsize = NA, the population size is calculated by solving N from the final size equation << S/N == exp(-R0 * (1 - S/N)) >> (rounded upwards), in which S/N is the proportion of the population not involved in the outbreak.
 }
 \value{
 An object of class 'obkData' [package "OutbreakTools"], containing the following slots:
@@ -117,7 +105,7 @@ Don Klinkenberg
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-simulation <- sim.phybreak.gentime()
+simulation <- sim.phybreak()
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
