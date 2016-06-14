@@ -34,12 +34,6 @@ the shape parameter of the gamma-distributed sampling time, i.e. time from infec
   \item{mean.sample}{
 the mean sampling time.
 }
-  \item{shape.infper}{
-the shape parameter of the gamma-distributed infectious period.
-}
-  \item{mean.infper}{
-the mean infectious period.
-}
   \item{wh.model}{
 the model for within-host pathogen dynamics (effective pathogen population size = N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
 \enumerate{
