@@ -5,7 +5,7 @@
 plotting a phybreak object
 }
 \description{
-Plots a phybreak object as phylogenetic tree with coloured branches indicating hosts. The default is to plot the current state, but any posterior sample can be chosen, as well as various consensus trees}
+Plots a phybreak object as phylogenetic tree with coloured branches indicating hosts. The default is to plot the current state, but any posterior sample can be chosen, as well as various consensus trees
 }
 \usage{
 plot.phybreak(x, plot.which = "sample", samplenr = 0, ...)

@@ -129,7 +129,11 @@
   
   ### calculate acceptance probability
   evalq(
-    logaccprob <- logLikcoal - .phybreakenv$logLikcoal + logproposalratio,
+    logaccprob <- logLikcoal - .phybreakenv$logLikcoal + logproposalratio +
+      dgamma(p$wh.slope, shape = h$wh.sh, 
+             scale = h$wh.av/h$wh.sh, log = TRUE) - 
+      dgamma(.phybreakenv$p$wh.slope, shape = h$wh.sh, 
+             scale = h$wh.av/h$wh.sh, log = TRUE),
     .phybreakenv.prop)
   
   ### accept or reject

@@ -56,12 +56,14 @@
   snpreduced <- apply(phybreak.obj$d$SNP, 2, fn)
   snpfrreduced <- phybreak.obj$d$SNPfr
   snpreduced[phybreak.obj$d$SNP == "n"] <- 5
-  for(i in (ncol(phybreak.obj$d$SNP)-1):1) {
-    for(j in length(snpfrreduced):(i+1)) {
-      if(all(snpreduced[,i] == snpreduced[,j])) {
-        snpfrreduced[i] <- snpfrreduced[i] + snpfrreduced[j]
-        snpfrreduced <- snpfrreduced[-j]
-        snpreduced <- snpreduced[,-j]
+  if(ncol(phybreak.obj$d$SNP) > 1) {
+    for(i in (ncol(phybreak.obj$d$SNP)-1):1) {
+      for(j in length(snpfrreduced):(i+1)) {
+        if(all(snpreduced[,i] == snpreduced[,j])) {
+          snpfrreduced[i] <- snpfrreduced[i] + snpfrreduced[j]
+          snpfrreduced <- snpfrreduced[-j]
+          snpreduced <- snpreduced[,-j,drop=FALSE]
+        }
       }
     }
   }

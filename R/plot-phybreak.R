@@ -4,7 +4,7 @@
 ### colouring the branches by host in which they reside,
 ### but no unique colour per host.
 ### calls:
-# MLtrans
+# transtree
 # get.phylo
 plot.phybreak <- function(x, plot.which = "sample", samplenr = 0, ...) {
   if(!inherits(x, "phybreak")) {

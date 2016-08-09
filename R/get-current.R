@@ -1,6 +1,5 @@
 ### get current state of the tree ###
-### This file contains get.XXX functions plus
-### helper-functions exclusively used by these functions
+### This file contains get.XXX functions 
 
 ### a 1-column matrix with infectors
 get.infectors <- function(phybreak.object) {

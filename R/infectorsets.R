@@ -81,7 +81,7 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
 ### called from:
 # .infarray
 ### calls:
-# .postinfector (file 'transtree-helper-functions')
+# .postinfector (file 'transtree')
 .inflist <- function(inf.chain, nhosts) {
   sapply(1:nhosts, .postinfector, inf.chain=inf.chain, support = TRUE)
 }
