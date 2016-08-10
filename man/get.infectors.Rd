@@ -1,9 +1,4 @@
 \name{Accessing current state of phybreak-object}
-\alias{get.infectors}
-\alias{get.parameters}
-\alias{get.mcmc}
-\alias{get.phylo}
-\alias{get.phyDat}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Access to the current state of a phybreak-object.
@@ -14,15 +9,8 @@ Extracting specific elements of a phybreak-object.
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-get.infectors(phybreak.object)
 
-get.parameters(phybreak.object)
 
-get.mcmc(phybreak.object, thin = 1, samplesize = Inf)
-
-get.phylo(phybreak.object, post.tree = 0, simmap = FALSE)
-
-get.phyDat(phybreak.object)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

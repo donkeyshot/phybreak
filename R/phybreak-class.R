@@ -7,6 +7,87 @@
 # .sampletopology(nodes, nodetimes, nodetypes, rootnode, wh.model)
 # .distmatrix(SNP, SNPfrequencies)
 
+#' Create a phybreak-object from data and prior distributions.
+#' 
+#' phybreak takes as data either an \linkS4class{obkData}-object or a \code{matrix} with sequences 
+#' (individuals in rows, nucleotides in columns). If only sequences are used, a vector with 
+#' sampling times is also needed. Parameter values are used as initial values in the MCMC-chain 
+#' or kept fixed. All variables are initialized by random samples from the prior distribution, 
+#' unless the tree in the obkData is used (\code{use.tree = TRUE}).
+#' 
+#' @param data An object of class \linkS4class{obkData}, containing sequences and sampling times as 
+#'   metadata with these sequences; or a \code{matrix} with nucleotides, each row a host, each column 
+#'   a nucleotide. All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, or \code{'t'}, will be turned into \code{'n'}.
+#' @param ti Vector of sampling times, necessary if data is given as a matrix of sequences. 
+#'   If available, the item names will be used to identify the hosts, unless \code{id} is given as well.
+#' @param freq Vector of nucleotide frequencies, optional if data is given as a matrix of sequences. 
+#'   The vector indicates per column in \code{data} how frequent that particular distribution of nucleotides 
+#'   across hosts was observed.
+#' @param id Vector of host names to identify the hosts, optional if data is given as a matrix of sequences. 
+#'   The order should match the order of time and sequence data.
+#' @param mu Initial value for mutation rate (defined per site per unit of time). 
+#'   NOTE: mutation is defined as assignment of a random nucleotide at a particular site; this could be the 
+#'   nucleotide that was there before the mutation event. Therefore, the actual rate of change of nucleotides 
+#'   is \code{0.75*mu}.
+#' @param gen.shape Shape parameter of the generation interval distribution (fixed).
+#' @param gen.mean Initial value for the mean generation interval.
+#' @param sample.shape Shape parameter of the sampling interval distribution (fixed).
+#' @param sample.mean Initial value for the mean sampling interval.
+#' @param wh.model The model for within-host pathogen dynamics (effective pathogen population size = 
+#'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
+#'   \enumerate{
+#'     \item Effective size = 0, so coalescence occurs 'just before' transmission in the infector
+#'     \item Effective size = Inf, so coalescence occurs 'just after' transmission in the infectee
+#'     \item Effective size at time t after infection = \code{wh.slope * t}
+#'   }
+#' @param wh.slope Initial value for the within-host slope, used if \code{wh.model = 3}.
+#' @param est.mean.gen Whether to estimate the mean generation interval or keep it fixed. 
+#' @param prior.mean.gen.mean Mean of the (gamma) prior distribution of mean generation interval \code{mG} 
+#'   (only if \code{est.mean.gen = TRUE}).
+#' @param prior.mean.gen.sd Standard deviation of the (gamma) prior distribution of mean generation interval \code{mG} 
+#'   (only if \code{est.mean.gen = TRUE}).
+#' @param est.mean.sample Whether to estimate the mean sampling interval or keep it fixed. 
+#' @param prior.mean.sample.mean Mean of the (gamma) prior distribution of mean sampling interval \code{mS} 
+#'   (only if \code{est.mean.sample = TRUE}).
+#' @param prior.mean.sample.sd Standard deviation of the (gamma) prior distribution of mean sampling interval \code{mS} 
+#'   (only if \code{est.mean.sample = TRUE}).
+#' @param est.wh Whether to estimate the within-host slope or keep it fixed. 
+#' @param prior.wh.shape Shape parameter of the (gamma) prior distribution of \code{slope} 
+#'   (only if \code{est.wh = TRUE}).
+#' @param prior.wh.mean Mean of the (gamma) prior distribution of \code{slope} 
+#'   (only if \code{est.wh = TRUE}).
+#' @param use.tree Whether to use the transmission and phylogenetic tree given in data of class \linkS4class{obkData}, 
+#'   to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
+#'   the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 
+#'   one phylogenetic tree. Such data are created when using \code{\link{sim.phybreak}}.
+#' @return An object of class \code{phybreak} with the following elements
+#'   \describe{
+#'     \item{d}{a \code{list} with data, i.e. names, SNPs and SNP-frequencies.}
+#'     \item{v}{a \code{list} with current state of all nodes in the tree: times, hosts in which they reside,
+#'       parent nodes, node types (sampling, coalescent, or transmission)}
+#'     \item{p}{a \code{list} with the parameter values}
+#'     \item{h}{a \code{list} with helper information for the MCMC-method: \code{si.mu} and \code{si.wh} for 
+#'       efficiently proposing \code{mu} and \code{slope}, matrix \code{dist} with weights for infector sampling 
+#'       based on sequence distances, \code{logical}s \code{est.mG}, \code{est.mS}, and \code{est.wh} whether to estimate 
+#'       mean generation interval \code{mG}, mean sampling interval \code{mS}, and within-host \code{slope}, 
+#'       and parameters for the priors of \code{mG}, \code{mS}, and \code{slope}.
+#'     }
+#'     \item{s}{an empty \code{list} that will contain vector and matrices with the posterior samples; 
+#'       in matrices, the rows are nodes in the phylogenetic tree, the columns are the samples}
+#'   }
+#' @author Don Klinkenberg \email{don@@xs4all.nl}
+#' 
+#' @examples 
+#' simulation <- sim.phybreak()
+#' MCMCstate <- phybreak(simulation)
+#' MCMCstate2 <- phybreak(simulation, use.tree = TRUE)
+#' 
+#' sampletimedata <- c(0,2,2,4,4)
+#' sampleSNPdata <- matrix(c("a","a","a","a","a",
+#'                           "a","c","c","c","c",
+#'                           "t","t","t","g","g"), nrow = 5)
+#' MCMCstate <- phybreak(sampleSNPdata, sampletimedata)
+#' @export
 phybreak <- function(data, ti = NULL, freq = NULL, id = NULL,
          mu = .0001, gen.shape = 3, gen.mean = 1,
          sample.shape = 3, sample.mean = 1, 
@@ -110,9 +191,9 @@ phybreak <- function(data, ti = NULL, freq = NULL, id = NULL,
   if(class(data) == "obkData") {
     for(i in 1:length(data@dna@dna)) {
       SNP.sample <- cbind(SNP.sample,
-                          do.call(rbind,as.phyDat(data@dna@dna[[i]])))
+                          do.call(rbind, phangorn::as.phyDat(data@dna@dna[[i]])))
       SNP.frequencies <- c(SNP.frequencies,
-                           attr(as.phyDat(data@dna@dna[[i]]),"weight"))
+                           attr(phangorn::as.phyDat(data@dna@dna[[i]]),"weight"))
       if(length(setdiff(SNP.sample,1:4))) warning("all nucleotides other than actg have been turned into n")
       SNP.sample[SNP.sample != 1 & SNP.sample != 2 & SNP.sample != 3 & SNP.sample != 4] <- "n"
       SNP.sample[SNP.sample == 1] <- "a"

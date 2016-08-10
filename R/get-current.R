@@ -1,118 +1,171 @@
-### get current state of the tree ###
-### This file contains get.XXX functions 
+### get current state of the tree ### This file contains get.XXX functions
+
+#' Accessing a phybreak object
+#' 
+#' @param phybreak.object An object of class \code{phybreak}.
+#' 
+#' @name get.phybreak
+NULL
+#> NULL
 
 ### a 1-column matrix with infectors
+#' @describeIn get.phybreak A vector of infectors (position i referring to host i).
+#' @export
 get.infectors <- function(phybreak.object) {
-  if(!inherits(phybreak.object, "phybreak")) {
-    stop("object must be of class \"phybreak\"")
-  }
-  infectors <- c("index", phybreak.object$d$names)[
-    1 + tail(phybreak.object$v$nodehosts,phybreak.object$p$obs)]
-  res <- matrix(infectors, ncol = 1,
-                dimnames = list(phybreak.object$d$names, "infector"))
-  return(res)
+    if (!inherits(phybreak.object, "phybreak")) {
+        stop("object must be of class \"phybreak\"")
+    }
+    infectors <- c("index", phybreak.object$d$names)[1 + tail(phybreak.object$v$nodehosts, phybreak.object$p$obs)]
+    res <- matrix(infectors, ncol = 1, dimnames = list(phybreak.object$d$names, "infector"))
+    return(res)
 }
 
 ### a vector with named parameter values
+#' @describeIn get.phybreak A named vector with all current parameter values.
+#' @export
 get.parameters <- function(phybreak.object) {
-  return(unlist(phybreak.object$p))
+    return(unlist(phybreak.object$p))
 }
 
 ### an mcmc-object (package 'coda')
+#' @describeIn get.phybreak An object of class \code{"mcmc"} (package \pkg{coda}), with sampled parameters, 
+#'   infection times, and infectors.
+#'   
+#' @param thin Thinning interval for making the mcmc-object.
+#' @param samplesize Number of samples to keep in the mcmc-object, counting from tail of the chain.
+#' @export
 get.mcmc <- function(phybreak.object, thin = 1, samplesize = Inf) {
-  ### tests
-  if(!inherits(phybreak.object, "phybreak")) {
-    stop("object must be of class \"phybreak\"")
-  }
-  chainlength <- length(phybreak.object$s$mu)
-  if(samplesize > chainlength & samplesize < Inf) {
-    warning("desired 'samplesize' larger than number of available samples")
-  }
-  
-  ### posterior samples to be included
-  tokeep <- seq(thin, length(phybreak.object$s$logLik), thin)
-  tokeep <- tail(tokeep, samplesize)
-  
-  ### extracting all variables and parameters, and naming them
-  res <- with(phybreak.object,
-              cbind(t(s$nodetimes[p$obs:(2*p$obs-1), tokeep]),
-                    t(s$nodehosts[p$obs:(2*p$obs-1), tokeep])))
-  parnames <- c(paste0("tinf.",phybreak.object$d$names),
-                paste0("infector.",phybreak.object$d$names))
-  if(phybreak.object$h$est.wh) {
-    res <- cbind(phybreak.object$s$slope[tokeep], res)
-    parnames <- c("slope",parnames)
-  }
-  if(phybreak.object$h$est.mG) {
-    res <- cbind(phybreak.object$s$mG[tokeep], res)
-    parnames <- c("mG",parnames)
-  }
-  if(phybreak.object$h$est.mS) {
-    res <- cbind(phybreak.object$s$mS[tokeep], res)
-    parnames <- c("mS",parnames)
-  }
-  res <- cbind(phybreak.object$s$mu[tokeep], res,
-               phybreak.object$s$logLik[tokeep])
-  parnames <- c("mu",parnames,"logLik")
-  colnames(res) <- parnames
-  
-  return(mcmc(res))
+    ### tests
+    if(!("coda" %in% .packages(TRUE))) {
+      stop("package 'coda' should be installed for this function")
+    }
+    if(!("coda" %in% .packages(FALSE))) {
+      warning("package 'coda' is not attached")
+    }
+    if (!inherits(phybreak.object, "phybreak")) {
+      stop("object must be of class \"phybreak\"")
+    }
+    chainlength <- length(phybreak.object$s$mu)
+    if (samplesize > chainlength & samplesize < Inf) {
+        warning("desired 'samplesize' larger than number of available samples")
+    }
+    
+    ### posterior samples to be included
+    tokeep <- seq(thin, length(phybreak.object$s$logLik), thin)
+    tokeep <- tail(tokeep, samplesize)
+    
+    ### extracting all variables and parameters, and naming them
+    res <- with(phybreak.object, cbind(t(s$nodetimes[p$obs:(2 * p$obs - 1), tokeep]), t(s$nodehosts[p$obs:(2 * p$obs - 1), tokeep])))
+    parnames <- c(paste0("tinf.", phybreak.object$d$names), paste0("infector.", phybreak.object$d$names))
+    if (phybreak.object$h$est.wh) {
+        res <- cbind(phybreak.object$s$slope[tokeep], res)
+        parnames <- c("slope", parnames)
+    }
+    if (phybreak.object$h$est.mG) {
+        res <- cbind(phybreak.object$s$mG[tokeep], res)
+        parnames <- c("mG", parnames)
+    }
+    if (phybreak.object$h$est.mS) {
+        res <- cbind(phybreak.object$s$mS[tokeep], res)
+        parnames <- c("mS", parnames)
+    }
+    res <- cbind(phybreak.object$s$mu[tokeep], res, phybreak.object$s$logLik[tokeep])
+    parnames <- c("mu", parnames, "logLik")
+    colnames(res) <- parnames
+    
+    return(coda::mcmc(res))
 }
 
 
-### the phylogenetic tree in class 'phylo', and possibly also
-### in class 'simmap'. The function also allows to get one of
-### the posterior trees (0 = current) 
-### called by:
-# plot.phybreak
-### calls:
-# .makephylosimmap.phybreak
-# .makephylo.phybreak
+### the phylogenetic tree in class 'phylo', and possibly also in class 'simmap'. The function also allows to get one of the
+### posterior trees (0 = current) called by: plot.phybreak calls: .makephylosimmap.phybreak .makephylo.phybreak
+
+#' @describeIn get.phybreak Returns an object of class \code{"phylo"} (package \pkg{ape}) and optionally of class 
+#'   \code{"simmap"} (package \pkg{phytools}).
+#'   
+#' @param post.tree The posterior tree sample to choose. If \code{post.tree = 0}, the current state is used.
+#' @param simmap Whether to include class \code{"simmap"} elements (package \pkg{phytools}), colouring the branches 
+#'   on the tree to indicate hosts.
+#'   
+#' @examples 
+#' #First build a phybreak-object.
+#' simulation <- sim.phybreak(obsize = 20)
+#' MCMCstate <- phybreak(simulation)
+#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
+#' MCMCstate <- burnin.phybreak(MCMCstate, nsample = 20, thin = 10)
+#' 
+#' get.infectors(MCMCstate)
+#' get.parameters(MCMCstate)
+#' get.mcmc(MCMCstate)
+#' ape::plot.phylo(get.phylo(MCMCstate))
+#' get.phyDat(MCMCstate)
+#' 
+#' #function from package phangorn:
+#' parsimony(get.phylo(MCMCstate), get.phyDat(MCMCstate))
+#' 
+#' tree0 <- get.phylo(MCMCstate)
+#' dataphyDat <- get.phyDat(MCMCstate)
+#' phangorn::pml(tree0, dataphyDat, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+#' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
+#'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
+#' @export
 get.phylo <- function(phybreak.object, post.tree = 0, simmap = FALSE) {
-  ### tests
-  if(!inherits(phybreak.object, "phybreak")) {
-    stop("object must be of class \"phybreak\"")
-  }
-  if(post.tree > length(phybreak.object$s$mu)) {
-    warning("requested 'post.tree' not available; current state used")
-    post.tree <- 0
-  }
-  
-  ### get times, parents, hosts
-  if(post.tree == 0) {
-    nodetimes <- phybreak.object$v$nodetimes
-    nodeparents <- phybreak.object$v$nodeparents
-    nodehosts <- phybreak.object$v$nodehosts
-  } else {
-    nodetimes <- with(phybreak.object,
-                      c(v$nodetimes[1:p$obs],
-                        s$nodetimes[,post.tree]))
-    nodeparents <- phybreak.object$s$nodeparents[,post.tree]
-    nodehosts <- with(phybreak.object,
-                      c(v$nodehosts[1:p$obs],
-                        s$nodehosts[,post.tree]))
-  }
-  nodenames <- phybreak.object$d$names
-  
-  
-  if(simmap) {
-    return(.makephylosimmap.phybreak(nodetimes, nodeparents, nodehosts, nodenames))
-  } else {
-    return(.makephylo.phybreak(nodetimes, nodeparents, nodenames))
-  }
-  
+    ### tests
+    if (simmap & !("phytools" %in% .packages(TRUE))) {
+      stop("package 'phytools' should be installed for this function if simmap = TRUE")
+    }
+    if (simmap & !("phytools" %in% .packages(FALSE))) {
+      warning("package 'phytools' is not attached while simmap = TRUE")
+    }
+    if (!inherits(phybreak.object, "phybreak")) {
+        stop("object must be of class \"phybreak\"")
+    }
+    if (post.tree > length(phybreak.object$s$mu)) {
+        warning("requested 'post.tree' not available; current state used")
+        post.tree <- 0
+    }
+    
+    ### get times, parents, hosts
+    if (post.tree == 0) {
+        nodetimes <- phybreak.object$v$nodetimes
+        nodeparents <- phybreak.object$v$nodeparents
+        nodehosts <- phybreak.object$v$nodehosts
+    } else {
+        nodetimes <- with(phybreak.object, c(v$nodetimes[1:p$obs], s$nodetimes[, post.tree]))
+        nodeparents <- phybreak.object$s$nodeparents[, post.tree]
+        nodehosts <- with(phybreak.object, c(v$nodehosts[1:p$obs], s$nodehosts[, post.tree]))
+    }
+    nodenames <- phybreak.object$d$names
+    
+    
+    if (simmap) {
+        return(.makephylosimmap.phybreak(nodetimes, nodeparents, nodehosts, nodenames))
+    } else {
+        return(.makephylo.phybreak(nodetimes, nodeparents, nodenames))
+    }
+    
 }
-  
 
-### the sequence data in class 'phyDat' 
+
+### the sequence data in class 'phyDat'
+#' @describeIn get.phybreak The sequence data in \code{"phyDat"} format (package \pkg{phangorn}).
+#' @export
 get.phyDat <- function(phybreak.object) {
-  ###sequences
-  dnadata <- with(phybreak.object, {
-    t(matrix(rep(t(d$SNP),rep(d$SNPfr,p$obs)),ncol=p$obs))
-  })
-  rownames(dnadata) <- phybreak.object$d$names
-  
-  return(phyDat(dnadata))
+    ### tests
+    if (!("phangorn" %in% .packages(TRUE))) {
+      stop("package 'phangorn' should be installed for this function")
+    }
+    if (!("phangorn" %in% .packages(FALSE))) {
+      warning("package 'phangorn' is not attached")
+    }
+    
+    ### sequences
+    dnadata <- with(phybreak.object, {
+        t(matrix(rep(t(d$SNP), rep(d$SNPfr, p$obs)), ncol = p$obs))
+    })
+    rownames(dnadata) <- phybreak.object$d$names
+    
+    return(phangorn::phyDat(dnadata))
 }
 
 

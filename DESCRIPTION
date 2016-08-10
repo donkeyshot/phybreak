@@ -12,10 +12,10 @@ Description: The package implements the outbreak analysis method
 License: GPL (>=2)
 LazyData: TRUE
 Depends:
-    R(>= 3.1.0),
-    Rcpp (>= 0.12.1)
+    R(>= 3.1.0)
 Imports:
-    phangorn
+    phangorn,
+    Rcpp (>= 0.12.1)
 Suggests:
     coda,
     OutbreakTools,

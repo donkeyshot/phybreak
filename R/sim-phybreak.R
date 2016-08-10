@@ -11,15 +11,56 @@
 # phangorn
 
 
-#' Outbreak simulation
+#' Outbreak simulation.
 #' 
-#' Simulate outbreaks of class \linkS4class{obkData} (package \pkg{OutbreakTools})
+#' Simulate outbreaks of class \linkS4class{obkData} (package \pkg{OutbreakTools}), with the outbreak model of \pkg{phybreak}.
+#' 
+#' @param obsize The outbreak size (number of cases) to obtain. If \code{obsize = NA}, \code{popsize} should be provided.
+#' @param popsize The population size in which to simulate. If it is not defined (default), 
+#'   an optimal population size will be chosen based on R0 and obsize. Be aware that choosing a \code{popsize} and
+#'   an \code{obsize} can severely increase the simulation time, depending on \code{R0}.
+#' @param R0 The basic reproduction ratio used for simulation. The offspring distribution is Poisson.
+#' @param shape.gen The shape parameter of the gamma-distributed generation interval.
+#' @param mean.gen The mean generation interval.
+#' @param shape.sample The shape parameter of the gamma-distributed sampling interval.
+#' @param mean.sample The mean sampling interval.
+#' @param wh.model The model for within-host pathogen dynamics (effective pathogen population size = 
+#'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
+#'   \enumerate{
+#'     \item Effective size = 0, so coalescence occurs 'just before' transmission in the infector
+#'     \item Effective size = Inf, so coalescence occurs 'just after' transmission in the infectee
+#'     \item Effective size at time t after infection = slope * t
+#'   }
+#' @param slope Within-host increase of effective population size, used if \code{wh.model = 3}.
+#' @param mutrate Expected number of mutations per nucleotide per unit of time along each lineage. 
+#' @param sequence.length Number of available nucleotides for mutations.
+#' @return An object of class \linkS4class{obkData} (package \pkg{OutbreakTools}), containing outbreak data in
+#' the following slots:
+#'   \describe{
+#'     \item{individuals}{a \code{data.frame} with individual labels as row names, a vector \code{infector},
+#'       and a vector \code{date} containing the infection times (starting 01-01-2000)
+#'     }
+#'     \item{dna}{an object of class \linkS4class{obkSequences}, with SNP data in \code{dna} and sampling times
+#'       in \code{meta$date}
+#'     }
+#'     \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{phylo}}
+#'   }
+#' @author Don Klinkenberg \email{don@@xs4all.nl}
+#' @examples 
+#' simulation <- sim.phybreak()
+#' @export
 sim.phybreak <- function(obsize = 50, popsize = NA, 
                          R0 = 1.5, shape.gen = 10, mean.gen = 1, 
                          shape.sample = 10, mean.sample = 1,
                          wh.model = 3, slope = 1, 
                          mutrate = 0.0001, sequence.length = 10000) {
   ### tests
+  if(!("OutbreakTools" %in% .packages(TRUE))) {
+    stop("package 'OutbreakTools' should be installed for this function")
+  }
+  if(!("OutbreakTools" %in% .packages(FALSE))) {
+    require("OutbreakTools")
+  }
   if(all(is.na(c(obsize,popsize)))) {
     stop("give an outbreak size (obsize) and/or a population size (popsize)")
   }
@@ -239,7 +280,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
     
     return(
       within(sim.object,{
-        SNPlist <- as.DNAbin(nodestrains)
+        SNPlist <- ape::as.DNAbin(nodestrains)
       })
     )
   }

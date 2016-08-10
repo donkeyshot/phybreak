@@ -1,27 +1,46 @@
 ### plot functions for phybreak-object ###
 
-### makes use of plot function in 'simmap',
-### colouring the branches by host in which they reside,
-### but no unique colour per host.
-### calls:
-# transtree
-# get.phylo
-plot.phybreak <- function(x, plot.which = "sample", samplenr = 0, ...) {
-  if(!inherits(x, "phybreak")) {
+### makes use of plot function in 'simmap', colouring the branches by host in which they reside, but no unique colour per host.
+### calls: transtree get.phylo
+
+
+#' Plotting a phybreak object.
+#' 
+#' Plots a \code{phybreak}-object as phylogenetic tree with coloured branches indicating hosts. The default 
+#'   is to plot the current state, but any posterior sample can be chosen, as well as various consensus trees.
+#' 
+#' @param x An object of class \code{phybreak}.
+#' @param plot.which Either \code{"sample"} to plot the current state or a selected posterior sample, 
+#'   \code{"mpc"} or \code{"mtcc"} to plot a consensus transmission tree (see \code{\link{transtree}}) or \code{"mcc"}
+#'   to plot the maximum clade credibility tree (see \code{\link{phylotree}}).
+#' @param samplenr If \code{plot.which = "sample"}, this indicates which posterior tree should be plotted: 
+#'   \code{samplenr = 0} to plot the current state.
+#' @param ... Additional options for \code{\link[phytools]{plotSimmap}}.
+#' @author Don Klinkenberg \email{don@@xs4all.nl}
+#' @examples 
+#' #First build a phybreak-object containing samples.
+#' simulation <- sim.phybreak(obsize = 20)
+#' MCMCstate <- phybreak(simulation)
+#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
+#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
+#' 
+#' infectorsets(MCMCstate)
+#' @export
+plot.phybreak <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplenr = 0, ...) {
+  if(!("phytools" %in% .packages(TRUE))) {
+    stop("package 'phytools' should be installed for this function")
+  }
+  if (!inherits(x, "phybreak")) {
     stop("object x must be of class \"phybreak\"")
   }
-
-  if(plot.which == "mpc") {
-    plotSimmap(transtree(x, "mpc", phylo.class = TRUE),
-               colors = setNames(nm = c("black","red","blue")), ...)
-  } else if(plot.which == "mtcc") {
-    plotSimmap(transtree(x, "mtcc", phylo.class = TRUE),
-               colors = setNames(nm = c("black","red","blue")), ...)
-  } else if(plot.which == "mcc") {
-    plotSimmap(phylotree(x, phylo.class = TRUE),
-               colors = setNames(nm = c("black","red","blue")), ...)
+  
+  if (plot.which[1] == "mpc") {
+    phytools::plotSimmap(suppressWarnings(transtree(x, "mpc", phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
+  } else if (plot.which[1] == "mtcc") {
+    phytools::plotSimmap(suppressWarnings(transtree(x, "mtcc", phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
+  } else if (plot.which[1] == "mcc") {
+    phytools::plotSimmap(suppressWarnings(phylotree(x, phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
   } else {
-    plotSimmap(get.phylo(x, samplenr, TRUE),
-               colors = setNames(nm = c("black","red","blue")), ...)
+    phytools::plotSimmap(suppressWarnings(get.phylo(x, samplenr, TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
   }
 }

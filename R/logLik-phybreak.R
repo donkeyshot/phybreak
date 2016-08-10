@@ -1,96 +1,99 @@
 ### calculate the log-likelihood ###
 
-### phybreak functions called ###
-# .likseq  ##C++
-# .lik.gentimes
-# .lik.sampletimes
-# .lik.coaltimes
+### phybreak functions called ### .likseq ##C++ .lik.gentimes .lik.sampletimes .lik.coaltimes
 
 
-logLik.phybreak <- function(phybreak.object, genetic = TRUE, withinhost = TRUE,
-                            sampling = TRUE, generation = TRUE) {
-  res <- 0
-  if(genetic) {
-    res <- res + with(phybreak.object, .likseq(t(d$SNP), d$SNPfr,
-                                            v$nodeparents, v$nodetimes, p$mu,p$obs))
-  } 
-  if(generation) {
-    res <- res + with(phybreak.object, .lik.gentimes(p$obs, p$shape.gen, p$mean.gen,
-                                                  v$nodetimes, v$nodehosts, v$nodetypes))
-  } 
-  if(sampling) {
-    res <- res + with(phybreak.object, .lik.sampletimes(p$shape.sample, p$mean.sample,
-                                                     v$nodetimes, v$nodetypes))
-  } 
-  if(withinhost) {
-    res <- res + with(phybreak.object, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, 
-                                                   v$nodetimes, v$nodehosts, v$nodetypes))
-  }
-  return(res)
+#' Log-likelihood of a phybreak-object.
+#' 
+#' The likelihood of a \code{phybreak}-object is calculated, with the option to include or exclude parts of the 
+#' likelihood for genetic data, phylogenetic tree (within-host model), sampling times and generation times.
+#' 
+#' The sequence likelihood is calculated by Felsenstein's pruning algorithm, assuming a prior probability of 0.25 
+#' for each nucleotide. The within-host likelihood is the likelihood of coalescence times given the within-host model 
+#' and slope. The generation interval and sampling interval likelihood are log-densities of the gamma distributions 
+#' for these variables.
+#' 
+#' @param phybreak.object An object of class \code{phybreak}.
+#' @param genetic Whether to include the likelihood of the mutation model.
+#' @param withinhost Whether to include the likelihood of within-host (coalescent) model.
+#' @param sampling Whether to include the likelihood of the sampling model (sampling intervals).
+#' @param generation Whether to include the likelihood of the transmission model (generation intervals).
+#' @return The log-likelihood.
+#' @author Don Klinkenberg \email{don@@xs4all.nl}
+#' @examples 
+#' #First build a phybreak-object containing samples.
+#' simulation <- sim.phybreak(obsize = 20)
+#' MCMCstate <- phybreak(simulation)
+#' logLik(MCMCstate)
+#' 
+#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
+#' logLik(MCMCstate)
+#' @export
+logLik.phybreak <- function(phybreak.object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE) {
+    res <- 0
+    if (genetic) {
+        res <- res + with(phybreak.object, .likseq(t(d$SNP), d$SNPfr, v$nodeparents, v$nodetimes, p$mu, p$obs))
+    }
+    if (generation) {
+        res <- res + with(phybreak.object, .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes))
+    }
+    if (sampling) {
+        res <- res + with(phybreak.object, .lik.sampletimes(p$shape.sample, p$mean.sample, v$nodetimes, v$nodetypes))
+    }
+    if (withinhost) {
+        res <- res + with(phybreak.object, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes))
+    }
+    return(res)
 }
 
 
-### calculate the log-likelihood of sampling intervals
-### called from:
-# logLik.phybreak
-# .build.phybreakenv
-# .propose.phybreakenv
+### calculate the log-likelihood of sampling intervals called from: logLik.phybreak .build.phybreakenv .propose.phybreakenv
 .lik.gentimes <- function(obs, shapeG, meanG, nodetimes, nodehosts, nodetypes) {
-  sum(dgamma(nodetimes[nodetypes == "t" & nodehosts > 0] -
-               nodetimes[nodehosts[nodetypes == "t" & nodehosts > 0] + 2*obs -1],
-             shape = shapeG, scale = meanG/shapeG, log=TRUE))
+    sum(dgamma(nodetimes[nodetypes == "t" & nodehosts > 0] - nodetimes[nodehosts[nodetypes == "t" & nodehosts > 0] + 2 * obs - 
+        1], shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
-### calculate the log-likelihood of generation intervals
-### called from:
-# logLik.phybreak
-# .build.phybreakenv
-# .propose.phybreakenv
+### calculate the log-likelihood of generation intervals called from: logLik.phybreak .build.phybreakenv .propose.phybreakenv
 .lik.sampletimes <- function(shapeS, meanS, nodetimes, nodetypes) {
-  sum(dgamma(nodetimes[nodetypes == "s"] -
-               nodetimes[nodetypes == "t"],
-             shape = shapeS, scale = meanS/shapeS, log=TRUE))
+    sum(dgamma(nodetimes[nodetypes == "s"] - nodetimes[nodetypes == "t"], shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
-### calculate the log-likelihood of coalescent intervals
-### called from:
-# logLik.phybreak
-# .build.phybreakenv
-# .propose.phybreakenv
+### calculate the log-likelihood of coalescent intervals called from: logLik.phybreak .build.phybreakenv .propose.phybreakenv
 .lik.coaltimes <- function(obs, wh.model, slope, nodetimes, nodehosts, nodetypes) {
-  if(wh.model == 1 || wh.model == 2) return(0)
-  
-  coalnodes <- nodetypes == "c"
-  orderednodes <- order(nodehosts, nodetimes)
-  orderedtouse <- orderednodes[c(duplicated(nodehosts[orderednodes])[-1], FALSE)]
-  #only use hosts with secondary infections
-  
-  ##make vectors with information on intervals between nodes
-  coalno <- c(FALSE, head(coalnodes[orderedtouse],-1)) #interval starts with coalescence
-  nodeho <- nodehosts[orderedtouse] #host in which interval resides
-  coalmultipliers <- choose(2 + cumsum(2*coalno - 1),2) #coalescence coefficient
-  
-  ##from t to tau (time since infection)
-  whtimes <- nodetimes - c(0,tail(nodetimes,obs))[1+nodehosts]
-  
-  noderates <- 1/(slope*whtimes[orderedtouse])  
-  #coalescence rate (per pair of lineages)
-  nodeescrates <- log(whtimes[orderedtouse])/(slope)
-  #cumulative coalescence rate since infection of host (per pair of lineages)
-  
-  
-  escratediffs <- nodeescrates - c(0, head(nodeescrates,-1))
-  escratediffs[!duplicated(nodeho)] <- nodeescrates[!duplicated(nodeho)]
-  #cumulative coalescence rate within interval (per pair of lineages)
-  
-  
-  ##First: coalescence rates at coalescence nodes
-  logcoalrates <- log(noderates[c(coalno[-1],FALSE)])
-  
-  #Second: probability to escape coalescence in all intervals
-  logescapes <- -escratediffs*coalmultipliers
-  
-  
-  return(sum(logcoalrates) + sum(logescapes))
-  
+    if (wh.model == 1 || wh.model == 2) 
+        return(0)
+    
+    coalnodes <- nodetypes == "c"
+    orderednodes <- order(nodehosts, nodetimes)
+    orderedtouse <- orderednodes[c(duplicated(nodehosts[orderednodes])[-1], FALSE)]
+    # only use hosts with secondary infections
+    
+    ## make vectors with information on intervals between nodes
+    coalno <- c(FALSE, head(coalnodes[orderedtouse], -1))  #interval starts with coalescence
+    nodeho <- nodehosts[orderedtouse]  #host in which interval resides
+    coalmultipliers <- choose(2 + cumsum(2 * coalno - 1), 2)  #coalescence coefficient
+    
+    ## from t to tau (time since infection)
+    whtimes <- nodetimes - c(0, tail(nodetimes, obs))[1 + nodehosts]
+    
+    noderates <- 1/(slope * whtimes[orderedtouse])
+    # coalescence rate (per pair of lineages)
+    nodeescrates <- log(whtimes[orderedtouse])/(slope)
+    # cumulative coalescence rate since infection of host (per pair of lineages)
+    
+    
+    escratediffs <- nodeescrates - c(0, head(nodeescrates, -1))
+    escratediffs[!duplicated(nodeho)] <- nodeescrates[!duplicated(nodeho)]
+    # cumulative coalescence rate within interval (per pair of lineages)
+    
+    
+    ## First: coalescence rates at coalescence nodes
+    logcoalrates <- log(noderates[c(coalno[-1], FALSE)])
+    
+    # Second: probability to escape coalescence in all intervals
+    logescapes <- -escratediffs * coalmultipliers
+    
+    
+    return(sum(logcoalrates) + sum(logescapes))
+    
 }
