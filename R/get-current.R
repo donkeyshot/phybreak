@@ -8,7 +8,7 @@
 NULL
 #> NULL
 
-### a 1-column matrix with infectors
+### a 2-column matrix with infectors and infection times
 #' @describeIn get.phybreak A \code{data.frame} with current infectors and infection times.
 #' @export
 get.tree <- function(phybreak.object) {
@@ -53,7 +53,7 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
     
     ### posterior samples to be included
     tokeep <- seq(thin, chainlength, thin)
-    tokeep <- tail(tokeep, samplesize)
+    tokeep <- tail(tokeep, nkeep)
     
     ### extracting all variables and parameters, and naming them
     res <- with(phybreak.object, cbind(t(s$nodetimes[p$obs:(2 * p$obs - 1), tokeep]), t(s$nodehosts[p$obs:(2 * p$obs - 1), tokeep])))
@@ -95,14 +95,14 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 20, thin = 10)
 #' 
-#' get.infectors(MCMCstate)
+#' get.tree(MCMCstate)
 #' get.parameters(MCMCstate)
 #' codaobject <- get.mcmc(MCMCstate, thin = 2)
 #' ape::plot.phylo(get.phylo(MCMCstate))
 #' get.phyDat(MCMCstate)
 #' 
 #' #function from package phangorn:
-#' parsimony(get.phylo(MCMCstate), get.phyDat(MCMCstate))
+#' phangorn::parsimony(get.phylo(MCMCstate), get.phyDat(MCMCstate))
 #' 
 #' tree0 <- get.phylo(MCMCstate)
 #' dataphyDat <- get.phyDat(MCMCstate)

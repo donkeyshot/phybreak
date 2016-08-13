@@ -24,7 +24,7 @@
 #' @export
 thin.phybreak <- function(phybreak.object, thin = 1, nkeep = Inf) {
     ### tests
-    if(nkeep * thin > length(phybreak.object$s$logLik & nkeep < Inf)) {
+    if(nkeep * thin > length(phybreak.object$s$logLik) & nkeep < Inf) {
       stop("'nkeep * thin' should not be larger than the current chain length (unless 'nkeep = Inf')")
     }
   

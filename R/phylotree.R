@@ -50,16 +50,25 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     if (phylo.class) 
         return(get.phylo(phybreak.object, tail(res, 1) + chainlength - samplesize, TRUE))
     res <- matrix(head(res, -1), ncol = 5)
-    #res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs]
-    #res[1:obs, 5] <- phybreak.object$v$nodetimes[1:obs]
     # } if(method[1] == 'cc.construct') { res <- matrix(.CCphylotreeconstruct( .makephyloparsets(phybreak.object$s$nodeparents[,
     # (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 1), (1:samplesize) + chainlength -
     # samplesize], c(obs, samplesize) ), ncol = 4) res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs] } if(length(res) == 0) {
     # stop('incorrect method provided, choose \'mcc\' or \'cc.construct\'') }
     
+    # support
+    if (support[1] == "count") {
+      support.out <- res[, 2]
+    } else {
+      support.out <- res[, 2]/samplesize
+    }
+    
+    # times
+    res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs]
+    res[1:obs, 5] <- phybreak.object$v$nodetimes[1:obs]
+    
     parents.out <- matrix(res[, 1], ncol = 1, dimnames = list(1:(2 * obs - 1), "parent"))
     # if(method[1] == 'mcc') {
-    return(data.frame(parents = parents.out, support = res[, 2], node.times.mean = res[, 3], node.times.sd = res[, 4], node.times.mc.tree = res[, 
+    return(data.frame(parents = parents.out, support = support.out, node.times.mean = res[, 3], node.times.sd = res[, 4], node.times.mc.tree = res[, 
         5]))
     # } else { return( data.frame( parents = parents.out, support = res[,2], nodetime.mean = res[,3], nodetime.sd = res[,4] ) ) }
     

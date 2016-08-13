@@ -55,14 +55,14 @@ MCMCstate <- phybreak(simulation)
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
 MCMCstate <- sample.phybreak(MCMCstate, nsample = 20, thin = 10)
 
-get.infectors(MCMCstate)
+get.tree(MCMCstate)
 get.parameters(MCMCstate)
 codaobject <- get.mcmc(MCMCstate, thin = 2)
 ape::plot.phylo(get.phylo(MCMCstate))
 get.phyDat(MCMCstate)
 
 #function from package phangorn:
-parsimony(get.phylo(MCMCstate), get.phyDat(MCMCstate))
+phangorn::parsimony(get.phylo(MCMCstate), get.phyDat(MCMCstate))
 
 tree0 <- get.phylo(MCMCstate)
 dataphyDat <- get.phyDat(MCMCstate)
