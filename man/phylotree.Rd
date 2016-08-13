@@ -5,8 +5,7 @@
 \title{Maximum clade credibility tree.}
 \usage{
 phylotree(phybreak.object, samplesize = Inf, support = c("proportion",
-  "count"), clade.times = TRUE, time.quantiles = c(0.025, 0.5, 0.975),
-  phylo.class = FALSE)
+  "count"), phylo.class = FALSE)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}
@@ -15,11 +14,6 @@ phylotree(phybreak.object, samplesize = Inf, support = c("proportion",
 
 \item{support}{Whether to return the support (= posterior probability) for each infector as a \code{"proportion"} 
 or as a \code{"count"} of posterior trees in which that transmission link or transmission cluster is present.}
-
-\item{clade.times}{Whether to include summary times for root nodes of clades, based only on posterior trees 
-with the same clade as in the consensus tree. These are used to calculate a mean and standard deviation.}
-
-\item{time.quantiles}{Used only if \code{clade.times = TRUE}.}
 
 \item{phylo.class}{Whether to return an object of class \code{"phylo"}, in which case a single tree from the 
 posterior is returned (not with summary infection times).}

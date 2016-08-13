@@ -6,10 +6,10 @@
 \usage{
 phybreak(data, ti = NULL, freq = NULL, id = NULL, mu = 1e-04,
   gen.shape = 3, gen.mean = 1, sample.shape = 3, sample.mean = 1,
-  wh.model = 3, wh.slope = 1, est.mean.gen = TRUE,
+  wh.model = 3, wh.slope = 1, est.gen.mean = TRUE,
   prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
-  est.mean.sample = TRUE, prior.mean.sample.mean = 1,
-  prior.mean.sample.sd = Inf, est.wh = TRUE, prior.wh.shape = 1,
+  est.sample.mean = TRUE, prior.mean.sample.mean = 1,
+  prior.mean.sample.sd = Inf, est.wh.slope = TRUE, prior.wh.shape = 1,
   prior.wh.mean = 1, use.tree = FALSE)
 }
 \arguments{
@@ -17,8 +17,9 @@ phybreak(data, ti = NULL, freq = NULL, id = NULL, mu = 1e-04,
 metadata with these sequences; or a \code{matrix} with nucleotides, each row a host, each column 
 a nucleotide. All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, or \code{'t'}, will be turned into \code{'n'}.}
 
-\item{ti}{Vector of sampling times, necessary if data is given as a matrix of sequences. 
-If available, the item names will be used to identify the hosts, unless \code{id} is given as well.}
+\item{ti}{Vector of sampling times, necessary if data is given as a matrix of sequences. The order should match
+the order of the rows in \code{data}. If available, the item names will be used to identify the hosts, 
+unless \code{id} is given as well.}
 
 \item{freq}{Vector of nucleotide frequencies, optional if data is given as a matrix of sequences. 
 The vector indicates per column in \code{data} how frequent that particular distribution of nucleotides 
@@ -32,11 +33,13 @@ NOTE: mutation is defined as assignment of a random nucleotide at a particular s
 nucleotide that was there before the mutation event. Therefore, the actual rate of change of nucleotides 
 is \code{0.75*mu}.}
 
-\item{gen.shape}{Shape parameter of the generation interval distribution (fixed).}
+\item{gen.shape}{Shape parameter of the generation interval distribution (not estimated).}
 
-\item{gen.mean}{Initial value for the mean generation interval.}
+\item{gen.mean}{Initial value for the mean generation interval, i.e. the interval between infection of a secondary
+case by a primary case.}
 
-\item{sample.shape}{Shape parameter of the sampling interval distribution (fixed).}
+\item{sample.shape}{Shape parameter of the sampling interval distribution (not estimated), i.e. the interval between
+infection and sampling of a host.}
 
 \item{sample.mean}{Initial value for the mean sampling interval.}
 
@@ -50,29 +53,29 @@ N*gE = actual population size * pathogen generation time), used to simulate coal
 
 \item{wh.slope}{Initial value for the within-host slope, used if \code{wh.model = 3}.}
 
-\item{est.mean.gen}{Whether to estimate the mean generation interval or keep it fixed.}
+\item{est.gen.mean}{Whether to estimate the mean generation interval or keep it fixed.}
 
 \item{prior.mean.gen.mean}{Mean of the (gamma) prior distribution of mean generation interval \code{mG} 
-(only if \code{est.mean.gen = TRUE}).}
+(only if \code{est.gen.mean = TRUE}).}
 
 \item{prior.mean.gen.sd}{Standard deviation of the (gamma) prior distribution of mean generation interval \code{mG} 
-(only if \code{est.mean.gen = TRUE}).}
+(only if \code{est.gen.mean = TRUE}).}
 
-\item{est.mean.sample}{Whether to estimate the mean sampling interval or keep it fixed.}
+\item{est.sample.mean}{Whether to estimate the mean sampling interval or keep it fixed.}
 
 \item{prior.mean.sample.mean}{Mean of the (gamma) prior distribution of mean sampling interval \code{mS} 
-(only if \code{est.mean.sample = TRUE}).}
+(only if \code{est.sample.mean = TRUE}).}
 
 \item{prior.mean.sample.sd}{Standard deviation of the (gamma) prior distribution of mean sampling interval \code{mS} 
-(only if \code{est.mean.sample = TRUE}).}
+(only if \code{est.sample.mean = TRUE}).}
 
-\item{est.wh}{Whether to estimate the within-host slope or keep it fixed.}
+\item{est.wh.slope}{Whether to estimate the within-host slope or keep it fixed.}
 
 \item{prior.wh.shape}{Shape parameter of the (gamma) prior distribution of \code{slope} 
-(only if \code{est.wh = TRUE}).}
+(only if \code{est.wh.slope = TRUE}).}
 
 \item{prior.wh.mean}{Mean of the (gamma) prior distribution of \code{slope} 
-(only if \code{est.wh = TRUE}).}
+(only if \code{est.wh.slope = TRUE}).}
 
 \item{use.tree}{Whether to use the transmission and phylogenetic tree given in data of class \linkS4class{obkData}, 
 to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
@@ -88,7 +91,7 @@ An object of class \code{phybreak} with the following elements
     \item{p}{a \code{list} with the parameter values}
     \item{h}{a \code{list} with helper information for the MCMC-method: \code{si.mu} and \code{si.wh} for 
       efficiently proposing \code{mu} and \code{slope}, matrix \code{dist} with weights for infector sampling 
-      based on sequence distances, \code{logical}s \code{est.mG}, \code{est.mS}, and \code{est.wh} whether to estimate 
+      based on sequence distances, \code{logical}s \code{est.mG}, \code{est.mS}, and \code{est.wh.slope} whether to estimate 
       mean generation interval \code{mG}, mean sampling interval \code{mS}, and within-host \code{slope}, 
       and parameters for the priors of \code{mG}, \code{mS}, and \code{slope}.
     }

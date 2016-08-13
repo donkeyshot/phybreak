@@ -13,12 +13,13 @@
 #' and slope. The generation interval and sampling interval likelihood are log-densities of the gamma distributions 
 #' for these variables.
 #' 
-#' @param phybreak.object An object of class \code{phybreak}.
+#' @param object An object of class \code{phybreak}.
 #' @param genetic Whether to include the likelihood of the mutation model.
 #' @param withinhost Whether to include the likelihood of within-host (coalescent) model.
 #' @param sampling Whether to include the likelihood of the sampling model (sampling intervals).
 #' @param generation Whether to include the likelihood of the transmission model (generation intervals).
-#' @return The log-likelihood.
+#' @param ... Some methods for this generic require additional arguments. None are used in this method.
+#' @return The log-likelihood as an object of class logLik.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @examples 
 #' #First build a phybreak-object containing samples.
@@ -29,20 +30,26 @@
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
 #' logLik(MCMCstate)
 #' @export
-logLik.phybreak <- function(phybreak.object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE) {
+logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, ...) {
     res <- 0
     if (genetic) {
-        res <- res + with(phybreak.object, .likseq(t(d$SNP), d$SNPfr, v$nodeparents, v$nodetimes, p$mu, p$obs))
+        res <- res + with(object, .likseq(t(d$SNP), d$SNPfr, v$nodeparents, v$nodetimes, p$mu, p$obs))
     }
     if (generation) {
-        res <- res + with(phybreak.object, .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes))
+        res <- res + with(object, .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes))
     }
     if (sampling) {
-        res <- res + with(phybreak.object, .lik.sampletimes(p$shape.sample, p$mean.sample, v$nodetimes, v$nodetypes))
+        res <- res + with(object, .lik.sampletimes(p$shape.sample, p$mean.sample, v$nodetimes, v$nodetypes))
     }
     if (withinhost) {
-        res <- res + with(phybreak.object, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes))
+        res <- res + with(object, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes))
     }
+    attributes(res) <- list(
+      nobs = object$p$obs,
+      df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh,
+      genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation
+    )
+    class(res) <- "logLik"
     return(res)
 }
 

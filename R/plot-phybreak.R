@@ -24,7 +24,7 @@
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
 #' 
-#' infectorsets(MCMCstate)
+#' plot(MCMCstate, plot.which = "mpc")
 #' @export
 plot.phybreak <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplenr = 0, ...) {
   if(!("phytools" %in% .packages(TRUE))) {
@@ -33,12 +33,17 @@ plot.phybreak <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sam
   if (!inherits(x, "phybreak")) {
     stop("object x must be of class \"phybreak\"")
   }
+  plot.which <- plot.which[which(plot.which %in% c("sample", "mpc", "mtcc", "mcc"))[1]]
+  if(is.na(plot.which)) stop("no valid 'plot.which'")
+  if(plot.which == "sample" & samplenr > length(x$s$logLik)) {
+    warning("requested 'samplenr' not available; current state used")
+  }
   
-  if (plot.which[1] == "mpc") {
+  if (plot.which == "mpc") {
     phytools::plotSimmap(suppressWarnings(transtree(x, "mpc", phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
-  } else if (plot.which[1] == "mtcc") {
+  } else if (plot.which == "mtcc") {
     phytools::plotSimmap(suppressWarnings(transtree(x, "mtcc", phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
-  } else if (plot.which[1] == "mcc") {
+  } else if (plot.which == "mcc") {
     phytools::plotSimmap(suppressWarnings(phylotree(x, phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
   } else {
     phytools::plotSimmap(suppressWarnings(get.phylo(x, samplenr, TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)

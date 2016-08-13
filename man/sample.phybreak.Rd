@@ -25,7 +25,7 @@ Function to take (additional) samples from the posterior distribution of a phylo
 }
 \examples{
 #First create a phybreak-object
-simulation <- sim.phybreak(20)
+simulation <- sim.phybreak(obsize = 20)
 MCMCstate <- phybreak(simulation)
 
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)

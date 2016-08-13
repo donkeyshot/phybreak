@@ -18,12 +18,12 @@ tree updates with each host as focal host once.}
 The \code{phybreak}-object provided as input, with variables and parameters changed due to the updating.
 }
 \description{
-This function allows the MCMC chain to burn in. If used after samples have been taken, these samples 
-  will be returned unchanged in the output.
+This function allows the MCMC chain to burn in. If used after samples have been taken (with \code{\link{sample.phybreak}}), 
+  these samples will be returned unchanged in the output.
 }
 \examples{
 #First create a phybreak-object
-simulation <- sim.phybreak(20)
+simulation <- sim.phybreak(obsize = 20)
 MCMCstate <- phybreak(simulation)
 
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)

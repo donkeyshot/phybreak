@@ -9,8 +9,11 @@
 #' 
 #' @param phybreak.object An object of class \code{phybreak}.
 #' @param which.hosts A vector with hosts (positions in the dataset), or \code{"all"} for all hosts.
-#' @param percentile Return infectors ordered by support, until a cumulative support indicated by \code{percentile}.
-#' @param minsupport Only return infectors with more support than \code{minsupport}.
+#' @param percentile Return infectors ordered by support, until a cumulative support indicated by \code{percentile},
+#'   support measured by proportion (value between 0 and 1).
+#' @param minsupport Only return infectors with more support than \code{minsupport}. Values in the range [0,1] are 
+#'   interpreted as support in \code{"proportion"} of posterior samples, values > 1 as code{"count"} of posterior 
+#'   samples.
 #' @param samplesize The number of samples to include (taken from the tail of the MCMC-chain).
 #' @param infector.name Whether to return the names of the infectors, or their position in the dataset.
 #' @param support Whether to return the support (= posterior probability) for each infector as a \code{"proportion"} 
@@ -33,39 +36,53 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
     obs <- phybreak.object$p$obs
     samplesize <- min(samplesize, chainlength)
     samplerange <- (chainlength - samplesize + 1):chainlength
-    if (which.hosts == "all") {
-        which.hosts <- 1:obs
-    }
     if (support[1] == "count") {
-        denominator <- 1
+      denominator <- 1
     } else {
-        denominator <- samplesize
+      denominator <- samplesize
     }
     
     ### tests
-    if (chainlength == 0) 
-        stop("no sampled trees available")
+    if (!(is.character(which.hosts) | is.numeric(which.hosts)) | any(is.na(which.hosts))) {
+      stop("'which.hosts' should be numeric or \"all\", or should contain exact host names")
+    }
+    which.hosts <- unique(which.hosts)
+    if(is.numeric(which.hosts)) {
+      if(min(which.hosts) < 1 | max(which.hosts) > phybreak.object$p$obs) {
+        stop("'which.hosts' contains out-of-range numbers, should be between 1 and outbreak size")
+      }
+    } else if (any(which.hosts == "all")) {
+      which.hosts <- 1:obs
+    } else if (!all(which.hosts %in% phybreak.object$d$names)) {
+      stop("'which.hosts' contains non-existing host names'")
+    } else which.hosts <- match(which.hosts, phybreak.object$d$names)
+    if (percentile < 0 | percentile > 1) {
+      stop("'percentile' should be given as number between 0 and 1")
+    }
+    if (minsupport < 0) {
+      stop("'minsupport' should be >= 0. Values in the range [0,1] are interpreted as support in \"proportion\" of 
+        posterior samples, values > 1 as \"count\" of posterior samples" )
+    }
+    if (chainlength == 0) stop("no sampled trees available")
     if (samplesize > chainlength & samplesize < Inf) {
         warning("desired 'samplesize' larger than number of available samples")
     }
     if (support[1] != "proportion" && support[1] != "count") {
         warning("support is given as proportion")
     }
-    if (!is.numeric(which.hosts) || !is.integer(which.hosts) || any(is.na(which.hosts))) {
-        which.hosts <- match(which.hosts, phybreak.object$d$names)
-        if (!is.numeric(which.hosts) || !is.integer(which.hosts) || any(is.na(which.hosts))) {
-            stop("which.hosts should be numeric or \"all\", or should contain exact host names")
-        }
-    }
-    
+
     ### obtaining the result in steps
     
     # array with ordered infectors per host, plus support
     inffreqs <- .infarray(phybreak.object$s$nodehosts[obs:(2 * obs - 1), samplerange])
     
     # take out those with too little support
-    includemat <- inffreqs[, 2, ] > minsupport * samplesize
-    
+    if(minsupport < 1) {
+      includemat <- inffreqs[, 2, ] > minsupport * samplesize
+    } else {
+      includemat <- inffreqs[, 2, ] > minsupport
+    }
+
     # only include up to a total cumulative support
     cumfreqincl <- t(rbind(rep(TRUE, obs), apply(inffreqs[, 2, ], 1, cumsum) < percentile * samplesize)[-(obs + 1), ])
     includemat <- includemat & cumfreqincl
@@ -84,7 +101,7 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
                 ]]/denominator)))
         }
     }
-    names(res) <- phybreak.object$d$names
+    names(res) <- phybreak.object$d$names[which.hosts]
     
     ### return the result
     return(res)

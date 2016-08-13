@@ -13,9 +13,12 @@ infectorsets(phybreak.object, which.hosts = "all", percentile = 0.95,
 
 \item{which.hosts}{A vector with hosts (positions in the dataset), or \code{"all"} for all hosts.}
 
-\item{percentile}{Return infectors ordered by support, until a cumulative support indicated by \code{percentile}.}
+\item{percentile}{Return infectors ordered by support, until a cumulative support indicated by \code{percentile},
+support measured by proportion (value between 0 and 1).}
 
-\item{minsupport}{Only return infectors with more support than \code{minsupport}.}
+\item{minsupport}{Only return infectors with more support than \code{minsupport}. Values in the range [0,1] are 
+interpreted as support in \code{"proportion"} of posterior samples, values > 1 as code{"count"} of posterior 
+samples.}
 
 \item{samplesize}{The number of samples to include (taken from the tail of the MCMC-chain).}
 

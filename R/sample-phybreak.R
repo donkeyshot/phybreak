@@ -19,14 +19,18 @@
 #' @references Klinkenberg et al, in prep.
 #' @examples 
 #' #First create a phybreak-object
-#' simulation <- sim.phybreak(20)
+#' simulation <- sim.phybreak(obsize = 20)
 #' MCMCstate <- phybreak(simulation)
 #' 
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
 #' @export
 sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2) {
-    
+    ### tests
+    if(nsample < 1) stop("nsample should be positive")
+    if(thin < 1) stop("thin should be positive")
+    if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
+  
     ### create room in s to add the new posterior samples
     s.post <- list(nodetimes = with(phybreak.object, cbind(s$nodetimes, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodehosts = with(phybreak.object, 
         cbind(s$nodehosts, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodeparents = with(phybreak.object, cbind(s$nodeparents, 

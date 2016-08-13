@@ -6,7 +6,7 @@
 \usage{
 sim.phybreak(obsize = 50, popsize = NA, R0 = 1.5, shape.gen = 10,
   mean.gen = 1, shape.sample = 10, mean.sample = 1, wh.model = 3,
-  slope = 1, mutrate = 1e-04, sequence.length = 10000)
+  wh.slope = 1, mu = 1e-04, sequence.length = 10000)
 }
 \arguments{
 \item{obsize}{The outbreak size (number of cases) to obtain. If \code{obsize = NA}, \code{popsize} should be provided.}
@@ -28,14 +28,14 @@ an \code{obsize} can severely increase the simulation time, depending on \code{R
 \item{wh.model}{The model for within-host pathogen dynamics (effective pathogen population size = 
 N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
 \enumerate{
-  \item Effective size = 0, so coalescence occurs 'just before' transmission in the infector
-  \item Effective size = Inf, so coalescence occurs 'just after' transmission in the infectee
-  \item Effective size at time t after infection = slope * t
+  \item Effective size = 0, so coalescence occurs 'just before' transmission, in the infector
+  \item Effective size = Inf, so coalescence occurs 'just after' infection, in the infectee
+  \item Effective size at time t after infection = wh.slope * t
 }}
 
-\item{slope}{Within-host increase of effective population size, used if \code{wh.model = 3}.}
+\item{wh.slope}{Within-host increase of effective population size, used if \code{wh.model = 3}.}
 
-\item{mutrate}{Expected number of mutations per nucleotide per unit of time along each lineage.}
+\item{mu}{Expected number of mutations per nucleotide per unit of time along each lineage.}
 
 \item{sequence.length}{Number of available nucleotides for mutations.}
 }

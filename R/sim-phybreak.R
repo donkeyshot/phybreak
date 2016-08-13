@@ -27,12 +27,12 @@
 #' @param wh.model The model for within-host pathogen dynamics (effective pathogen population size = 
 #'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
 #'   \enumerate{
-#'     \item Effective size = 0, so coalescence occurs 'just before' transmission in the infector
-#'     \item Effective size = Inf, so coalescence occurs 'just after' transmission in the infectee
-#'     \item Effective size at time t after infection = slope * t
+#'     \item Effective size = 0, so coalescence occurs 'just before' transmission, in the infector
+#'     \item Effective size = Inf, so coalescence occurs 'just after' infection, in the infectee
+#'     \item Effective size at time t after infection = wh.slope * t
 #'   }
-#' @param slope Within-host increase of effective population size, used if \code{wh.model = 3}.
-#' @param mutrate Expected number of mutations per nucleotide per unit of time along each lineage. 
+#' @param wh.slope Within-host increase of effective population size, used if \code{wh.model = 3}.
+#' @param mu Expected number of mutations per nucleotide per unit of time along each lineage. 
 #' @param sequence.length Number of available nucleotides for mutations.
 #' @return An object of class \linkS4class{obkData} (package \pkg{OutbreakTools}), containing outbreak data in
 #' the following slots:
@@ -52,20 +52,30 @@
 sim.phybreak <- function(obsize = 50, popsize = NA, 
                          R0 = 1.5, shape.gen = 10, mean.gen = 1, 
                          shape.sample = 10, mean.sample = 1,
-                         wh.model = 3, slope = 1, 
-                         mutrate = 0.0001, sequence.length = 10000) {
+                         wh.model = 3, wh.slope = 1, 
+                         mu = 0.0001, sequence.length = 10000) {
   ### tests
   if(!("OutbreakTools" %in% .packages(TRUE))) {
     stop("package 'OutbreakTools' should be installed for this function")
   }
   if(!("OutbreakTools" %in% .packages(FALSE))) {
-    require("OutbreakTools")
+    requireNamespace("OutbreakTools")
   }
   if(all(is.na(c(obsize,popsize)))) {
     stop("give an outbreak size (obsize) and/or a population size (popsize)")
   }
+  if(all(!is.na(c(obsize,popsize)))) {
+    warning("giving both an outbreak size (obsize) and a population size (popsize) can take a very long simulation time",
+            immediate. = TRUE)
+  }
   if(all(!is.na(c(obsize,popsize))) && obsize > popsize) {
     stop("outbreak size (obsize) cannot be larger than population size (popsize)")
+  }
+  if(R0 <= 1) {
+    stop("R0 should be larger than 1")
+  }
+  if(any(c(shape.gen, mean.gen, shape.sample, mean.sample, wh.slope, mu) <= 0)) {
+    stop("parameter values should be positive")
   }
   
   ### simulate step by step
@@ -78,8 +88,8 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
     res <- .sim.outbreak.size(obsize, popsize, R0, shape.gen, mean.gen,
                               shape.sample, mean.sample)
   }
-  res <- .sim.phylotree(res, wh.model, slope)
-  res <- .sim.sequences(res, mutrate, sequence.length)
+  res <- .sim.phylotree(res, wh.model, wh.slope)
+  res <- .sim.sequences(res, mu, sequence.length)
 
   ### make an obkData object
   treesout <- vector('list',1)
@@ -183,7 +193,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
 ### calls:
 # .samplecoaltimes
 # .sampletopology
-.sim.phylotree <- function (sim.object, wh.model, slope) {
+.sim.phylotree <- function (sim.object, wh.model, wh.slope) {
   with(
     sim.object,
     {
@@ -217,7 +227,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
         nodetimes[nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
           nodetimes[i + 2*obs - 1] +                      #...to the infection time +
           .samplecoaltimes(nodetimes[nodehosts == i & nodetypes != "c"] - nodetimes[i + 2*obs - 1],
-                           wh.model, slope)  #...sampled coalescence times
+                           wh.model, wh.slope)  #...sampled coalescence times
       }
       ## sample for each node its parent node
       for(i in 1:obs) {
@@ -242,13 +252,13 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
 ### simulate sequences given a phylogenetic tree
 ### called by:
 # sim.phybreak
-.sim.sequences <- function (sim.object, mutrate, sequence.length) {
+.sim.sequences <- function (sim.object, mu, sequence.length) {
   with(sim.object,{
     ### simulate the mutations on the phylotree
     #number of mutations
     edgelengths <- nodetimes - c(0,nodetimes)[1+nodeparents]
     edgelengths[edgelengths < 0] <- 0  #rounding errors close to 0
-    nmutations <- rpois(1, mutrate * sequence.length * sum(edgelengths))
+    nmutations <- rpois(1, mu * sequence.length * sum(edgelengths))
     #place mutations on edges, order by time of edge (end)
     mutedges <- sample(3*obs-1, size = nmutations, replace = TRUE, prob = edgelengths)
     mutedges <- mutedges[order(nodetimes[mutedges])]

@@ -11,9 +11,6 @@
 #' @param samplesize The number of posterior samples that is used, taken from the tail.
 #' @param support Whether to return the support (= posterior probability) for each infector as a \code{"proportion"} 
 #'   or as a \code{"count"} of posterior trees in which that transmission link or transmission cluster is present.
-#' @param clade.times Whether to include summary times for root nodes of clades, based only on posterior trees 
-#'   with the same clade as in the consensus tree. These are used to calculate a mean and standard deviation.
-#' @param time.quantiles Used only if \code{clade.times = TRUE}.
 #' @param phylo.class Whether to return an object of class \code{"phylo"}, in which case a single tree from the 
 #'   posterior is returned (not with summary infection times).
 #' @return A \code{data.frame} with per item (=node) its parent and support per clade, and optionally summary node times. 
@@ -28,8 +25,7 @@
 #' 
 #' phylotree(MCMCstate)
 #' @export
-phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion", "count"), clade.times = TRUE, time.quantiles = c(0.025, 
-    0.5, 0.975), phylo.class = FALSE) {
+phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion", "count"), phylo.class = FALSE) {
     chainlength <- length(phybreak.object$s$mu)
     
     ### tests
@@ -41,26 +37,21 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     if (support[1] != "proportion" && support[1] != "count") {
         warning("support is given as proportion")
     }
-    if (class(time.quantiles) != "numeric") {
-        stop("time.quantiles should be numeric")
-    }
-    if (max(time.quantiles) > 1 || min(time.quantiles) < 0) {
-        stop("time.quantiles should be between 0 and 1")
-    }
-    
+
+    ### initialization
     samplesize <- min(samplesize, chainlength)
     obs <- phybreak.object$p$obs
-    
     res <- c()
     
+    ### decision tree to use correct model
     # if(method[1] == 'mcc') {
     res <- .mcctree(.makephyloparsets(phybreak.object$s$nodeparents[, (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 
         1), (1:samplesize) + chainlength - samplesize], c(obs, samplesize))
     if (phylo.class) 
         return(get.phylo(phybreak.object, tail(res, 1) + chainlength - samplesize, TRUE))
     res <- matrix(head(res, -1), ncol = 5)
-    res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs]
-    res[1:obs, 5] <- phybreak.object$v$nodetimes[1:obs]
+    #res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs]
+    #res[1:obs, 5] <- phybreak.object$v$nodetimes[1:obs]
     # } if(method[1] == 'cc.construct') { res <- matrix(.CCphylotreeconstruct( .makephyloparsets(phybreak.object$s$nodeparents[,
     # (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 1), (1:samplesize) + chainlength -
     # samplesize], c(obs, samplesize) ), ncol = 4) res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs] } if(length(res) == 0) {

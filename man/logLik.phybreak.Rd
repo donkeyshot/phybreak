@@ -4,11 +4,11 @@
 \alias{logLik.phybreak}
 \title{Log-likelihood of a phybreak-object.}
 \usage{
-\method{logLik}{phybreak}(phybreak.object, genetic = TRUE,
-  withinhost = TRUE, sampling = TRUE, generation = TRUE)
+\method{logLik}{phybreak}(object, genetic = TRUE, withinhost = TRUE,
+  sampling = TRUE, generation = TRUE, ...)
 }
 \arguments{
-\item{phybreak.object}{An object of class \code{phybreak}.}
+\item{object}{An object of class \code{phybreak}.}
 
 \item{genetic}{Whether to include the likelihood of the mutation model.}
 
@@ -17,9 +17,11 @@
 \item{sampling}{Whether to include the likelihood of the sampling model (sampling intervals).}
 
 \item{generation}{Whether to include the likelihood of the transmission model (generation intervals).}
+
+\item{...}{Some methods for this generic require additional arguments. None are used in this method.}
 }
 \value{
-The log-likelihood.
+The log-likelihood as an object of class logLik.
 }
 \description{
 The likelihood of a \code{phybreak}-object is calculated, with the option to include or exclude parts of the 

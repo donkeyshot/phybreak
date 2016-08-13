@@ -9,14 +9,15 @@ NULL
 #> NULL
 
 ### a 1-column matrix with infectors
-#' @describeIn get.phybreak A vector of infectors (position i referring to host i).
+#' @describeIn get.phybreak A \code{data.frame} with current infectors and infection times.
 #' @export
-get.infectors <- function(phybreak.object) {
+get.tree <- function(phybreak.object) {
     if (!inherits(phybreak.object, "phybreak")) {
         stop("object must be of class \"phybreak\"")
     }
     infectors <- c("index", phybreak.object$d$names)[1 + tail(phybreak.object$v$nodehosts, phybreak.object$p$obs)]
-    res <- matrix(infectors, ncol = 1, dimnames = list(phybreak.object$d$names, "infector"))
+    inftimes <- tail(phybreak.object$v$nodetimes, phybreak.object$p$obs)
+    res <- data.frame(infectors = infectors, inf.times = inftimes, row.names = phybreak.object$d$names)
     return(res)
 }
 
@@ -32,9 +33,9 @@ get.parameters <- function(phybreak.object) {
 #'   infection times, and infectors.
 #'   
 #' @param thin Thinning interval for making the mcmc-object.
-#' @param samplesize Number of samples to keep in the mcmc-object, counting from tail of the chain.
+#' @param nkeep Number of samples to keep in the mcmc-object, counting from tail of the chain.
 #' @export
-get.mcmc <- function(phybreak.object, thin = 1, samplesize = Inf) {
+get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
     ### tests
     if(!("coda" %in% .packages(TRUE))) {
       stop("package 'coda' should be installed for this function")
@@ -46,12 +47,12 @@ get.mcmc <- function(phybreak.object, thin = 1, samplesize = Inf) {
       stop("object must be of class \"phybreak\"")
     }
     chainlength <- length(phybreak.object$s$mu)
-    if (samplesize > chainlength & samplesize < Inf) {
-        warning("desired 'samplesize' larger than number of available samples")
+    if (nkeep * thin > chainlength & nkeep < Inf) {
+        warning("'nkeep * thin' larger than number of available samples. Fewer samples are kept.")
     }
     
     ### posterior samples to be included
-    tokeep <- seq(thin, length(phybreak.object$s$logLik), thin)
+    tokeep <- seq(thin, chainlength, thin)
     tokeep <- tail(tokeep, samplesize)
     
     ### extracting all variables and parameters, and naming them
@@ -92,11 +93,11 @@ get.mcmc <- function(phybreak.object, thin = 1, samplesize = Inf) {
 #' simulation <- sim.phybreak(obsize = 20)
 #' MCMCstate <- phybreak(simulation)
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
-#' MCMCstate <- burnin.phybreak(MCMCstate, nsample = 20, thin = 10)
+#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 20, thin = 10)
 #' 
 #' get.infectors(MCMCstate)
 #' get.parameters(MCMCstate)
-#' get.mcmc(MCMCstate)
+#' codaobject <- get.mcmc(MCMCstate, thin = 2)
 #' ape::plot.phylo(get.phylo(MCMCstate))
 #' get.phyDat(MCMCstate)
 #' 
@@ -148,7 +149,7 @@ get.phylo <- function(phybreak.object, post.tree = 0, simmap = FALSE) {
 
 
 ### the sequence data in class 'phyDat'
-#' @describeIn get.phybreak The sequence data in \code{"phyDat"} format (package \pkg{phangorn}).
+#' @describeIn get.phybreak The sequence data in class \code{"phyDat"} (package \pkg{phangorn}).
 #' @export
 get.phyDat <- function(phybreak.object) {
     ### tests

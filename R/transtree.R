@@ -37,13 +37,14 @@
 #' @param infection.times Whether to base the summary infection times on \code{"all"} samples, or only on samples 
 #'   in which the \code{"infector"} was the same as in the consensus tree. A third option is \code{"infector.sd"}, 
 #'   in which case only posterior trees with the same infector or transmission cluster as in the consensus tree 
-#'   were used to calculate a mean and standard deviation. In that case, also the infection times in the first 
-#'   sampled tree with consensus tree topology are given.
+#'   were used to calculate a mean and standard deviation. In that case and if \code{method = "mpc"} or \code{method = "mtcc"},
+#'   also the infection times in the first sampled tree with consensus tree topology are given.
 #' @param time.quantiles Used only if \code{infection.times = "all"} or \code{"infector"}.
 #' @param phylo.class Whether to return an object of class \code{"phylo"}, in which case a single tree 
 #'   (\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times).
-#' @return A \code{data.frame} with per item (=host) its infector and support per infector (or cluster), and summary 
-#'   infection times.
+#' @return If \code{phylo.class = FALSE}, a \code{data.frame} with per item (=host) its infector and support per 
+#'   infector (or cluster), and summary infection times. If \code{phylo.class = TRUE}, a class \code{"phylo"} object, a 
+#'   single tree (\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times).
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @examples 
 #' #First build a phybreak-object containing samples.
@@ -87,13 +88,13 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     
     ### decision tree to use correct model
     if (method[1] == "count") {
-        res <- .transtreecount(phybreak.object, samplesize, infection.times == "infector.sd")
+        res <- .transtreecount(phybreak.object, samplesize, infection.times[1] == "infector.sd")
     }
     if (method[1] == "edmonds") {
-        res <- .transtreeedmonds(phybreak.object, samplesize, infection.times == "infector.sd")
+        res <- .transtreeedmonds(phybreak.object, samplesize, infection.times[1] == "infector.sd")
     }
     if (method[1] == "mpc") {
-        res <- .mpcinfector(phybreak.object, samplesize, phylo.class, infection.times == "infector.sd")
+        res <- .mpcinfector(phybreak.object, samplesize, phylo.class, infection.times[1] == "infector.sd")
         if (phylo.class) 
             return(get.phylo(phybreak.object, res, TRUE))
     }
@@ -129,22 +130,24 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     if (infection.times[1] == "infector") {
         posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
         posttimes[res[, 1] != phybreak.object$s$nodehosts[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]] <- NA
-        time.out <- t(apply(posttimes, 1, quantile, probs = time.quantiles, na.rm = TRUE))
+        time.out <- t(matrix(apply(posttimes, 1, quantile, probs = time.quantiles, na.rm = TRUE), ncol = obs))
+        colnames(time.out) <- paste0("inf.times.Q", 100 * time.quantiles)
     } else if (infection.times[1] == "infector.sd") {
         if (method[1] == "mpc" || method[1] == "mtcc") {
             time.out <- res[, 3:5]
-            colnames(time.out) <- c("mean", "sd", "mc.tree")
+            colnames(time.out) <- paste0("inf.times.", c("mean", "sd", "mc.tree"))
         } else {
             time.out <- res[, 3:4]
-            colnames(time.out) <- c("mean", "sd")
+            colnames(time.out) <- paste0("inf.times.", c("mean", "sd"))
         }
     } else {
         posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
-        time.out <- t(apply(posttimes, 1, quantile, probs = time.quantiles))
+        time.out <- t(matrix(apply(posttimes, 1, quantile, probs = time.quantiles), ncol = obs))
+        colnames(time.out) <- paste0("inf.times.Q", 100 * time.quantiles)
     }
     
     ### return the result
-    return(data.frame(infectors = infectors.out, support = support.out, inf.times = time.out))
+    return(data.frame(infectors = infectors.out, support = support.out, time.out))
 }
 
 
@@ -279,7 +282,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
             res[, 1])))
         res <- cbind(res, timesums/res[, 2])
         res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
-        res <- cbind(res, phybreak.object$s$nodetimes[obsize:(2 * obsize - 1), bestpars + samplerange[1] - 1])
+        res <- cbind(res, phybreak.object$s$nodetimes[obsize:(2 * obsize - 1), besttree + samplerange[1] - 1])
     }
     
     

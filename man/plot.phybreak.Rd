@@ -30,7 +30,7 @@ MCMCstate <- phybreak(simulation)
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
 MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
 
-infectorsets(MCMCstate)
+plot(MCMCstate, plot.which = "mpc")
 }
 \author{
 Don Klinkenberg \email{don@xs4all.nl}

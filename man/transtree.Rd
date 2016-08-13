@@ -24,8 +24,8 @@ or as a \code{"count"} of posterior trees in which that transmission link or tra
 \item{infection.times}{Whether to base the summary infection times on \code{"all"} samples, or only on samples 
 in which the \code{"infector"} was the same as in the consensus tree. A third option is \code{"infector.sd"}, 
 in which case only posterior trees with the same infector or transmission cluster as in the consensus tree 
-were used to calculate a mean and standard deviation. In that case, also the infection times in the first 
-sampled tree with consensus tree topology are given.}
+were used to calculate a mean and standard deviation. In that case and if \code{method = "mpc"} or \code{method = "mtcc"},
+also the infection times in the first sampled tree with consensus tree topology are given.}
 
 \item{time.quantiles}{Used only if \code{infection.times = "all"} or \code{"infector"}.}
 
@@ -33,8 +33,9 @@ sampled tree with consensus tree topology are given.}
 (\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times).}
 }
 \value{
-A \code{data.frame} with per item (=host) its infector and support per infector (or cluster), and summary 
-  infection times.
+If \code{phylo.class = FALSE}, a \code{data.frame} with per item (=host) its infector and support per 
+  infector (or cluster), and summary infection times. If \code{phylo.class = TRUE}, a class \code{"phylo"} object, a 
+  single tree (\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times).
 }
 \description{
 Various methods to create summary transmission trees from a \code{phybreak}-object containing posterior samples.

@@ -5,8 +5,8 @@
 
 #' MCMC updating of a phybreak-object.
 #' 
-#' This function allows the MCMC chain to burn in. If used after samples have been taken, these samples 
-#'   will be returned unchanged in the output.
+#' This function allows the MCMC chain to burn in. If used after samples have been taken (with \code{\link{sample.phybreak}}), 
+#'   these samples will be returned unchanged in the output.
 #' 
 #' @param phybreak.object An object of class \code{phybreak}.
 #' @param ncycles Number of iterations to be carried out. Each iteration does one update of all parameters and
@@ -17,12 +17,16 @@
 #' @references Klinkenberg et al, in prep.
 #' @examples 
 #' #First create a phybreak-object
-#' simulation <- sim.phybreak(20)
+#' simulation <- sim.phybreak(obsize = 20)
 #' MCMCstate <- phybreak(simulation)
 #' 
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
 #' @export
 burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2) {
+    ### tests
+    if(ncycles < 1) stop("ncycles should be positive")
+    if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
+  
     .build.phybreakenv(phybreak.object)
     
     
