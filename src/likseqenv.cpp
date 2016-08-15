@@ -104,7 +104,7 @@ double likseqenv(Environment pbenv,
   }
 
   pbenv["likarray"] = likarray;
-  pbenv["logLik"] = result;
+  pbenv["logLikseq"] = result;
 
   return result;
 }

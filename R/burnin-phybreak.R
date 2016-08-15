@@ -1,7 +1,7 @@
 ### run mcmc chain and return the updated phylo-object ###
 
-### phybreak functions called ### .build.phybreakenv .updatehost .updatehost.keepphylo .update.mG .update.mS .update.wh
-### .update.mu .destroy.phybreakenv
+### phybreak functions called ### .build.pbe .updatehost .updatehost.keepphylo .update.mG .update.mS .update.wh
+### .update.mu .destroy.pbe
 
 #' MCMC updating of a phybreak-object.
 #' 
@@ -27,7 +27,7 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2) {
     if(ncycles < 1) stop("ncycles should be positive")
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
   
-    .build.phybreakenv(phybreak.object)
+    .build.pbe(phybreak.object)
     
     
     for (rep in 1:ncycles) {
@@ -44,7 +44,7 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2) {
         .update.mu()
     }
     
-    res <- .destroy.phybreakenv(phybreak.object$s)
+    res <- .destroy.pbe(phybreak.object$s)
     
     
     return(res)
