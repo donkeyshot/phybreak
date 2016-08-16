@@ -1,0 +1,16 @@
+citHeader("To cite phybreak in publications use:")
+
+citEntry(entry = "Article",
+  title = "New method to reconstruct phylogenetic and transmission trees with sequence data from infectious disease outbreaks",
+  author = personList(as.person("Don Klinkenberg"), as.person("Jantien Backer"), as.person("Xavier Didelot"),
+            as.person("Caroline Colijn"), as.person("Jacco Wallinga")),
+  journal = "biorXiv",
+  year = 2016,
+  number = 069195,
+  doi = "10.1101/069195",
+  note = "This work is submitted for publication, please check for an update when citing.",
+  
+  textVersion = paste("Don Klinkenberg, Jantien Backer, Xavier Didelot, Caroline Colijn, Jacco Wallinga (2016).",
+    "New method to reconstruct phylogenetic and transmission trees with sequence data from infectious disease outbreaks.",
+    "biorXiv 069151. doi: http://dx.doi.org/10.1101/069195")
+)

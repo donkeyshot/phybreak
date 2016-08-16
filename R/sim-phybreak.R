@@ -49,6 +49,7 @@
 #'     \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{phylo}}
 #'   }
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
+#' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
 #' @examples 
 #' simulation <- sim.phybreak()
 #' @export

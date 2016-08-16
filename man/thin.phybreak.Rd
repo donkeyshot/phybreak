@@ -34,6 +34,6 @@ MCMCstate <- thin.phybreak(MCMCstate, thin = 2)
 Don Klinkenberg \email{don@xs4all.nl}
 }
 \references{
-Klinkenberg et al, in prep.
+\href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
 }
 

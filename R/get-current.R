@@ -88,6 +88,8 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #' @param simmap Whether to include class \code{"simmap"} elements (package \pkg{phytools}), colouring the branches 
 #'   on the tree to indicate hosts.
 #'   
+#' @author Don Klinkenberg \email{don@@xs4all.nl}
+#' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
 #' @examples 
 #' #First build a phybreak-object.
 #' simulation <- sim.phybreak(obsize = 5)
