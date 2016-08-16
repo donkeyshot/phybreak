@@ -33,7 +33,7 @@
 #' 
 #' tree0 <- get.phylo(MCMCstate)
 #' seqdata <- get.seqdata(MCMCstate)
-#' phangorn::pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+#' pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
