@@ -7,7 +7,7 @@ using namespace Rcpp;
 // given a phylo-transmission tree
 
 // [[Rcpp::export(name=".likseq")]]
-double likseq(CharacterVector SNPs, IntegerVector SNPfreqs,
+double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
               IntegerVector nodeparents, NumericVector nodetimes,
               double mutrate, int obs) {
   int nnodes = 2*obs - 1;
@@ -25,22 +25,22 @@ double likseq(CharacterVector SNPs, IntegerVector SNPfreqs,
 
   for(int i = 0; i < obs; ++i) {
     for(int j = 0; j < nSNPs; ++j) {
-      if(SNPs[i*nSNPs + j] == "a") {
+      if(SNPs[i*nSNPs + j] == 1) {
         likarray[i*nSNPs*4 + j*4] = 1;
         likarray[i*nSNPs*4 + j*4 + 1] = 0;
         likarray[i*nSNPs*4 + j*4 + 2] = 0;
         likarray[i*nSNPs*4 + j*4 + 3] = 0;
-      } else if(SNPs[i*nSNPs + j] == "c") {
+      } else if(SNPs[i*nSNPs + j] == 2) {
         likarray[i*nSNPs*4 + j*4 + 1] = 1;
         likarray[i*nSNPs*4 + j*4] = 0;
         likarray[i*nSNPs*4 + j*4 + 2] = 0;
         likarray[i*nSNPs*4 + j*4 + 3] = 0;
-      } else if(SNPs[i*nSNPs + j] == "g") {
+      } else if(SNPs[i*nSNPs + j] == 3) {
         likarray[i*nSNPs*4 + j*4 + 2] = 1;
         likarray[i*nSNPs*4 + j*4 + 1] = 0;
         likarray[i*nSNPs*4 + j*4] = 0;
         likarray[i*nSNPs*4 + j*4 + 3] = 0;
-      } else if(SNPs[i*nSNPs + j] == "t") {
+      } else if(SNPs[i*nSNPs + j] == 4) {
         likarray[i*nSNPs*4 + j*4 + 3] = 1;
         likarray[i*nSNPs*4 + j*4 + 1] = 0;
         likarray[i*nSNPs*4 + j*4] = 0;

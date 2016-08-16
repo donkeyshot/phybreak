@@ -15,7 +15,6 @@ using namespace Rcpp;
 // [[Rcpp::export(name=".likseqenv")]]
 double likseqenv(Environment pbenv, 
               IntegerVector nodestochange, IntegerVector tips) {
-  List data = pbenv["d"];
   List vars = pbenv["v"];
   List pars = pbenv["p"];
   NumericVector likarray = pbenv["likarray"];

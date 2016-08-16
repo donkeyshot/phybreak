@@ -3,9 +3,9 @@
 \name{get.phybreak}
 \alias{get.mcmc}
 \alias{get.parameters}
-\alias{get.phyDat}
 \alias{get.phybreak}
 \alias{get.phylo}
+\alias{get.seqdata}
 \alias{get.tree}
 \title{Accessing a phybreak object}
 \usage{
@@ -17,7 +17,7 @@ get.mcmc(phybreak.object, thin = 1, nkeep = Inf)
 
 get.phylo(phybreak.object, post.tree = 0, simmap = FALSE)
 
-get.phyDat(phybreak.object)
+get.seqdata(phybreak.object)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}
@@ -46,27 +46,27 @@ infection times, and infectors.
 \item \code{get.phylo}: Returns an object of class \code{"phylo"} (package \pkg{ape}) and optionally of class 
 \code{"simmap"} (package \pkg{phytools}).
 
-\item \code{get.phyDat}: The sequence data in class \code{"phyDat"} (package \pkg{phangorn}).
+\item \code{get.seqdata}: The sequence data in class \code{"phyDat"} (package \pkg{phangorn}).
 }}
 \examples{
 #First build a phybreak-object.
-simulation <- sim.phybreak(obsize = 20)
-MCMCstate <- phybreak(simulation)
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
-MCMCstate <- sample.phybreak(MCMCstate, nsample = 20, thin = 10)
+simulation <- sim.phybreak(obsize = 5)
+MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
+MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 
 get.tree(MCMCstate)
 get.parameters(MCMCstate)
 codaobject <- get.mcmc(MCMCstate, thin = 2)
-ape::plot.phylo(get.phylo(MCMCstate))
-get.phyDat(MCMCstate)
+plot.phylo(get.phylo(MCMCstate))
+get.seqdata(MCMCstate)
 
 #function from package phangorn:
-phangorn::parsimony(get.phylo(MCMCstate), get.phyDat(MCMCstate))
+phangorn::parsimony(get.phylo(MCMCstate), get.seqdata(MCMCstate))
 
 tree0 <- get.phylo(MCMCstate)
-dataphyDat <- get.phyDat(MCMCstate)
-phangorn::pml(tree0, dataphyDat, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+seqdata <- get.seqdata(MCMCstate)
+phangorn::pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
 logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 }

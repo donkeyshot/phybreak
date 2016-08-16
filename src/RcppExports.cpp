@@ -6,12 +6,12 @@
 using namespace Rcpp;
 
 // likseq
-double likseq(CharacterVector SNPs, IntegerVector SNPfreqs, IntegerVector nodeparents, NumericVector nodetimes, double mutrate, int obs);
+double likseq(IntegerVector SNPs, IntegerVector SNPfreqs, IntegerVector nodeparents, NumericVector nodetimes, double mutrate, int obs);
 RcppExport SEXP phybreak_likseq(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP nodeparentsSEXP, SEXP nodetimesSEXP, SEXP mutrateSEXP, SEXP obsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< CharacterVector >::type SNPs(SNPsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type SNPs(SNPsSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type SNPfreqs(SNPfreqsSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type nodeparents(nodeparentsSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type nodetimes(nodetimesSEXP);

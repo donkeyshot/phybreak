@@ -35,12 +35,18 @@ for these variables.
 }
 \examples{
 #First build a phybreak-object containing samples.
-simulation <- sim.phybreak(obsize = 20)
-MCMCstate <- phybreak(simulation)
+simulation <- sim.phybreak(obsize = 5)
+MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
 logLik(MCMCstate)
 
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
+MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 logLik(MCMCstate)
+
+tree0 <- get.phylo(MCMCstate)
+seqdata <- get.seqdata(MCMCstate)
+phangorn::pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
+       sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 }
 \author{
 Don Klinkenberg \email{don@xs4all.nl}

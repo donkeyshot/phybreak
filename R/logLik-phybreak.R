@@ -23,17 +23,25 @@
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 20)
-#' MCMCstate <- phybreak(simulation)
+#' simulation <- sim.phybreak(obsize = 5)
+#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
 #' logLik(MCMCstate)
 #' 
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
+#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 #' logLik(MCMCstate)
+#' 
+#' tree0 <- get.phylo(MCMCstate)
+#' seqdata <- get.seqdata(MCMCstate)
+#' phangorn::pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+#' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
+#'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
 logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, ...) {
     res <- 0
     if (genetic) {
-        res <- res + with(object, .likseq(t(d$SNP), d$SNPfr, v$nodeparents, v$nodetimes, p$mu, p$obs))
+        res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = p$obs), 
+                                          attr(d$sequences, "weight"), 
+                                          v$nodeparents, v$nodetimes, p$mu, p$obs))
     }
     if (generation) {
         res <- res + with(object, .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes))

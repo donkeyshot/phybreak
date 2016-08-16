@@ -90,23 +90,23 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #'   
 #' @examples 
 #' #First build a phybreak-object.
-#' simulation <- sim.phybreak(obsize = 20)
-#' MCMCstate <- phybreak(simulation)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 20, thin = 10)
+#' simulation <- sim.phybreak(obsize = 5)
+#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' get.tree(MCMCstate)
 #' get.parameters(MCMCstate)
 #' codaobject <- get.mcmc(MCMCstate, thin = 2)
-#' ape::plot.phylo(get.phylo(MCMCstate))
-#' get.phyDat(MCMCstate)
+#' plot.phylo(get.phylo(MCMCstate))
+#' get.seqdata(MCMCstate)
 #' 
 #' #function from package phangorn:
-#' phangorn::parsimony(get.phylo(MCMCstate), get.phyDat(MCMCstate))
+#' phangorn::parsimony(get.phylo(MCMCstate), get.seqdata(MCMCstate))
 #' 
 #' tree0 <- get.phylo(MCMCstate)
-#' dataphyDat <- get.phyDat(MCMCstate)
-#' phangorn::pml(tree0, dataphyDat, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+#' seqdata <- get.seqdata(MCMCstate)
+#' phangorn::pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
@@ -151,22 +151,8 @@ get.phylo <- function(phybreak.object, post.tree = 0, simmap = FALSE) {
 ### the sequence data in class 'phyDat'
 #' @describeIn get.phybreak The sequence data in class \code{"phyDat"} (package \pkg{phangorn}).
 #' @export
-get.phyDat <- function(phybreak.object) {
-    ### tests
-    if (!("phangorn" %in% .packages(TRUE))) {
-      stop("package 'phangorn' should be installed for this function")
-    }
-    if (!("phangorn" %in% .packages(FALSE))) {
-      warning("package 'phangorn' is not attached")
-    }
-    
-    ### sequences
-    dnadata <- with(phybreak.object, {
-        t(matrix(rep(t(d$SNP), rep(d$SNPfr, p$obs)), ncol = p$obs))
-    })
-    rownames(dnadata) <- phybreak.object$d$names
-    
-    return(phangorn::phyDat(dnadata))
+get.seqdata <- function(phybreak.object) {
+    return(phybreak.object$d$sequences)
 }
 
 

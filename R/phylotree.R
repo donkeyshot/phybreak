@@ -18,12 +18,13 @@
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 20)
-#' MCMCstate <- phybreak(simulation)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
+#' simulation <- sim.phybreak(obsize = 5)
+#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' phylotree(MCMCstate)
+#' plot(phylotree(MCMCstate, phylo.class = TRUE))
 #' @export
 phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion", "count"), phylo.class = FALSE) {
     chainlength <- length(phybreak.object$s$mu)

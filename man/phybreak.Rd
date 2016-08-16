@@ -4,29 +4,22 @@
 \alias{phybreak}
 \title{Create a phybreak-object from data and prior distributions.}
 \usage{
-phybreak(data, ti = NULL, freq = NULL, id = NULL, mu = 1e-04,
-  gen.shape = 3, gen.mean = 1, sample.shape = 3, sample.mean = 1,
-  wh.model = 3, wh.slope = 1, est.gen.mean = TRUE,
-  prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
+phybreak(data, times = NULL, mu = 1e-04, gen.shape = 3, gen.mean = 1,
+  sample.shape = 3, sample.mean = 1, wh.model = 3, wh.slope = 1,
+  est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
   est.sample.mean = TRUE, prior.mean.sample.mean = 1,
   prior.mean.sample.sd = Inf, est.wh.slope = TRUE, prior.wh.shape = 1,
   prior.wh.mean = 1, use.tree = FALSE)
 }
 \arguments{
-\item{data}{An object of class \linkS4class{obkData}, containing sequences and sampling times as 
-metadata with these sequences; or a \code{matrix} with nucleotides, each row a host, each column 
-a nucleotide. All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, or \code{'t'}, will be turned into \code{'n'}.}
+\item{data}{The sequence data. These can be given as objects of class \code{'DNAbin'} or \code{'phyDat'}, or in a \code{matrix}
+with nucleotides, each row a host, each column a nucleotide. All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
+or \code{'t'}, will be turned into \code{'n'}. If the sequences are named, these names will be used. It is also possible
+to provide the data in object of class \code{'obkData'}, containing sequences and sampling times as metadata with 
+these sequences.}
 
-\item{ti}{Vector of sampling times, necessary if data is given as a matrix of sequences. The order should match
-the order of the rows in \code{data}. If available, the item names will be used to identify the hosts, 
-unless \code{id} is given as well.}
-
-\item{freq}{Vector of nucleotide frequencies, optional if data is given as a matrix of sequences. 
-The vector indicates per column in \code{data} how frequent that particular distribution of nucleotides 
-across hosts was observed.}
-
-\item{id}{Vector of host names to identify the hosts, optional if data is given as a matrix of sequences. 
-The order should match the order of time and sequence data.}
+\item{times}{Vector of sampling times (not needed if the data are of class \code{'obkData'}). If the vector is named,
+these names will be used to identify the hosts.}
 
 \item{mu}{Initial value for mutation rate (defined per site per unit of time). 
 NOTE: mutation is defined as assignment of a random nucleotide at a particular site; this could be the 
@@ -77,15 +70,15 @@ N*gE = actual population size * pathogen generation time), used to simulate coal
 \item{prior.wh.mean}{Mean of the (gamma) prior distribution of \code{slope} 
 (only if \code{est.wh.slope = TRUE}).}
 
-\item{use.tree}{Whether to use the transmission and phylogenetic tree given in data of class \linkS4class{obkData}, 
+\item{use.tree}{Whether to use the transmission and phylogenetic tree given in data of class \code{'obkData'}, 
 to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
 the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 
-one phylogenetic tree. Such data are created when using \code{\link{sim.phybreak}}.}
+one phylogenetic tree. Such data can be simulated with \code{\link{sim.phybreak}}.}
 }
 \value{
 An object of class \code{phybreak} with the following elements
   \describe{
-    \item{d}{a \code{list} with data, i.e. names, SNPs and SNP-frequencies.}
+    \item{d}{a \code{list} with data, i.e. names, sequences, sampling times, and total number of SNPs.}
     \item{v}{a \code{list} with current state of all nodes in the tree: times, hosts in which they reside,
       parent nodes, node types (sampling, coalescent, or transmission)}
     \item{p}{a \code{list} with the parameter values}
@@ -100,7 +93,7 @@ An object of class \code{phybreak} with the following elements
   }
 }
 \description{
-phybreak takes as data either an \linkS4class{obkData}-object or a \code{matrix} with sequences 
+phybreak takes as data either an \code{'obkData'}-object or a \code{matrix} with sequences 
 (individuals in rows, nucleotides in columns). If only sequences are used, a vector with 
 sampling times is also needed. Parameter values are used as initial values in the MCMC-chain 
 or kept fixed. All variables are initialized by random samples from the prior distribution, 
@@ -108,14 +101,19 @@ unless the tree in the obkData is used (\code{use.tree = TRUE}).
 }
 \examples{
 simulation <- sim.phybreak()
-MCMCstate <- phybreak(simulation)
-MCMCstate2 <- phybreak(simulation, use.tree = TRUE)
+MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+
+\dontrun{
+ ### only if 'OutbreakTools' is installed
+ simulation <- sim.phybreak(output-class = "obkData")
+ MCMCstate <- phybreak(data = simulation, use.tree = TRUE)
+}
 
 sampletimedata <- c(0,2,2,4,4)
 sampleSNPdata <- matrix(c("a","a","a","a","a",
                           "a","c","c","c","c",
                           "t","t","t","g","g"), nrow = 5)
-MCMCstate <- phybreak(sampleSNPdata, sampletimedata)
+MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 }
 \author{
 Don Klinkenberg \email{don@xs4all.nl}

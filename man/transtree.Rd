@@ -59,13 +59,14 @@ Four methods are supported for transmission tree reconstruction (who infected wh
 }
 \examples{
 #First build a phybreak-object containing samples.
-simulation <- sim.phybreak(obsize = 20)
-MCMCstate <- phybreak(simulation)
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
-MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
+simulation <- sim.phybreak(obsize = 5)
+MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
+MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 
 transtree(MCMCstate, method = "edmonds")
 transtree(MCMCstate, method = "mpc", infection.times = "infector.sd")
+plot(MCMCstate, plot.which = "mpc")
 }
 \author{
 Don Klinkenberg \email{don@xs4all.nl}

@@ -23,10 +23,10 @@ The function removes (all or some) posterior samples by thinning and/or removing
 }
 \examples{
 #First create a phybreak-object
-simulation <- sim.phybreak(obsize = 20)
-MCMCstate <- phybreak(data = simulation)
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
-MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
+simulation <- sim.phybreak(obsize = 5)
+MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
+MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 
 MCMCstate <- thin.phybreak(MCMCstate, thin = 2)
 }

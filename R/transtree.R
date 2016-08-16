@@ -48,13 +48,14 @@
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 20)
-#' MCMCstate <- phybreak(simulation)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 200)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 100, thin = 10)
+#' simulation <- sim.phybreak(obsize = 5)
+#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' transtree(MCMCstate, method = "edmonds")
 #' transtree(MCMCstate, method = "mpc", infection.times = "infector.sd")
+#' plot(MCMCstate, plot.which = "mpc")
 #' @export
 transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mtcc"), samplesize = Inf, infector.name = TRUE, 
     support = c("proportion", "count"), infection.times = c("all", "infector", "infector.sd"), time.quantiles = c(0.025, 0.5, 0.975), phylo.class = FALSE) {

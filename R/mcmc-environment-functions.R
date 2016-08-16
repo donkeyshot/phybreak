@@ -36,6 +36,8 @@
     h <- phybreak.obj$h
     v <- phybreak.obj$v
     p <- phybreak.obj$p
+    SNP <- t(matrix(unlist(d$sequences), ncol = p$obs))
+    SNPfr <- attr(d$sequences, "weight")
   
     
     ### Jukes-Cantor: reduce diversity by naming each nucleotide by its frequency order, and grouping SNPs by same pattern across
@@ -43,11 +45,11 @@
     fn <- function(snpvector) {
         match(snpvector, names(sort(table(snpvector), decreasing = TRUE)))
     }
-    snpreduced <- apply(d$SNP, 2, fn)
-    snpfrreduced <- d$SNPfr
-    snpreduced[d$SNP == "n"] <- 5
-    if (ncol(d$SNP) > 1) {
-        for (i in (ncol(d$SNP) - 1):1) {
+    snpreduced <- apply(SNP, 2, fn)
+    snpfrreduced <- SNPfr
+    snpreduced[SNP == 16] <- 5
+    if (ncol(SNP) > 1) {
+        for (i in (ncol(SNP) - 1):1) {
             for (j in length(snpfrreduced):(i + 1)) {
                 if (all(snpreduced[, i] == snpreduced[, j])) {
                   snpfrreduced[i] <- snpfrreduced[i] + snpfrreduced[j]
