@@ -57,6 +57,18 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     # samplesize], c(obs, samplesize) ), ncol = 4) res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs] } if(length(res) == 0) {
     # stop('incorrect method provided, choose \'mcc\' or \'cc.construct\'') }
     
+    ### make node obs+1 the root node
+    if(res[obs + 1, 1] != 0) {
+      curroot <- which(res[, 1] == 0)
+      rootstats <- res[curroot, ]
+      res[curroot, ] <- res[obs + 1, ]
+      res[obs + 1, ] <- rootstats
+      
+      res[res[, 1] == obs + 1, 1] <- -1
+      res[res[, 1] == curroot, 1] <- obs + 1
+      res[res[, 1] == -1, 1] <- curroot
+    }
+    
     # support
     if (support[1] == "count") {
       support.out <- res[, 2]

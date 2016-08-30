@@ -80,7 +80,7 @@ std::vector<double> CCphylotree(const std::vector<int> &pars,
     ) / (result[i + dims[0] + 2*dims[0] - 1] - 1) );
     result[i + dims[0] + 4*(2*dims[0] - 1)] = tims[(dims[0]-1) * posttree + i];
   }
-  result[5 * (2*dims[0] - 1)] = posttree;
+  result[5 * (2*dims[0] - 1)] = posttree + 1;
   
   
   

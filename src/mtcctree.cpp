@@ -77,7 +77,7 @@ std::vector<double> CCtranstree(const std::vector<int> &pars,
     result[i + 4*dims[0]] = 
       tims[dims[0] * posttree + i];
   }
-  result[5 * dims[0]] = posttree;
+  result[5 * dims[0]] = posttree + 1;
   
   
   
