@@ -6,7 +6,7 @@ Date: 2016-08-31
 Authors@R: person("Don", "Klinkenberg", 
     email = "don@xs4all.nl", role = c("aut", "cre"))
 Description: Implementation the outbreak analysis method described by 
-    Klinkenberg et al (2016) <doi: http://dx.doi.org/10.1101/069195>. 
+    Klinkenberg et al (2016) <doi:10.1101/069195>. 
     Simulate outbreaks, analyse datasets by creating samples from the 
     posterior distribution with a Markov-Chain Monte Carlo sampler, 
     and summarize the output.
