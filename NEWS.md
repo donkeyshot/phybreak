@@ -1,3 +1,9 @@
+# phybreak 0.1.2
+
+## BUG FIXES
+
+* Solves errors for OS X Mavericks
+
 # phybreak 0.1.1
 
 ## BUG FIXES

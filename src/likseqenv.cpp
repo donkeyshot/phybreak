@@ -14,7 +14,7 @@ using namespace Rcpp;
 
 // [[Rcpp::export(name=".likseqenv")]]
 double likseqenv(Environment pbenv, 
-              IntegerVector nodestochange, IntegerVector tips) {
+                 IntegerVector nodestochange, IntegerVector tips) {
   List vars = pbenv["v"];
   List pars = pbenv["p"];
   NumericVector likarray = pbenv["likarray"];
@@ -33,15 +33,15 @@ double likseqenv(Environment pbenv,
   double edgelen;
   double totprob;
   double result;
-
+  
   for(unsigned int i = 0; i < nodestochange.size(); ++i) {
     for(int j = 0; j < nSNPs; ++j) {
       for(int k = 0; k < 4; ++k) {
-        likarray[(nodestochange[i]-1)*nSNPs*4 + j*4 + k] = 1;
+        likarray[( (nodestochange[i] - 1) * nSNPs + j) * 4 + k] = 1;
       }
     }
   }
-
+  
   for(int i = 0; i < nlens.size(); ++i) {
     if(nodeparents[i] > 0) {
       nlens[i] = nodetimes[i] - nodetimes[nodeparents[i]-1];
@@ -60,7 +60,7 @@ double likseqenv(Environment pbenv,
   for(int i = 0; i < nodestochange.size(); ++i) {
     routefree[nodestochange[i] - 1] = false;
   }
-
+  
   for(int i = 0; i < tips.size(); ++i) {
     curnode = tips[i] - 1;
     nextnode = nodeparents[curnode] - 1;
@@ -73,8 +73,8 @@ double likseqenv(Environment pbenv,
             totprob += likarray[curnode*nSNPs*4 + j*4 + k];
           }
           for(int k = 0; k < 4; ++k) {
-            likarray[nextnode*nSNPs*4 + j*4 + k] *=
-              0.25*totprob + (likarray[curnode*nSNPs*4 + j*4 + k] -
+            likarray[(nextnode * nSNPs + j) * 4 + k] *=
+              0.25*totprob + (likarray[(curnode * nSNPs + j) * 4 + k] -
               0.25*totprob)*exp(-mu*edgelen);
           }
         }
@@ -88,23 +88,23 @@ double likseqenv(Environment pbenv,
     }
     routefree[curnode] = true;
   }
-
+  
   for(int j = 0; j < nSNPs; ++j) {
-    SNPsums[j] = 0.25*likarray[rootnode*nSNPs*4 + j*4];
+    SNPsums[j] = 0.25*likarray[(rootnode * nSNPs + j) * 4];
     for(int k = 1; k < 4; ++k) {
-      SNPsums[j] += 0.25*likarray[rootnode*nSNPs*4 + j*4 + k];
+      SNPsums[j] += 0.25*likarray[(rootnode * nSNPs + j) * 4 + k];
     }
     SNPsums[j] = log(SNPsums[j]) * SNPfreqs[j];
   }
-
+  
   result = SNPsums[0];
   for(int j = 1; j < nSNPs; ++j) {
     result += SNPsums[j];
   }
-
+  
   pbenv["likarray"] = likarray;
   pbenv["logLikseq"] = result;
-
+  
   return result;
 }
 
@@ -118,5 +118,5 @@ double likseqenv(Environment pbenv,
 #phybreakenv.prop <- new.env()
 #.build.phybreakenv(curstate)
 #.propose.phybreakenv(curstate2)
-  */
+*/
 
