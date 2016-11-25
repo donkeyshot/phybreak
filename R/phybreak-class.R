@@ -9,18 +9,28 @@
 
 #' Create a phybreak-object from data and prior distributions.
 #' 
-#' phybreak takes as data either an \code{'obkData'}-object or a \code{matrix} with sequences 
-#' (individuals in rows, nucleotides in columns). If only sequences are used, a vector with 
-#' sampling times is also needed. Parameter values are used as initial values in the MCMC-chain 
+#' phybreak takes as data either an \code{'obkData'}-object or a \code{\link{phybreakdata}}-object with sequences 
+#' (individuals in rows, nucleotides in columns). Both \code{'obkData'} and \code{\link{phybreakdata}} 
+#' contain at least sequences and sampling times, and potentially more. Parameter values are used as initial values in the MCMC-chain 
 #' or kept fixed. All variables are initialized by random samples from the prior distribution, 
-#' unless the tree in the obkData is used (\code{use.tree = TRUE}).
+#' unless a complete tree is given in the data and should be used (\code{use.tree = TRUE}).
+#' It is also possible to provide only sequences as data, and sampling times separately.
 #' 
-#' @param data The sequence data. These can be given as objects of class \code{'DNAbin'} or \code{'phyDat'}, or in a \code{matrix}
-#'  with nucleotides, each row a host, each column a nucleotide. All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
-#'  or \code{'t'}, will be turned into \code{'n'}. If the sequences are named, these names will be used. It is also possible
-#'  to provide the data in object of class \code{'obkData'}, containing sequences and sampling times as metadata with 
-#'  these sequences.
-#' @param times Vector of sampling times (not needed if the data are of class \code{'obkData'}). If the vector is named,
+#' @param data An object with sequences plus additional data.
+#'  (class \code{'obkData'} or \class{'phybreakdata'}). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
+#'  or \code{'t'}, will be turned into \code{'n'}.  
+#'  
+#'  If the data are provided as an object of class \code{'obkData'}, these should contain sequences and sampling times 
+#'  as metadata with these sequences. The object may also contain \code{infector} and infection \code{date} vectors in the
+#'  \code{individuals} slot, plus (at least) one tree in the \code{'trees'} slot (class \code{'multiPhylo'}).
+#'  
+#'  Data provided as an object of class \code{'phybreakdata'} contain \code{sequences} and \code{sampling.times},
+#'  and potentially \code{infection.times}, \code{infectors}, and \code{trees}. Prepare your data in this format
+#'  by \code{\link{phybreakdata}} or by simulation with \code{\link{sim.phybreak}}.
+#'  
+#'  It is also possible to provide only sequences as data, (class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
+#'  each row a host, each column a nucleotide), and corresponding sampling times in the separate \code{times} argument.
+#' @param times Vector of sampling times, needed if the data consist of only sequences. If the vector is named,
 #'   these names will be used to identify the hosts.
 #' @param mu Initial value for mutation rate (defined per site per unit of time). 
 #'   NOTE: mutation is defined as assignment of a random nucleotide at a particular site; this could be the 
@@ -92,7 +102,7 @@
 #'                           "t","t","t","g","g"), nrow = 5)
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
-phybreak <- function(data, times = NULL, 
+phybreak <- function(data, times = NULL,
          mu = .0001, gen.shape = 3, gen.mean = 1,
          sample.shape = 3, sample.mean = 1, 
          wh.model = 3, wh.slope = 1,
@@ -104,20 +114,15 @@ phybreak <- function(data, times = NULL,
   ###########################################
   ### check for correct classes and sizes ###
   ###########################################
-  if(!any(class(data) %in% c("DNAbin", "phyDat", "matrix", "obkData"))) {
-    stop("data should be of class \"DNAbin\", \"phyDat\", \"character\" or \"obkData\"")
+  if(inherits(data, c("DNAbin", "phyDat", "matrix"))) {
+    data <- phybreakdata(sequences = data, sample.times = times)
   }
-  if(inherits(data, "matrix") && !inherits(data[1], "character")) {
-    stop("data matrix should contain \"character\" elements")
+  if(!inherits(data, c("obkData", "phybreakdata"))) {
+    stop("data should be of class \"obkData\" or \"phybreakdata\"")
   }
-  if(inherits(data, "DNAbin")) {
-    data <- as.character(data)
-  }
-  if(inherits(data, "phyDat")) {
-    data <- as.character(data)
-  }
-  if(!inherits(data, "matrix") & use.tree) {
-    warning("tree can only be used if provided in obkData-format; random tree will be generated")
+  if(use.tree) if( ( (inherits(data, c("phybreakdata")) & is.null(data$tree) ) ||
+                 (inherits(data, c("obkData")) & is.null(data@trees) ) ) ) {
+    warning("tree can only be used if provided in data; random tree will be generated")
   }
   if(inherits(data, "obkData")) {
     if(!("OutbreakTools" %in% .packages(TRUE))) {
@@ -139,17 +144,7 @@ phybreak <- function(data, times = NULL,
     if(use.tree & length(data@individuals$date) != obs) {
       stop("use.tree = TRUE, but length of data@individuals$date does not match number of sequences")
     }
-  } else {
-    if(!(class(times) %in% c("Date", "numeric", "integer"))) {
-      stop("times should be numeric or of class \"Date\"")
-    }
-    if(length(times) != nrow(data)) {
-      stop("data and times have different number of observations")
-    }
-    if((!is.null(names(times)) && !is.null(row.names(data))) && !all(names(times) %in% row.names(data))) {
-      stop("names in sequence data and times are not equal")
-    }
-  }
+  } 
   numFALSE <- 
     unlist(
       lapply(
@@ -198,27 +193,21 @@ phybreak <- function(data, times = NULL,
   #outbreak size
   if(class(data) == "obkData") {
     obs <- nrow(data@dna@dna[[1]])
+    samtimes <- OutbreakTools::get.dates(data, "dna")
+    names(samtimes) <- OutbreakTools::get.individuals(data)
   } else {
-    obs <- length(times)  
+    obs <- length(data$sample.times)  
+    samtimes <- data$sample.times
   }
   
   #################################
   ### first slot: sequence data ###
   #################################
   #names
-  if(class(data) == "obkData") {
-    hostnames <- rownames(data@dna@dna[[1]])
+  if(inherits(data, "obkData")) {
+    hostnames <- OutbreakTools::get.individuals(data)
   } else {
-    if(is.null(names(times))) {
-      if(is.null(row.names(data))) {
-        hostnames <- paste0("host.",1:obs)
-      } else hostnames <- row.names(data)
-    } else {
-      hostnames <- names(times)
-      if(!is.null(row.names(data))) {
-        data <- data[match(hostnames, row.names(data)), ]
-      }
-    }
+    hostnames <- names(data$sample.times)
   }
   
   #sequences (SNP)
@@ -232,136 +221,39 @@ phybreak <- function(data, times = NULL,
       warning("all nucleotides other than actg are turned into n")
     }
     SNP.sample[SNP.sample != "a" & SNP.sample != "c" & SNP.sample != "g" & SNP.sample != "t"] <- "n"
+    seqdata <- phangorn::as.phyDat(SNP.sample)
   } else {
-    SNP.sample <- data
-    if(length(setdiff(SNP.sample,c("a","c","g","t")))) warning("all nucleotides other than actg are turned into n")
-    SNP.sample[SNP.sample != "a" & SNP.sample != "c" & SNP.sample != "g" & SNP.sample != "t"] <- "n"
+    seqdata <- data$sequences
   }
-  seqdata <- phangorn::as.phyDat(SNP.sample)
   #SNP count
-  nsnps <- sum( (apply(SNP.sample=="a", 2, any) +
-                   apply(SNP.sample=="c", 2, any) +
-                   apply(SNP.sample=="g", 2, any) +
-                   apply(SNP.sample=="t", 2, any) +
-                   apply(SNP.sample=="n", 2, all) - 1))
+  seqmat <- as.character(seqdata)
+  nsnps <- sum( (apply(seqmat=="a", 2, any) +
+                   apply(seqmat=="c", 2, any) +
+                   apply(seqmat=="g", 2, any) +
+                   apply(seqmat=="t", 2, any) +
+                   apply(seqmat=="n", 2, all) - 1))
   
+  ##########################
+  ### make parameterlist ###
+  ##########################
+  plist <- list(
+    obs = obs,
+    mu = mu,
+    mean.sample = sample.mean,
+    mean.gen = gen.mean,
+    shape.sample = sample.shape,
+    shape.gen = gen.shape,
+    wh.model = wh.model,
+    wh.slope = wh.slope
+  )
   
   ############################
   ### initialize variables ###
   ############################
-  #auxiliary variables
-  if(class(data) == "obkData") {
-    refdate <- min(OutbreakTools::get.dates(data, "dna"))
-  } else refdate <- min(times)
-  #transmission tree
-  if(class(data) == "obkData") {
-    if(use.tree) {
-      inftimes <- as.numeric(OutbreakTools::get.dates(data, "individuals") - refdate)
-      infectors <- data@individuals$infector
-    } else {
-      samtimes <- as.numeric(OutbreakTools::get.dates(data, "dna") - refdate)
-      inftimes <- .rinftimes(samtimes, sample.mean, sample.shape)
-      infectors <- .rinfectors(inftimes, gen.mean, gen.shape)
-    }
+  if(inherits(data, "phybreakdata")) {
+    vlist <- transphylo2phybreak(data, resample = use.tree, resamplepars = plist)
   } else {
-    samtimes <- as.numeric(times - refdate)
-    inftimes <- .rinftimes(samtimes, sample.mean, sample.shape)
-    infectors <- .rinfectors(inftimes, gen.mean, gen.shape)
-  }
-  #phylogenetic tree
-  nodetypes <- c(rep("s",obs), rep("c",obs - 1),
-                 rep("t",obs))  #node type (sampling, coalescent, transmission)
-  if(class(data) == "obkData" & use.tree) {
-    ##extract phylotree from obkData
-    phytree <- OutbreakTools::get.trees(data)[[1]]
-    phylobegin <- phytree$edge[,1]
-    phyloend <- phytree$edge[,2]
-    phylolengths <- phytree$edge.length
-    
-    ##initialize nodetimes with infection times, nodeparents with phylotree
-    ##initialize edgelengths to help build the tree
-    nodetimes <- c(rep(NA,2*obs-1), inftimes)
-    nodeparents <- c(head(phylobegin[order(phyloend)], obs),
-                     NA,
-                     tail(phylobegin[order(phyloend)], obs - 2),
-                     rep(NA, obs))
-    edgelengths <- c(head(phylolengths[order(phyloend)], obs),
-                     NA, tail(phylolengths[order(phyloend)], obs - 2),
-                     rep(NA, obs))
-    ##link first infection to root node of phylotree
-    nodeparents[obs + 1] <- which(infectors == 0)+ 2 * obs - 1
-    edgelengths[obs + 1] <- -inftimes[which(infectors == 0)] - ape::node.depth.edgelength(phytree)[1]
-    ##place transmission nodes between sampling and coalescent nodes for hosts without secondary cases
-    #a. place coalescent node before transmission node
-    nodeparents[(2*obs - 1) + setdiff(1:obs, infectors)] <- nodeparents[setdiff(1:obs, infectors)]
-    #b. place transmission node before sampling node
-    nodeparents[setdiff(1:obs,infectors)] <- (2*obs - 1) + setdiff(1:obs, infectors)
-    
-    ##complete nodetimes by adding branch lengths starting from root
-    while(any(is.na(nodetimes))) {
-      nodetimes[1:(2*obs - 1)] <- nodetimes[nodeparents[1:(2*obs - 1)]] + edgelengths[1:(2*obs - 1)]
-    }
-    nodetimes <- round(nodetimes, digits = 12) #prevent numerical problems
-    
-    ##initialize nodehosts, first sampling and transmission nodes...
-    nodehosts <- c(1:obs, which(infectors == 0), rep(NA, obs - 2), infectors)   
-    ##... then coalescent nodes that are parent of sampling nodes of infectors
-    nodehosts[nodeparents[sort(unique(infectors))[-1]]] <- sort(unique(infectors))[-1]
-    
-    ##complete nodehosts by going backwards in phylotree
-    while(any(is.na(nodehosts))) {
-      #which are coalescent nodes with known parent & host?; order these by parent
-      whichnodes <- tail(which(!is.na(nodehosts) & !is.na(nodeparents)),-obs)
-      whichnodes <- whichnodes[order(nodeparents[whichnodes])]
-
-      #which of these nodes have the same parent node?
-      sameparent.wn <- which(duplicated(nodeparents[whichnodes]))
-      #determine the host of these parent nodes
-      for(i in sameparent.wn) {
-        if(nodehosts[whichnodes[i]] == nodehosts[whichnodes[i-1]]) {
-          #...if host of children nodes are the same, this is also host of parent
-          nodehosts[nodeparents[whichnodes[i]]] <- nodehosts[whichnodes[i]]
-        } else {
-          #...if host of children nodes are different, host of parent node is the
-          #...infector if one infects the other, or the common infector of both
-          posshosts <- nodehosts[whichnodes[i - 1:0]]
-          posshosts <- c(posshosts, infectors[posshosts])
-          nodehosts[nodeparents[whichnodes[i]]] <- posshosts[duplicated(posshosts)]
-        }
-      }
-    }
-    
-    ##complete nodeparents: place transmission nodes for hosts with secondary infections
-    #a. place coalescent node before transmission node
-    nodeparents[nodehosts[which(nodehosts[nodeparents[(obs + 1):(2 * obs - 1)]] != 
-                                  nodehosts[(obs + 1):(2 * obs - 1)]) + obs] + 2 * obs - 1] <- 
-      nodeparents[which(nodehosts[nodeparents[(obs + 1):(2 * obs - 1)]] != nodehosts[(obs + 1):(2 * obs - 1)]) + obs]
-    #b. place transmission node before sampling node
-    nodeparents[which(nodehosts[nodeparents[(obs + 1):(2 * obs - 1)]] != nodehosts[(obs + 1):(2 * obs - 1)]) + obs] <- 
-      nodehosts[which(nodehosts[nodeparents[(obs + 1):(2 * obs - 1)]] != nodehosts[(obs + 1):(2 * obs - 1)]) + obs] + 2 * obs - 1
-    nodeparents[nodehosts == 0] <- 0
-  } else {
-    ##nodehosts, coalescent nodes in hosts with secondary cases
-    nodehosts <- c(1:obs, sort(infectors)[-1], infectors)
-    
-    ##initialize nodetimes with sampling and infection times
-    nodetimes <- c(samtimes, rep(NA, obs - 1), inftimes)
-    ##sample coalescent times
-    for(i in 1:obs) {
-      nodetimes[nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
-        inftimes[i] +                      #...to the infection time +
-        .samplecoaltimes(nodetimes[nodehosts == i & nodetypes != "c"] - inftimes[i],
-                         wh.model, wh.slope)  #...sampled coalescent times
-    }
-    
-    ##initialize nodeparents 
-    nodeparents <- 0*nodetimes
-    ##sample nodeparents
-    for(i in 1:obs) {
-      nodeparents[nodehosts == i] <-     #change the parent nodes of all nodes in host i...
-        .sampletopology(which(nodehosts == i), nodetimes[nodehosts == i], nodetypes[nodehosts == i], i + 2*obs - 1, wh.model)
-      #...to a correct topology, randomized where possible
-    }
+    vlist <- obkData2phybreak(data, resample = use.tree, resamplepars = plist)
   }
   
   ################################
@@ -369,30 +261,17 @@ phybreak <- function(data, times = NULL,
   ################################
   res <- list(
     d = list(
-      names = hostnames,
-      sequences = seqdata,
-      sample.times = times,
-      nSNPs = nsnps
+      names = vlist$d$hostnames,
+      sequences = sequences,
+      sample.times = samtimes,
+      nSNPs = nsnps,
+      reference.date = vlist$d$referencedate
     ),
-    v = list(
-      nodetimes = nodetimes,
-      nodehosts = nodehosts,
-      nodeparents = nodeparents,
-      nodetypes = nodetypes
-    ),
-    p = list(
-      obs = obs,
-      mu = mu,
-      mean.sample = sample.mean,
-      mean.gen = gen.mean,
-      shape.sample = sample.shape,
-      shape.gen = gen.shape,
-      wh.model = wh.model,
-      wh.slope = wh.slope
-    ),
+    v = vlist$v,
+    p = plist,
     h = list(si.mu = if(nsnps == 0) 0 else 2.38*sqrt(trigamma(nsnps)),
              si.wh = 2.38*sqrt(trigamma(obs - 1)),
-             dist = .distmatrix(SNP.sample),
+             dist = .distmatrix(sequences),
              est.mG = est.gen.mean,
              est.mS = est.sample.mean,
              est.wh = est.wh.slope,

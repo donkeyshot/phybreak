@@ -111,6 +111,7 @@
     ### make preliminary result for ladderizing
     respreladder <- list(edge = edges, edge.length = edgelengths, Nnode = Nhosts - 1, tip.label = nodenames)
     class(respreladder) <- c("phylo")
+    plot(respreladder)
     respreladder <- ape::reorder.phylo(respreladder)
     
     ### ladderize to determine reordering of edges

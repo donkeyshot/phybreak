@@ -13,7 +13,7 @@
 
 #' Outbreak simulation.
 #' 
-#' Simulate outbreaks of class \code{'obkData'} (package \pkg{OutbreakTools}), with the outbreak model of \pkg{phybreak}.
+#' Simulate outbreaks of class \code{'phybreakdata'}, with the outbreak model of \pkg{phybreak}.
 #' 
 #' @param obsize The outbreak size (number of cases) to obtain. If \code{obsize = NA}, \code{popsize} should be provided.
 #' @param popsize The population size in which to simulate. If it is not defined (default), 
@@ -36,9 +36,10 @@
 #' @param sequence.length Number of available nucleotides for mutations.
 #' @param output.class Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
 #'  class \code{'obkData'}
-#' @return The simulation output, either in a list with sequences (class \code{'phyDat'}) and sampling times (which would be
-#'   the observations), and infection times and infectors; or as an object of class \code{'obkData'} (package \pkg{OutbreakTools}), 
-#'   containing the outbreak data in the following slots:
+#' @return The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
+#'   sampling times (which would be the observations), and infection times, infectors, and phylogenetic tree 
+#'   of class \code{\link[ape]{phylo}}; 
+#'   or as an object of class \code{'obkData'} (package \pkg{OutbreakTools}), containing the outbreak data in the following slots:
 #'   \describe{
 #'     \item{individuals}{a \code{data.frame} with individual labels as row names, a vector \code{infector},
 #'       and a vector \code{date} containing the infection times (starting 01-01-2000)
@@ -46,7 +47,7 @@
 #'     \item{dna}{an object of class \code{'obkSequences'}, with SNP data in \code{dna} and sampling times
 #'       in \code{meta$date}
 #'     }
-#'     \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{phylo}}
+#'     \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{\link[ape]{phylo}}}
 #'   }
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
@@ -57,17 +58,17 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                          R0 = 1.5, shape.gen = 10, mean.gen = 1, 
                          shape.sample = 10, mean.sample = 1,
                          wh.model = 3, wh.slope = 1, 
-                         mu = 0.0001, sequence.length = 10000, output.class = c("list", "obkData")) {
+                         mu = 0.0001, sequence.length = 10000, output.class = c("phybreakdata", "obkData")) {
   ### tests
-  output.class <- output.class[output.class %in% c("list", "obkData")][1]
+  output.class <- output.class[output.class %in% c("phybreakdata", "obkData")][1]
   if(is.na(output.class)) {
-    stop("output.class should be \"list\" or \"obkData\"")
+    stop("output.class should be \"phybreakdata\" or \"obkData\"")
   }
-  if(output.class == "obkData" & !("OutbreakTools" %in% .packages(TRUE))) {
-    warning("package 'OutbreakTools' not installed: output.class is \"list\"")
-    output.class <- "list"
+  if(output.class == "obkData" && !("OutbreakTools" %in% .packages(TRUE))) {
+    warning("package 'OutbreakTools' not installed: output.class is \"phybreakdata\"")
+    output.class <- "phybreakdata"
   }
-  if(output.class == "obkData" & !("OutbreakTools" %in% .packages(FALSE))) {
+  if(output.class == "obkData" && !("OutbreakTools" %in% .packages(FALSE))) {
 #    warning("package 'OutbreakTools' is not attached")
     requireNamespace("OutbreakTools")
   }
@@ -100,34 +101,41 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   }
   res <- .sim.phylotree(res, wh.model, wh.slope)
   res <- .sim.sequences(res, mu, sequence.length)
+  hostnames <- paste0("host.", 1:obsize)
 
   ### make an obkData object
   treesout <- vector('list',1)
-  treesout[[1]] <- .makephylo.phybreak(res$nodetimes, res$nodeparents, 1:obsize)
+  treesout[[1]] <- .makephylo.phybreak(res$nodetimes, res$nodeparents, hostnames)
   class(treesout) <- "multiPhylo"
   
+  sampletimes <- res$sampletimes
+  names(sampletimes) <- hostnames
+  infectiontimes <- res$infectiontimes
+  names(infectiontimes) <- hostnames
+  infectors <- c("index", hostnames)[1 + res$infector]
+  names(infectors) <- hostnames
+  
   if(output.class == "obkData") {
+    seqs <- res$SNPlist
+    row.names(seqs) <- hostnames
     toreturn <- new("obkData",
                     individuals = data.frame(
-                      infector = res$infectors,
-                      date = as.Date(res$infectiontimes, origin = "2000-01-01"),
-                      row.names = 1:res$obs),
+                      infector = infectors,
+                      date = as.Date(infectiontimes, origin = "2000-01-01"),
+                      row.names = hostnames),
                     dna = list(SNPs = res$SNPlist), dna.date = as.Date(res$sampletimes, origin = "2000-01-01"),
-                    dna.individualID = 1:res$obs, trees = treesout)
+                    dna.individualID = hostnames, trees = treesout)
   } else {
-    sampletimes <- res$sampletimes
-    names(sampletimes) <- paste0("host.", 1:res$obs)
     seqs <- phangorn::as.phyDat(res$SNPlist)
-    names(seqs) <- paste0("host.", 1:res$obs)
-    infectiontimes <- res$infectiontimes
-    names(infectiontimes) <- paste0("host.", 1:res$obs)
-    infectors <- c("index", paste0("host.", 1:res$obs))[1 + res$infector]
+    names(seqs) <- hostnames
     toreturn <- list(
       sequences = seqs,
       sample.times = sampletimes,
       infection.times = infectiontimes,
-      infectors = infectors
+      infectors = infectors,
+      trees = treesout[[1]]
     )
+    class(toreturn) <- "phybreakdata"
   }
   return(toreturn)
 }
