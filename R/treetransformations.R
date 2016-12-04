@@ -31,6 +31,8 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   
   edges <- matrix(c(edgestart, edgeend), ncol = 2)
   
+  rootedge <- min(nodetimes[nodetypes == "c"]) - min(nodetimes[nodetypes == "t"])
+  
   ### items for simmap (phytools)
   if(simmap) {
     whichcolor <- function(iors, path) {
@@ -94,12 +96,14 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
       reorderedmaps[[i]] <- edgemaps[[newedgeorder[i]]]
     }
 
-    res <- list(edge = edges[newedgeorder, ], edge.length = edgelengths[newedgeorder], Nnode = Nsamples - 1, tip.label = samplenames[newtiporder], 
+    res <- list(edge = edges[newedgeorder, ], edge.length = edgelengths[newedgeorder], Nnode = Nsamples - 1, 
+                tip.label = samplenames[newtiporder], root.edge = rootedge,
                 node.state = nodestates[newedgeorder, ], states = tipstates[newtiporder], maps = reorderedmaps, mapped.edge = mappededge[newedgeorder, 
                                                                                                                                          ])
     class(res) <- c("simmap", "phylo")
   } else {
-    res <- list(edge = edges[newedgeorder, ], edge.length = edgelengths[newedgeorder], Nnode = Nsamples - 1, tip.label = samplenames[newtiporder])
+    res <- list(edge = edges[newedgeorder, ], edge.length = edgelengths[newedgeorder], Nnode = Nsamples - 1, 
+                tip.label = samplenames[newtiporder], root.edge = rootedge)
     class(res) <- c("phylo")
   }
   
@@ -110,7 +114,7 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   
 }
 
-phybreak2trans <- function(vars, hostnames = c()) {
+phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
   ### extract variables
   nodetimes <- vars$nodetimes
   nodeparents <- vars$nodeparents
@@ -125,9 +129,9 @@ phybreak2trans <- function(vars, hostnames = c()) {
   }
   
   ### make new variables
-  samtimes <- nodetimes[nodetypes == "s"]
+  samtimes <- nodetimes[nodetypes == "s"] + reference.date
   names(samtimes) <- hostnames[nodehosts[nodetypes == "s"]]
-  inftimes <- nodetimes[nodetypes == "t"]
+  inftimes <- nodetimes[nodetypes == "t"] + reference.date
   names(inftimes) <- hostnames
   infectors <- c("index",hostnames)[1 + nodehosts[nodetypes == "t"]]
   names(infectors) <- hostnames
@@ -135,32 +139,32 @@ phybreak2trans <- function(vars, hostnames = c()) {
   ### return result
   return(list(
     sample.times = samtimes,
-    infection.times = inftimes,
-    infectors = infectors
+    sim.infection.times = inftimes,
+    sim.infectors = infectors
   ))
 }
 
 
 ### vars should contain $sample.times
-### vars may contain $infection.times, $infectors, and $tree
+### vars may contain $sim.infection.times, $sim.infectors, and $sim.tree
 ### vars may contain $sample.hosts, but this is not yet used
 ### if resample = TRUE, then resamplepars should contain
 ###     $mean.sample, $shape.sample, $mean.gen, $shape.gen, $wh.model, $wh.slope
 transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
 
   ### extract variables
-  refdate <- min(samtimes)
+  refdate <- min(vars$sample.times)
   samtimes <- as.numeric(vars$sample.times - refdate)
   Nsamples <- length(samtimes)
   hostnames <- names(vars$sample.times)
   ##### NB: adjustment needed for .rinftimes to deal with multiple samples #####
-  if(is.null(vars$infection.times) | is.null(vars$infectors) | is.null(vars$tree) | resample == TRUE) {
+  if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | is.null(vars$sim.tree) | resample == TRUE) {
     resample <- TRUE
     inftimes <- .rinftimes(samtimes, resamplepars$mean.sample, resamplepars$shape.sample)
     infectors <- .rinfectors(inftimes, resamplepars$mean.gen, resamplepars$shape.gen)
   } else {
-    inftimes <- as.numeric(vars$infection.times - refdate)
-    infectors <- match(vars$infectors, hostnames)
+    inftimes <- as.numeric(vars$sim.infection.times - refdate)
+    infectors <- match(vars$sim.infectors, hostnames)
     infectors[is.na(infectors)] <- 0
   }
   Nhosts <- length(inftimes)
@@ -216,7 +220,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     
   } else {
     ##extract phylotree
-    phytree <- vars$tree
+    phytree <- vars$sim.tree
     phylobegin <- phytree$edge[, 1]
     phyloend <- phytree$edge[, 2]
     phylolengths <- phytree$edge.length
@@ -258,7 +262,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     ##complete nodehosts by going backwards in phylotree
     while(any(is.na(nodehosts))) {
       #which are coalescent nodes with known parent & host?; order these by parent
-      whichnodes <- tail(which(!is.na(nodehosts) & !is.na(nodeparents)),-obs)
+      whichnodes <- which(!is.na(nodehosts) & !is.na(nodeparents) & nodetypes != "s")
       whichnodes <- whichnodes[order(nodeparents[whichnodes])]
       
       #which of these nodes have the same parent node?
@@ -316,9 +320,9 @@ obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   
   varslist <- list(
     sample.times = samtimes,
-    infection.times = inftimes,
-    infectors = infectors,
-    tree = tree
+    sim.infection.times = inftimes,
+    sim.infectors = infectors,
+    sim.tree = tree
   )
   
   return(transphylo2phybreak(vars = varslist, resample = resample, resamplepars = resamplepars))

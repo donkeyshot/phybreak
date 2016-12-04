@@ -120,9 +120,18 @@ phybreak <- function(data, times = NULL,
   if(!inherits(data, c("obkData", "phybreakdata"))) {
     stop("data should be of class \"obkData\" or \"phybreakdata\"")
   }
-  if(use.tree) if( ( (inherits(data, c("phybreakdata")) & is.null(data$tree) ) ||
-                 (inherits(data, c("obkData")) & is.null(data@trees) ) ) ) {
-    warning("tree can only be used if provided in data; random tree will be generated")
+  if(use.tree) {
+    if(inherits(data, "phybreakdata")) {
+      if(is.null(data$tree)) {
+        warning("tree can only be used if provided in data; random tree will be generated")
+        use.tree <- FALSE
+      }
+    } else {
+      if(is.null(data@trees)) {
+        warning("tree can only be used if provided in data; random tree will be generated")
+        use.tree <- FALSE
+      }
+    }
   }
   if(inherits(data, "obkData")) {
     if(!("OutbreakTools" %in% .packages(TRUE))) {
@@ -251,9 +260,9 @@ phybreak <- function(data, times = NULL,
   ### initialize variables ###
   ############################
   if(inherits(data, "phybreakdata")) {
-    vlist <- transphylo2phybreak(data, resample = use.tree, resamplepars = plist)
+    vlist <- transphylo2phybreak(data, resample = !use.tree, resamplepars = plist)
   } else {
-    vlist <- obkData2phybreak(data, resample = use.tree, resamplepars = plist)
+    vlist <- obkData2phybreak(data, resample = !use.tree, resamplepars = plist)
   }
   
   ################################
@@ -262,7 +271,7 @@ phybreak <- function(data, times = NULL,
   res <- list(
     d = list(
       names = vlist$d$hostnames,
-      sequences = sequences,
+      sequences = seqdata,
       sample.times = samtimes,
       nSNPs = nsnps,
       reference.date = vlist$d$referencedate
@@ -271,7 +280,7 @@ phybreak <- function(data, times = NULL,
     p = plist,
     h = list(si.mu = if(nsnps == 0) 0 else 2.38*sqrt(trigamma(nsnps)),
              si.wh = 2.38*sqrt(trigamma(obs - 1)),
-             dist = .distmatrix(sequences),
+             dist = .distmatrix(seqmat),
              est.mG = est.gen.mean,
              est.mS = est.sample.mean,
              est.wh = est.wh.slope,

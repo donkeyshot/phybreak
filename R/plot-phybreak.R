@@ -41,12 +41,21 @@ plot.phybreak <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sam
   }
   
   if (plot.which == "mpc") {
-    phytools::plotSimmap(suppressWarnings(transtree(x, "mpc", phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
+    simmapplot <- suppressWarnings(transtree(x, "mpc", phylo.class = TRUE))
   } else if (plot.which == "mtcc") {
-    phytools::plotSimmap(suppressWarnings(transtree(x, "mtcc", phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
+    simmapplot <- suppressWarnings(transtree(x, "mtcc", phylo.class = TRUE))
   } else if (plot.which == "mcc") {
-    phytools::plotSimmap(suppressWarnings(phylotree(x, phylo.class = TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
+    simmapplot <- suppressWarnings(phylotree(x, phylo.class = TRUE))
+  } else if (samplenr == 0) {
+    simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE))
   } else {
-    phytools::plotSimmap(suppressWarnings(get.phylo(x, samplenr, TRUE)), colors = setNames(nm = c("black", "red", "blue")), ...)
+    vars <- list(
+      nodetimes = x$s$nodetimes[samplenr, ],
+      nodeparents = x$s$nodeparents[samplenr, ],
+      nodehosts = x$s$nodehosts[samplenr, ],
+      nodetypes = x$s$nodetypes[samplenr, ]
+    )
+    simmapplot <- suppressWarnings(phybreak2phylo(vars, x$d$names, simmap = TRUE))
   }
+  phytools::plotSimmap(simmapplot, mar = par("mar"), colors = setNames(nm = unique(simmapplot$states)), ...)
 }

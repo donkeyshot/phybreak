@@ -105,7 +105,8 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
 
   ### make an obkData object
   treesout <- vector('list',1)
-  treesout[[1]] <- .makephylo.phybreak(res$nodetimes, res$nodeparents, hostnames)
+  treesout[[1]] <- phybreak2phylo(vars = res, samplenames = hostnames, simmap = FALSE)
+  #treesout[[1]] <- .makephylo.phybreak(res$nodetimes, res$nodeparents, hostnames)
   class(treesout) <- "multiPhylo"
   
   sampletimes <- res$sampletimes
@@ -131,9 +132,9 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
     toreturn <- list(
       sequences = seqs,
       sample.times = sampletimes,
-      infection.times = infectiontimes,
-      infectors = infectors,
-      trees = treesout[[1]]
+      sim.infection.times = infectiontimes,
+      sim.infectors = infectors,
+      sim.tree = treesout[[1]]
     )
     class(toreturn) <- "phybreakdata"
   }
