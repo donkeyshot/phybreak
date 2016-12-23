@@ -4,7 +4,7 @@
 \alias{sample.phybreak}
 \title{Sampling from a phybreak MCMC-chain.}
 \usage{
-sample.phybreak(phybreak.object, nsample, thin, keepphylo = 0.2)
+sample.phybreak(phybreak.object, nsample, thin = 1, keepphylo = 0.2)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}

@@ -295,7 +295,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   return(list(
     d = list(hostnames = hostnames,
              samplenames = hostnames,
-             referencedate = refdate),
+             reference.date = refdate),
     v = list(nodetimes = round(nodetimes, digits = 12),
              nodehosts = nodehosts,
              nodeparents = nodeparents,
@@ -306,11 +306,11 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
 
 obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   ### extract variables
-  samtimes <- as.numeric(OutbreakTools::get.dates(data, "dna"))
+  samtimes <- OutbreakTools::get.dates(data, "dna")
   names(samtimes) <- OutbreakTools::get.individuals(data)
   if(!resample) {
-    inftimes <- as.numeric(OutbreakTools::get.dates(data, "individuals"))
-    infectors <- OutbreakTools::get.data(simulobk, "infector")
+    inftimes <- OutbreakTools::get.dates(data, "individuals")
+    infectors <- OutbreakTools::get.data(data, "infector")
     tree <- OutbreakTools::get.trees(data)[[1]]  
   } else {
     inftimes <- NULL

@@ -132,21 +132,26 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     if (infection.times[1] == "infector") {
         posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
         posttimes[res[, 1] != phybreak.object$s$nodehosts[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]] <- NA
-        time.out <- t(matrix(apply(posttimes, 1, quantile, probs = time.quantiles, na.rm = TRUE), ncol = obs))
-        colnames(time.out) <- paste0("inf.times.Q", 100 * time.quantiles)
+        time.out <- apply(posttimes, 1, quantile, probs = time.quantiles, na.rm = TRUE)
+        cnames <- paste0("inf.times.Q", 100 * time.quantiles)
     } else if (infection.times[1] == "infector.sd") {
         if (method[1] == "mpc" || method[1] == "mtcc") {
             time.out <- res[, 3:5]
-            colnames(time.out) <- paste0("inf.times.", c("mean", "sd", "mc.tree"))
+            cnames <- paste0("inf.times.", c("mean", "sd", "mc.tree"))
         } else {
             time.out <- res[, 3:4]
-            colnames(time.out) <- paste0("inf.times.", c("mean", "sd"))
+            cnames <- paste0("inf.times.", c("mean", "sd"))
         }
     } else {
         posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
-        time.out <- t(matrix(apply(posttimes, 1, quantile, probs = time.quantiles), ncol = obs))
-        colnames(time.out) <- paste0("inf.times.Q", 100 * time.quantiles)
+        time.out <- apply(posttimes, 1, quantile, probs = time.quantiles)
+        cnames <- paste0("inf.times.Q", 100 * time.quantiles)
     }
+    if(inherits(phybreak.object$d$reference.date, "Date")) {
+      time.out <- as.Date(time.out, origin = phybreak.object$d$reference.date)
+    }
+    time.out <- as.data.frame(split(time.out, 1:length(cnames)))
+    colnames(time.out) <- cnames
     
     ### return the result
     return(data.frame(infectors = infectors.out, support = support.out, time.out))
