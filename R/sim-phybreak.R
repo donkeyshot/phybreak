@@ -1,14 +1,5 @@
 ### simulation of outbreaks in obkData format, according to the phybreak-model ###
 
-### calls:
-# .sim.outbreak.size
-# .sim.outbreak
-# .sim.phylotree
-# .sim.sequences
-# .makephylo.phybreak
-### required packages:
-# OutbreakTools
-# phangorn
 
 
 #' Outbreak simulation.

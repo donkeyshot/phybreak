@@ -36,7 +36,7 @@ for these variables.
 \examples{
 #First build a phybreak-object containing samples.
 simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- phybreak(data = simulation)
 logLik(MCMCstate)
 
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)

@@ -18,34 +18,48 @@
 #' @examples 
 #' #First create a phybreak-object
 #' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+#' MCMCstate <- phybreak(data = simulation)
 #' 
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
 #' @export
 burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2) {
-    ### tests
-    if(ncycles < 1) stop("ncycles should be positive")
-    if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
+  ### tests
+  if(ncycles < 1) stop("ncycles should be positive")
+  if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
   
-    .build.pbe(phybreak.object)
-    
-    
-    for (rep in 1:ncycles) {
-        for (i in sample(phybreak.object$p$obs)) {
-            if (runif(1) < 1 - keepphylo) 
-                .updatehost(i) else .updatehost.keepphylo(i)
-        }
-        if (phybreak.object$h$est.mG) 
-            .update.mG()
-        if (phybreak.object$h$est.mS) 
-            .update.mS()
-        if (phybreak.object$h$est.wh) 
-            .update.wh()
-        .update.mu()
+  .build.pbe(phybreak.object)
+  
+  curtime <- Sys.time()
+  
+  for (rep in 1:ncycles) {
+    if(Sys.time() - curtime > 10) {
+      cat(paste0("cycle ", rep, ": logLik = ", 
+                   round(.pbe0$logLikgen + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
+                   "; mu = ", signif(.pbe0$p$mu, 3), 
+                   "; mean.gen = ", signif(.pbe0$p$mean.gen, 3),
+                   "; mean.sample = ", signif(.pbe0$p$mean.sample, 3),
+                   "; parsimony = ", phangorn::parsimony(
+                     phybreak2phylo(.pbe0$v), .pbe0$d$sequences),
+                   " (nSNPs = ", .pbe0$d$nSNPs, ")\n"
+                   ))
+      curtime <- Sys.time()
     }
     
-    res <- .destroy.pbe(phybreak.object$s)
-    
-    
-    return(res)
+    for (i in sample(phybreak.object$p$obs)) {
+      if (runif(1) < 1 - keepphylo) 
+        .updatehost(i) else .updatehost.keepphylo(i)
+    }
+    if (phybreak.object$h$est.mG) 
+      .update.mG()
+    if (phybreak.object$h$est.mS) 
+      .update.mS()
+    if (phybreak.object$h$est.wh) 
+      .update.wh()
+    .update.mu()
+  }
+  
+  res <- .destroy.pbe(phybreak.object$s)
+  
+  
+  return(res)
 }

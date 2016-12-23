@@ -30,7 +30,8 @@ also the infection times in the first sampled tree with consensus tree topology 
 \item{time.quantiles}{Used only if \code{infection.times = "all"} or \code{"infector"}.}
 
 \item{phylo.class}{Whether to return an object of class \code{"phylo"}, in which case a single tree 
-(\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times).}
+(\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times). This option
+is used by \code{\link{plotPhylo}}.}
 }
 \value{
 If \code{phylo.class = FALSE}, a \code{data.frame} with per item (=host) its infector and support per 
@@ -60,7 +61,7 @@ Four methods are supported for transmission tree reconstruction (who infected wh
 \examples{
 #First build a phybreak-object containing samples.
 simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- phybreak(data = simulation)
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 

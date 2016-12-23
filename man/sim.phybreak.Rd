@@ -7,7 +7,7 @@
 sim.phybreak(obsize = 50, popsize = NA, R0 = 1.5, shape.gen = 10,
   mean.gen = 1, shape.sample = 10, mean.sample = 1, wh.model = 3,
   wh.slope = 1, mu = 1e-04, sequence.length = 10000,
-  output.class = c("list", "obkData"))
+  output.class = c("phybreakdata", "obkData"))
 }
 \arguments{
 \item{obsize}{The outbreak size (number of cases) to obtain. If \code{obsize = NA}, \code{popsize} should be provided.}
@@ -44,9 +44,10 @@ N*gE = actual population size * pathogen generation time), used to simulate coal
 class \code{'obkData'}}
 }
 \value{
-The simulation output, either in a list with sequences (class \code{'phyDat'}) and sampling times (which would be
-  the observations), and infection times and infectors; or as an object of class \code{'obkData'} (package \pkg{OutbreakTools}), 
-  containing the outbreak data in the following slots:
+The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
+  sampling times (which would be the observations), and infection times, infectors, and phylogenetic tree 
+  of class \code{\link[ape]{phylo}}; 
+  or as an object of class \code{'obkData'} (package \pkg{OutbreakTools}), containing the outbreak data in the following slots:
   \describe{
     \item{individuals}{a \code{data.frame} with individual labels as row names, a vector \code{infector},
       and a vector \code{date} containing the infection times (starting 01-01-2000)
@@ -54,11 +55,11 @@ The simulation output, either in a list with sequences (class \code{'phyDat'}) a
     \item{dna}{an object of class \code{'obkSequences'}, with SNP data in \code{dna} and sampling times
       in \code{meta$date}
     }
-    \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{phylo}}
+    \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{\link[ape]{phylo}}}
   }
 }
 \description{
-Simulate outbreaks of class \code{'obkData'} (package \pkg{OutbreakTools}), with the outbreak model of \pkg{phybreak}.
+Simulate outbreaks of class \code{'phybreakdata'}, with the outbreak model of \pkg{phybreak}.
 }
 \examples{
 simulation <- sim.phybreak()

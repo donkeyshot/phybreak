@@ -24,7 +24,7 @@
 #' @param host.names A vector with host names.
 #' @param sim.infection.times A vector with infection times (\code{numerical} or \code{Date}).
 #' @param sim.infectors A vector with infectors, either by name or by position (use 0 for the index case).
-#' @param sim.tree A tree of class \code{\link{ape::phylo}}, with tip names identifying the hosts.
+#' @param sim.tree A tree of class \code{'phylo'}, with tip names identifying the hosts.
 #' @return An object of class \code{phybreakdata} with the following elements
 #'   \describe{
 #'     \item{sequences}{a \code{'phyDat'}-object with the sequence data.}
