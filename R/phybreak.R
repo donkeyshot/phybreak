@@ -227,7 +227,7 @@ phybreak <- function(data, times = NULL,
     slope = c(),
     logLik = c()
   )
-  
+
   ################################
   ### make the phybreak object ###
   ################################
