@@ -118,14 +118,8 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
   ### testing and adding the input: then the rest of the information ###
   ######################################################################
   if(!is.null(sim.infection.times)) {
-    if(!inherits(sim.infection.times, c("Date", "numeric", "integer"))) {
-      stop("sample.times should be numeric or of class \"Date\"")
-    }
-    if(!all(sim.infection.times < sample.times)) {
-      stop("all infection times should be before the sampling times")
-    }
-    if(length(host.names) != length(sim.infection.times)) {
-      stop("length of sim.infection.times does not match number of hosts")
+    if(class(sim.infection.times) != class(sample.times)) {
+      stop("sim.infection.times should be of same class as sample.times")
     }
     if(is.null(names(sim.infection.times))) {
       names(sim.infection.times) <- host.names
@@ -134,6 +128,12 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
     } else {
       warning("names in sim.infection.times don't match host.names and are therefore overwritten")
       names(sim.infection.times) <- host.names
+    }
+    if(!all(sim.infection.times < sample.times)) {
+      stop("all infection times should be before the sampling times")
+    }
+    if(length(host.names) != length(sim.infection.times)) {
+      stop("length of sim.infection.times does not match number of hosts")
     }
     res <- c(res, list(sim.infection.times = sim.infection.times))
   }
@@ -150,7 +150,7 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
     if(inherits(sim.infectors, c("character")) && any(sim.infectors == "0")) {
       sim.infectors[sim.infectors == "0"] <- "index"
     }
-    if(length(sim.infectors) != length(sim.infection.times)) {
+    if(length(sim.infectors) != length(sample.times)) {
       stop("length of sim.infectors does not match number of hosts")
     }
     if(is.null(names(sim.infectors))) {

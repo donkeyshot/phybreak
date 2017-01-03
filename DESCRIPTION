@@ -24,6 +24,7 @@ Imports:
 Suggests:
     coda,
     phytools,
-    OutbreakTools
+    OutbreakTools,
+    testthat
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1

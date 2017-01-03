@@ -157,7 +157,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   Nsamples <- length(samtimes)
   hostnames <- names(vars$sample.times)
   ##### NB: adjustment needed for .rinftimes to deal with multiple samples #####
-  if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | is.null(vars$sim.tree) | resample == TRUE) {
+  if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
     resample <- TRUE
     inftimes <- .rinftimes(samtimes, resamplepars$mean.sample, resamplepars$shape.sample)
     infectors <- .rinfectors(inftimes, resamplepars$mean.gen, resamplepars$shape.gen)
@@ -191,7 +191,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   nodetypes <- c(rep("s", Nsamples), rep("c", Nsamples - 1),
                  rep("t", Nhosts))  #node type (sampling, coalescent, transmission)
   
-  if(resample) {
+  if(is.null(vars$sim.tree) | resample) {
     ##nodehosts, coalescent nodes in hosts with secondary cases or multiple samples
     coalnodehosts <- sort(c(infectors, samhosts))
     coalnodehosts <- coalnodehosts[duplicated(coalnodehosts)]

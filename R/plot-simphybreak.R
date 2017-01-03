@@ -25,7 +25,7 @@
 #' plot(MCMCstate, plot.which = "mpc")
 #' @export
 plot.phybreakdata <- function(x, ...) {
-  
+
 
   devAskNewPage(TRUE)
   on.exit(expr = devAskNewPage(FALSE))

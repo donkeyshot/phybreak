@@ -112,7 +112,7 @@ phybreak <- function(data, times = NULL,
   ### check for correct classes and sizes ###
   ###########################################
   data <- testdataclass_phybreak(data, times)
-  use.tree <- testfortree_phybreak(use.tree, data)
+  if(use.tree) testfortree_phybreak(data)
   testargumentsclass_phybreak(environment())
   
   ### outbreak parameters ###
@@ -227,7 +227,7 @@ phybreak <- function(data, times = NULL,
     slope = c(),
     logLik = c()
   )
-  
+
   ################################
   ### make the phybreak object ###
   ################################
@@ -268,22 +268,22 @@ testdataclass_phybreak <- function(data, times) {
 }
 
 ### Test for presence of tree
-testfortree_phybreak <- function(use.tree, data) {
-  if(use.tree) {
-    if(inherits(data, "phybreakdata")) {
-      if(is.null(data$sim.tree)) {
-        warning("tree can only be used if provided in data; random tree will be generated")
-        use.tree <- FALSE
-      }
-    } else {
-      if(is.null(data@trees)) {
-        warning("tree can only be used if provided in data; random tree will be generated")
-        use.tree <- FALSE
-      }
+testfortree_phybreak <- function(data) {
+  if(inherits(data, "phybreakdata")) {
+    if(is.null(data$sim.infection.times) | is.null(data$sim.infectors)) {
+      warning("transmission tree can only be used if provided in data; random tree will be generated")
+    }
+    if(is.null(data$sim.tree)) {
+      warning("phylogenetic tree can only be used if provided in data; random tree will be generated")
+    }
+  } else {
+    if(is.null(OutbreakTools::get.dates(data, "individuals")) | is.null(OutbreakTools::get.data(data, "infector"))) {
+      warning("transmission tree can only be used if provided in data; random tree will be generated")
+    }
+    if(is.null(OutbreakTools::get.trees(data))) {
+      warning("phylogenetic tree can only be used if provided in data; random tree will be generated")
     }
   }
-  
-  return(use.tree)
 }
 
 ### Test arguments classes
