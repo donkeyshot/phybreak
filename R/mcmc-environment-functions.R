@@ -118,6 +118,7 @@
   .copy2pbe1("p", .pbe0)
   .pbe1$likarray <- .pbe0$likarray + 0  #make a true copy, not a pointer
   .copy2pbe1("likarrayfreq", .pbe0)
+  .copy2pbe1("logLikseq", .pbe0)
 }
 
 
@@ -129,7 +130,7 @@
   v <- .pbe1$v
   p <- .pbe1$p
   
-  if (f == "phylotrans") {
+  if (f == "phylotrans" || f == "topology") {
     # identify changed nodes
     chnodes <- which((v$nodeparents != .pbe0$v$nodeparents) | (v$nodetimes != 
                                                                  .pbe0$v$nodetimes))
@@ -175,7 +176,7 @@
   .copy2pbe0("v", .pbe1)
   .copy2pbe0("p", .pbe1)
   
-  if(f == "phylotrans" || f == "mu") {
+  if(f == "phylotrans" || f == "topology" || f == "mu") {
     .copy2pbe0("likarray", .pbe1)
     .copy2pbe0("logLikseq", .pbe1)
   }

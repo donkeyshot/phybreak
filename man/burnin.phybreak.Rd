@@ -4,7 +4,8 @@
 \alias{burnin.phybreak}
 \title{MCMC updating of a phybreak-object.}
 \usage{
-burnin.phybreak(phybreak.object, ncycles, keepphylo = 0.2)
+burnin.phybreak(phybreak.object, ncycles, keepphylo = 0.2,
+  phylotopology_only = 0)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}

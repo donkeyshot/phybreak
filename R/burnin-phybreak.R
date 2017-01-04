@@ -22,10 +22,12 @@
 #' 
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
 #' @export
-burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2) {
+burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopology_only = 0) {
   ### tests
   if(ncycles < 1) stop("ncycles should be positive")
   if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
+  if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
+  if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
   
   .build.pbe(phybreak.object)
   
@@ -46,8 +48,10 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2) {
     }
     
     for (i in sample(phybreak.object$p$obs)) {
-      if (runif(1) < 1 - keepphylo) 
-        .updatehost(i) else .updatehost.keepphylo(i)
+      if (runif(1) < 1 - keepphylo - phylotopology_only) 
+        .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + phylotopology_only)) {
+          .updatehost.keepphylo(i)
+        } else .updatehost.topology(i)
     }
     if (phybreak.object$h$est.mG) 
       .update.mG()

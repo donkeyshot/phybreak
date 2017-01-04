@@ -23,11 +23,13 @@
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
-sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2) {
+sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2, phylotopology_only = 0) {
     ### tests
     if(nsample < 1) stop("nsample should be positive")
     if(thin < 1) stop("thin should be positive")
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
+    if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
+    if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
   
     ### create room in s to add the new posterior samples
     s.post <- list(nodetimes = with(phybreak.object, cbind(s$nodetimes, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodehosts = with(phybreak.object, 
@@ -57,8 +59,10 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2)
       
       for (rep in 1:thin) {
             for (i in sample(phybreak.object$p$obs)) {
-                if (runif(1) < 1 - keepphylo) 
-                  .updatehost(i) else .updatehost.keepphylo(i)
+              if (runif(1) < 1 - keepphylo - phylotopology_only) 
+                .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + phylotopology_only)) {
+                  .updatehost.keepphylo(i)
+                } else .updatehost.topology(i)
             }
             if (phybreak.object$h$est.mG) 
                 .update.mG()
