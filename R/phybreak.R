@@ -26,7 +26,9 @@
 #'  each row a host, each column a nucleotide), and corresponding sampling times in the separate \code{times} argument.
 #' @param times Vector of sampling times, needed if the data consist of only sequences. If the vector is named,
 #'   these names will be used to identify the hosts.
-#' @param mu Initial value for mutation rate (defined per site per unit of time). 
+#' @param mu Initial value for mutation rate (defined per site per unit of time). If \code{NULL} (default), then an initial
+#'   value is calculated by dividing the number of SNPs by the product: 0.75 times 'total sequence length' times 'sum of
+#'   edge lengths in the initial phylogenetic tree'.
 #'   NOTE: mutation is defined as assignment of a random nucleotide at a particular site; this could be the 
 #'   nucleotide that was there before the mutation event. Therefore, the actual rate of change of nucleotides 
 #'   is \code{0.75*mu}.
@@ -105,7 +107,7 @@ phybreak <- function(data, times = NULL,
          wh.model = 3, wh.slope = 1,
          est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
          est.sample.mean = TRUE, prior.mean.sample.mean = 1, prior.mean.sample.sd = Inf,
-         est.wh.slope = TRUE, prior.wh.shape = 2, prior.wh.mean = 1,
+         est.wh.slope = TRUE, prior.wh.shape = 3, prior.wh.mean = 1,
          use.tree = FALSE) {
   
   ###########################################
@@ -193,7 +195,7 @@ phybreak <- function(data, times = NULL,
   #################
   if(is.null(mu)) {
     treelength <- with(variableslot, sum(nodetimes[nodeparents != 0] - nodetimes[nodeparents]))
-    parameterslot$mu <- (dataslot$nSNPs / ncol(seqmat)) / treelength
+    parameterslot$mu <- (dataslot$nSNPs / ncol(seqmat)) / treelength / 0.75
   } else {
     parameterslot$mu <- mu
   }
