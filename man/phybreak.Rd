@@ -8,7 +8,7 @@ phybreak(data, times = NULL, mu = NULL, gen.shape = 3, gen.mean = 1,
   sample.shape = 3, sample.mean = 1, wh.model = 3, wh.slope = 1,
   est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
   est.sample.mean = TRUE, prior.mean.sample.mean = 1,
-  prior.mean.sample.sd = Inf, est.wh.slope = TRUE, prior.wh.shape = 2,
+  prior.mean.sample.sd = Inf, est.wh.slope = TRUE, prior.wh.shape = 3,
   prior.wh.mean = 1, use.tree = FALSE)
 }
 \arguments{
@@ -30,7 +30,9 @@ each row a host, each column a nucleotide), and corresponding sampling times in 
 \item{times}{Vector of sampling times, needed if the data consist of only sequences. If the vector is named,
 these names will be used to identify the hosts.}
 
-\item{mu}{Initial value for mutation rate (defined per site per unit of time). 
+\item{mu}{Initial value for mutation rate (defined per site per unit of time). If \code{NULL} (default), then an initial
+value is calculated by dividing the number of SNPs by the product: 0.75 times 'total sequence length' times 'sum of
+edge lengths in the initial phylogenetic tree'.
 NOTE: mutation is defined as assignment of a random nucleotide at a particular site; this could be the 
 nucleotide that was there before the mutation event. Therefore, the actual rate of change of nucleotides 
 is \code{0.75*mu}.}

@@ -230,20 +230,37 @@ rankhostsforplot <- function(hosts, infectors) {
   
   ### determine plot rank by placing hosts chronologically next to their infector,
   ### either at the side of the infector's infector (insideYN == Y) or at the other side
-  plotrank <- 1:2
-  for(i in 3:Nhosts) {
+  plotrank <- 1
+  for(i in 2:Nhosts) {
     ior <- which(hosts == infectors[i])
-    if(plotrank[ior] == 1) {
+    if(infectors[ior] == "index") {
+      plotrank[i] <- plotrank[ior] + insideYN[hosts[i]] - 0.5
+    } else if(plotrank[ior] == 1) {
       plotrank[i] <- insideYN[hosts[i]] + 0.5
     } else if (plotrank[ior] == i - 1) {
       plotrank[i] <- i - 0.5 - insideYN[hosts[i]]
     } else {
       iorior <- which(hosts == infectors[ior])
       aboveYN <- xor((plotrank[iorior] < plotrank[ior]), insideYN[hosts[i]])
-      if(infectors[ior] == "index") aboveYN <- insideYN[hosts[i]]
-      plotrank[i] <- plotrank[ior] + aboveYN - 0.5    }
+      plotrank[i] <- plotrank[ior] + aboveYN - 0.5    
+    }
     plotrank[1:i] <- rank(plotrank)[1:i]
   }
+  
+#   plotrank <- 1:2
+#   for(i in 3:Nhosts) {
+#     ior <- which(hosts == infectors[i])
+#     if(plotrank[ior] == 1) {
+#       plotrank[i] <- insideYN[hosts[i]] + 0.5
+#     } else if (plotrank[ior] == i - 1) {
+#       plotrank[i] <- i - 0.5 - insideYN[hosts[i]]
+#     } else {
+#       iorior <- which(hosts == infectors[ior])
+#       aboveYN <- xor((plotrank[iorior] < plotrank[ior]), insideYN[hosts[i]])
+#       if(infectors[ior] == "index") aboveYN <- insideYN[hosts[i]]
+#       plotrank[i] <- plotrank[ior] + aboveYN - 0.5    }
+#     plotrank[1:i] <- rank(plotrank)[1:i]
+#   }
   
   return(plotrank)
 }
