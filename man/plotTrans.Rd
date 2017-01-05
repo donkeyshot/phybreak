@@ -5,11 +5,11 @@
 \title{Plotting a phybreak object transmission tree.}
 \usage{
 plotTrans(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"),
-  samplenr = 0, mar = 0.1 + c(4, 0, 0, 0), text.cex = NULL,
-  text.space = 0.15, arrow.lwd = 1, arrow.length = NULL,
+  samplenr = 0, mar = 0.1 + c(4, 0, 0, 0), label.cex = NULL,
+  label.space = 0.15, label.adj = 0, arrow.lwd = 1, arrow.length = NULL,
   arrow.col = NULL, sample.pch = 4, sample.lwd = NULL,
-  sample.cex = text.cex, xlab = "Time", ticks.cex = 1, title.cex = 1,
-  ...)
+  sample.cex = label.cex, polygon.col = "gray", polygon.border = NA,
+  line.lty = 3, xlab = "Time", axis.cex = 1, title.cex = 1, ...)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}
@@ -23,10 +23,12 @@ to plot the maximum clade credibility tree (see \code{\link{phylotree}}).}
 
 \item{mar}{Plot margins.}
 
-\item{text.cex}{Size of host names, as in \code{par("cex")}. Defaults to a value between 0.5 and 1
+\item{label.cex}{Size of host names, as in \code{par("cex")}. Defaults to a value between 0.5 and 1
 depending on outbreak size.}
 
-\item{text.space}{Scales the space at the right-hand side to place the host names.}
+\item{label.space}{Scales the space at the right-hand side to place the host names.}
+
+\item{label.adj}{Left-right adjustment of host names.}
 
 \item{arrow.lwd}{Arrow width.}
 
@@ -42,19 +44,34 @@ in bins of 0.2 width, from low to high support. Any vector of colours will be di
 
 \item{sample.cex}{Size of sampling event character.}
 
+\item{polygon.col}{Color of polygons indicating generation interval distributions.}
+
+\item{polygon.border}{Border of polygon.}
+
+\item{line.lty}{Line type of horizontal host lines.}
+
 \item{xlab}{X-axis title.}
 
-\item{ticks.cex}{Size of tick labels.}
+\item{axis.cex}{Size of tick labels.}
 
 \item{title.cex}{Size of X-axis title.}
 
-\item{...}{Graphical parameters that will be passed on to host names, arrows, and sampling
-characters.}
+\item{...}{Further graphical parameters (see details).}
 }
 \description{
 Plots a \code{phybreak}-object as transmission tree. The default 
   is to plot the current state, but any posterior sample can be chosen, as well as various 
   consensus trees; in that case, coloured arrows indicate posterior support.
+}
+\section{Details}{
+ 
+  Graphical parameters can be added by using names in the format \code{prefix.parameter} for the
+  different parts of the plot. The \code{parameter} will then be passed on to the appropriate 
+  graphics function, e.g. \code{arrow.lty} to change the line type of the arrows. The following 
+  prefixes can be used: \code{label} for the host labels, \code{arrow} for the arrows, \code{sample}
+  for the sampling time indicators, \code{polygon} for the generation interval distributions, 
+  \code{line} for the horizontal host lines, \code{axis} for the X-axis, and \code{title} for the
+  X-axis title.
 }
 \examples{
 #First build a phybreak-object containing samples.
