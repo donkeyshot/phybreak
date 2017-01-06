@@ -156,15 +156,17 @@ phybreak <- function(data, times = NULL,
   names(dataslot$sample.times) <- dataslot$names
   
   #SNP count
-  seqmat <- as.character(dataslot$sequences)
+  SNPpatterns <- do.call(rbind, dataslot$sequences)
   dataslot$nSNPs <- as.integer(
-    sum(apply(seqmat=="a", 2, any) +
-          apply(seqmat=="c", 2, any) +
-          apply(seqmat=="g", 2, any) +
-          apply(seqmat=="t", 2, any) +
-          apply(seqmat=="n", 2, all) - 1)
-  )
-  
+    sum(apply(SNPpatterns, 2, 
+              function(x) {
+                max(0, length(unique(x[x < 5])) - 1)
+              }
+              ) * attr(dataslot$sequences, "weight")
+        )
+    )
+  seqmat <- as.character(dataslot$sequences)
+
   ##############################
   ### third slot: parameters ###
   ##############################
