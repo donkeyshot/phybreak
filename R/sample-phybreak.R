@@ -1,7 +1,5 @@
 ### run mcmc chain, take samples from the chain, and return the updated phylo-object ###
 
-### phybreak functions called ### .build.pbe .updatehost .updatehost.keepphylo .update.mG .update.mS .update.wh
-### .update.mu .destroy.pbe
 
 
 #' Sampling from a phybreak MCMC-chain.
@@ -20,31 +18,51 @@
 #' @examples 
 #' #First create a phybreak-object
 #' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+#' MCMCstate <- phybreak(data = simulation)
 #' 
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
-sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2) {
+sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2, phylotopology_only = 0) {
     ### tests
     if(nsample < 1) stop("nsample should be positive")
     if(thin < 1) stop("thin should be positive")
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
+    if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
+    if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
   
     ### create room in s to add the new posterior samples
     s.post <- list(nodetimes = with(phybreak.object, cbind(s$nodetimes, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodehosts = with(phybreak.object, 
         cbind(s$nodehosts, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodeparents = with(phybreak.object, cbind(s$nodeparents, 
         matrix(NA, nrow = 3 * p$obs - 1, ncol = nsample))), mu = c(phybreak.object$s$mu, rep(NA, nsample)), mG = c(phybreak.object$s$mG, 
         rep(NA, nsample)), mS = c(phybreak.object$s$mS, rep(NA, nsample)), slope = c(phybreak.object$s$slope, rep(NA, nsample)), 
-        logLikseq = c(phybreak.object$s$logLikseq, rep(NA, nsample)))
+        logLik = c(phybreak.object$s$logLik, rep(NA, nsample)))
     
     .build.pbe(phybreak.object)
     
+    curtime <- Sys.time()
+    
     for (sa in tail(1:length(s.post$mu), nsample)) {
-        for (rep in 1:thin) {
+      
+      if(Sys.time() - curtime > 10) {
+        cat(paste0("sample ", sa, ": logLik = ", 
+                   round(.pbe0$logLikgen + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
+                   "; mu = ", signif(.pbe0$p$mu, 3), 
+                   "; mean.gen = ", signif(.pbe0$p$mean.gen, 3),
+                   "; mean.sample = ", signif(.pbe0$p$mean.sample, 3),
+                   "; parsimony = ", phangorn::parsimony(
+                     phybreak2phylo(.pbe0$v), .pbe0$d$sequences),
+                   " (nSNPs = ", .pbe0$d$nSNPs, ")\n"
+        ))
+        curtime <- Sys.time()
+      }
+      
+      for (rep in 1:thin) {
             for (i in sample(phybreak.object$p$obs)) {
-                if (runif(1) < 1 - keepphylo) 
-                  .updatehost(i) else .updatehost.keepphylo(i)
+              if (runif(1) < 1 - keepphylo - phylotopology_only) 
+                .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + phylotopology_only)) {
+                  .updatehost.keepphylo(i)
+                } else .updatehost.topology(i)
             }
             if (phybreak.object$h$est.mG) 
                 .update.mG()
@@ -61,7 +79,7 @@ sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2) {
         s.post$mG[sa] <- .pbe0$p$mean.gen
         s.post$mS[sa] <- .pbe0$p$mean.sample
         s.post$slope[sa] <- .pbe0$p$wh.slope
-        s.post$logLikseq[sa] <- .pbe0$logLikseq + .pbe0$logLiksam + +.pbe0$logLikgen + .pbe0$logLikcoal
+        s.post$logLik[sa] <- .pbe0$logLikseq + .pbe0$logLiksam + +.pbe0$logLikgen + .pbe0$logLikcoal
     }
     
     res <- .destroy.pbe(s.post)

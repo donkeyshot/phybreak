@@ -50,7 +50,7 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     res <- .mcctree(.makephyloparsets(phybreak.object$s$nodeparents[, (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 
         1), (1:samplesize) + chainlength - samplesize], c(obs, samplesize))
     if (phylo.class) 
-        return(get.phylo(phybreak.object, tail(res, 1) + chainlength - samplesize, TRUE))
+        return(get.phylo(phybreak.object, samplenr = tail(res, 1) + chainlength - samplesize, simmap = FALSE))
     res <- matrix(head(res, -1), ncol = 5)
     # } if(method[1] == 'cc.construct') { res <- matrix(.CCphylotreeconstruct( .makephyloparsets(phybreak.object$s$nodeparents[,
     # (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 1), (1:samplesize) + chainlength -

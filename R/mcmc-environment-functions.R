@@ -27,8 +27,7 @@
 }
 
 ### build the .pbe0 at the start of an mcmc chain by copying the fixed parameters and phybreak object, and by
-### calculating likarray and the log-likelihoods called from: burnin.phybreak sample.phybreak calls: .likseqenv ## C++ function
-### .liksampletimes .likgentimes .likcoaltimes .accept.pbe
+### calculating likarray and the log-likelihoods 
 .build.pbe <- function(phybreak.obj) {
   ### Making everything available within the function
   le <- environment()
@@ -102,7 +101,7 @@
 
 
 ### take the elements d, v, p, and h from .pbe0, and s from the function arguments, and make a new phybreak-object. Then
-### empty the environments and return the new object.  called from: burnin.phybreak sample.phybreak
+### empty the environments and return the new object.  
 .destroy.pbe <- function(phybreak.obj.samples) {
   res <- list(d = .pbe0$d, v = .pbe0$v, p = .pbe0$p, h = .pbe0$h, s = phybreak.obj.samples)
   class(res) <- c("phybreak", "list")
@@ -112,27 +111,26 @@
 }
 
 
-### copy the elements from .pbe0 into .pbe1 to prepare for a proposal called from: .updatehost .update.mu,
-### .update.mS, .update.mG, .update.wh
+### copy the elements from .pbe0 into .pbe1 to prepare for a proposal
 .prepare.pbe <- function() {
   .copy2pbe1("d", .pbe0)
   .copy2pbe1("v", .pbe0)
   .copy2pbe1("p", .pbe0)
   .pbe1$likarray <- .pbe0$likarray + 0  #make a true copy, not a pointer
   .copy2pbe1("likarrayfreq", .pbe0)
+  .pbe1$logLikseq <- .pbe0$logLikseq + 0 #make a true copy, not a pointer
 }
 
 
 ### calculate the new log-likelihoods where necessary and adjust likarray. Argument f indicates which type of function it is
-### called from called from: .updatepathA - .updatepathJ .update.mu, .update.mS, .update.mG, .update.wh calls: .likseqenv ##
-### C++ function .liksampletimes .likgentimes .likcoaltimes
+### called from 
 .propose.pbe <- function(f) {
   ### Making variables and parameters available within the function
   le <- environment()
   v <- .pbe1$v
   p <- .pbe1$p
   
-  if (f == "phylotrans") {
+  if (f == "phylotrans" || f == "topology") {
     # identify changed nodes
     chnodes <- which((v$nodeparents != .pbe0$v$nodeparents) | (v$nodetimes != 
                                                                  .pbe0$v$nodetimes))
@@ -173,13 +171,12 @@
 }
 
 
-### copy the elements from .pbe1 into .pbe0 upon acceptance of a proposal called from: .updatepathA -
-### .updatepathJ .update.mu, .update.mS, .update.mG, .update.wh
+### copy the elements from .pbe1 into .pbe0 upon acceptance of a proposal 
 .accept.pbe <- function(f) {
   .copy2pbe0("v", .pbe1)
   .copy2pbe0("p", .pbe1)
   
-  if(f == "phylotrans" || f == "mu") {
+  if(f == "phylotrans" || f == "topology" || f == "mu") {
     .copy2pbe0("likarray", .pbe1)
     .copy2pbe0("logLikseq", .pbe1)
   }

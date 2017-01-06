@@ -4,7 +4,8 @@
 \alias{burnin.phybreak}
 \title{MCMC updating of a phybreak-object.}
 \usage{
-burnin.phybreak(phybreak.object, ncycles, keepphylo = 0.2)
+burnin.phybreak(phybreak.object, ncycles, keepphylo = 0.2,
+  phylotopology_only = 0)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}
@@ -24,7 +25,7 @@ This function allows the MCMC chain to burn in. If used after samples have been 
 \examples{
 #First create a phybreak-object
 simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- phybreak(data = simulation)
 
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
 }

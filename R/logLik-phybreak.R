@@ -1,6 +1,5 @@
 ### calculate the log-likelihood ###
 
-### phybreak functions called ### .likseq ##C++ .lik.gentimes .lik.sampletimes .lik.coaltimes
 
 
 #' Log-likelihood of a phybreak-object.
@@ -25,7 +24,7 @@
 #' @examples 
 #' #First build a phybreak-object containing samples.
 #' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+#' MCMCstate <- phybreak(data = simulation)
 #' logLik(MCMCstate)
 #' 
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
@@ -63,18 +62,18 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 }
 
 
-### calculate the log-likelihood of sampling intervals called from: logLik.phybreak .build.phybreakenv .propose.phybreakenv
+### calculate the log-likelihood of sampling intervals 
 .lik.gentimes <- function(obs, shapeG, meanG, nodetimes, nodehosts, nodetypes) {
     sum(dgamma(nodetimes[nodetypes == "t" & nodehosts > 0] - nodetimes[nodehosts[nodetypes == "t" & nodehosts > 0] + 2 * obs - 
         1], shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
-### calculate the log-likelihood of generation intervals called from: logLik.phybreak .build.phybreakenv .propose.phybreakenv
+### calculate the log-likelihood of generation intervals 
 .lik.sampletimes <- function(shapeS, meanS, nodetimes, nodetypes) {
     sum(dgamma(nodetimes[nodetypes == "s"] - nodetimes[nodetypes == "t"], shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
-### calculate the log-likelihood of coalescent intervals called from: logLik.phybreak .build.phybreakenv .propose.phybreakenv
+### calculate the log-likelihood of coalescent intervals 
 .lik.coaltimes <- function(obs, wh.model, slope, nodetimes, nodehosts, nodetypes) {
     if (wh.model == 1 || wh.model == 2) 
         return(0)

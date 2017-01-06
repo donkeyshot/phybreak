@@ -4,7 +4,8 @@
 \alias{sample.phybreak}
 \title{Sampling from a phybreak MCMC-chain.}
 \usage{
-sample.phybreak(phybreak.object, nsample, thin, keepphylo = 0.2)
+sample.phybreak(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
+  phylotopology_only = 0)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}
@@ -26,7 +27,7 @@ Function to take (additional) samples from the posterior distribution of a phylo
 \examples{
 #First create a phybreak-object
 simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- phybreak(data = simulation)
 
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
