@@ -118,7 +118,7 @@
   .copy2pbe1("p", .pbe0)
   .pbe1$likarray <- .pbe0$likarray + 0  #make a true copy, not a pointer
   .copy2pbe1("likarrayfreq", .pbe0)
-  .copy2pbe1("logLikseq", .pbe0)
+  .pbe1$logLikseq <- .pbe0$logLikseq + 0 #make a true copy, not a pointer
 }
 
 

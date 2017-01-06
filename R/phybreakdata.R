@@ -55,8 +55,11 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
   if(inherits(sequences, "matrix") && !inherits(sequences[1], "character")) {
     stop("sequences matrix should contain \"character\" elements")
   }
-  if(inherits(sequences, c("DNAbin", "phyDat"))) {
-    sequences <- as.character(phangorn::as.phyDat(sequences))
+  if(inherits(sequences, c("DNAbin"))) {
+    sequences <- phangorn::as.phyDat(sequences)
+  }
+  if(inherits(sequences, c("phyDat"))) {
+    sequences <- as.character(sequences)
   }
   if(!inherits(sample.times, c("Date", "numeric", "integer"))) {
     stop("sample.times should be numeric or of class \"Date\"")

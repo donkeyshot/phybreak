@@ -195,7 +195,8 @@ phybreak <- function(data, times = NULL,
   #################
   if(is.null(mu)) {
     treelength <- with(variableslot, sum(nodetimes[nodeparents != 0] - nodetimes[nodeparents]))
-    parameterslot$mu <- (dataslot$nSNPs / ncol(seqmat)) / treelength / 0.75
+    curparsimony <- phangorn::parsimony(phybreak2phylo(variableslot), dataslot$sequences)
+    parameterslot$mu <- (curparsimony / ncol(seqmat)) / treelength / 0.75
   } else {
     parameterslot$mu <- mu
   }
