@@ -1,7 +1,7 @@
 Package: phybreak
 Type: Package
 Title: Analysis of Outbreaks with Sequence Data
-Version: 0.1.1.9001
+Version: 0.1.1.9002
 Date: 2016-08-31
 Authors@R: person("Don", "Klinkenberg", 
     email = "don@xs4all.nl", role = c("aut", "cre"))

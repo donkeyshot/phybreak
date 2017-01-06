@@ -1,3 +1,14 @@
+# phybreak 0.1.1.9002
+
+## Major Changes
+
+* Added mcmc-update steps for only the within-host phylogenetic minitree topology (not used by default)
+
+## Minor Changes
+
+* Better user control of plotTrans graphical parameters
+
+
 # phybreak 0.1.1.9001
 
 ## Major Changes
