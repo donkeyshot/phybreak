@@ -97,7 +97,6 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   ### make an obkData object
   treesout <- vector('list',1)
   treesout[[1]] <- phybreak2phylo(vars = res, samplenames = hostnames, simmap = FALSE)
-  #treesout[[1]] <- .makephylo.phybreak(res$nodetimes, res$nodeparents, hostnames)
   class(treesout) <- "multiPhylo"
   
   sampletimes <- res$sampletimes
@@ -115,10 +114,10 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                       infector = infectors,
                       date = as.Date(infectiontimes, origin = "2000-01-01"),
                       row.names = hostnames),
-                    dna = list(SNPs = res$SNPlist), dna.date = as.Date(res$sampletimes, origin = "2000-01-01"),
+                    dna = list(SNPs = ape::as.DNAbin(res$SNPlist)), dna.date = as.Date(res$sampletimes, origin = "2000-01-01"),
                     dna.individualID = hostnames, trees = treesout)
   } else {
-    seqs <- phangorn::as.phyDat(res$SNPlist)
+    seqs <- res$SNPlist
     names(seqs) <- hostnames
     toreturn <- list(
       sequences = seqs,
@@ -295,7 +294,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
     
     ### construct the strains from the simulation by going backwards
     ### through the phylotree from each tip and placing mutations
-    nodestrains <- matrix(data = rep(1, sequence.length * obs), ncol = sequence.length)
+    nodestrains <- matrix(data = rep(sample(4, nmutations, replace = TRUE), each = obs), ncol = nmutations)
     for(i in 1:obs) {
       currentedge <- i
       recentmutations <- rep(FALSE, nmutations) #keep more recent mutations on each locus
@@ -305,18 +304,26 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
         recentmutations <- recentmutations | mutedges == currentedge
         currentedge <- nodeparents[currentedge]
       }
-      
     }
+    # place single unchanged acgt at front of sequence to force these at first positions in phyDat-object
+    nodestrains <- cbind(matrix(data = rep(1:4, each = obs), ncol = 4), nodestrains)
+    
     nodestrains[nodestrains == 1] <- "a"
     nodestrains[nodestrains == 2] <- "c"
     nodestrains[nodestrains == 3] <- "g"
     nodestrains[nodestrains == 4] <- "t"
     
-    rownames(nodestrains) <- 1:obs
+    rownames(nodestrains) <- paste0("host.",1:obs)
+    
+    # make phyDat-object and change attributes to get entire sequence, with single acgt at front removed
+    nodestrains <- phangorn::as.phyDat(nodestrains)
+    mutlocs <- sample(4, sequence.length - nmutations, replace = TRUE)
+    attr(nodestrains, "index") <- c(attr(nodestrains, "index")[-(1:4)], mutlocs)
+    attr(nodestrains, "weight")[1:4] <- attr(nodestrains, "weight")[1:4] + tabulate(mutlocs, 4) - 1
     
     return(
       within(sim.object,{
-        SNPlist <- ape::as.DNAbin(nodestrains)
+        SNPlist <- nodestrains
       })
     )
   }
