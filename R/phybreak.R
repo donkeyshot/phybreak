@@ -208,7 +208,7 @@ phybreak <- function(data, times = NULL,
   #################################
   helperslot <- list(si.mu = if(dataslot$nSNPs == 0) 0 else 2.38*sqrt(trigamma(dataslot$nSNPs)),
                      si.wh = 2.38*sqrt(trigamma(parameterslot$obs - 1)),
-                     dist = distmatrix_phybreak(seqmat),
+                     dist = distmatrix_phybreak(dataslot$sequences),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
                      est.wh = est.wh.slope,
@@ -344,24 +344,23 @@ testargumentsclass_phybreak <- function(env) {
 
 
 ### pseudo-distance matrix between sequences given SNP data
-distmatrix_phybreak <- function(seqmatrix) {
-
-  # count SNPs excluding "n"
-  res <- as.matrix(ape::dist.dna(ape::as.DNAbin(seqmatrix), model = "N", pairwise.deletion = TRUE))
-
-  # prob of SNP per nucleotide in most distant entry
-  nscore <- max(res)/ncol(seqmatrix)
-
-  # add nscore for each missing nucleotide
-  nmatrix <- seqmatrix == "n"
-  for(i in 1:nrow(res)) {
-    res[i, ] <- res[i, ] + sapply(1:nrow(res), 
-                                  function(s1, s2) sum(nmatrix[s1,] | nmatrix[s2,]),
-                                  s2 = i) * nscore
-  }
+distmatrix_phybreak <- function(sequences) {
   
+  # count SNPs excluding "n"
+  res <- as.matrix(phangorn::dist.hamming(sequences, exclude = "pairwise", ratio = FALSE))
+  
+  # prob of SNP per nucleotide in most distant entry
+  nscore <- max(res)/sum(attr(sequences, "weight"))
+  
+  # add nscore for each missing nucleotide
+  seqs_n <- do.call(rbind, sequences) == 16
+  res <- res + outer(X = 1:length(sequences), Y = 1:length(sequences), 
+                     FUN = Vectorize(
+                       function(x, y) sum((seqs_n[x,] | seqs_n[y,]) * attr(sequences, "weight"))
+                     )) * nscore
+  
+
   #add 1 to avoid division by 0, and make distances proportional
   return((res + 1) / max(res + 1))
 }
-
 
