@@ -1,3 +1,10 @@
+# phybreak 0.1.1.9003
+
+## Minor Changes
+
+* Faster simulation and phybreak construction with long sequences.
+
+
 # phybreak 0.1.1.9002
 
 ## Major Changes
