@@ -209,20 +209,20 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
   ### X-axis
   do.call(axis,
           c(list(side = 1,
-                 at = c(par("xaxp")[1] * (1 - 1/par("xaxp")[3]), 
+                 at = c(((par("xaxp")[3] + 1) * par("xaxp")[1] - par("xaxp")[2]) / par("xaxp")[3], 
                         axTicks(1), 
-                        par("xaxp")[2] * (1 + 1/par("xaxp")[3])),
+                        ((par("xaxp")[3] + 1) * par("xaxp")[2] + par("xaxp")[1]) / par("xaxp")[3]),
                  mgp = par("mgp") * par("mar")[1]/4.1,
                  labels = if(inherits(tmin, "Date")) {
-                   as.Date(c(par("xaxp")[1] * (1 - 1/par("xaxp")[3]),
+                   as.Date(c(((par("xaxp")[3] + 1) * par("xaxp")[1] - par("xaxp")[2]) / par("xaxp")[3],
                              axTicks(1), 
-                             par("xaxp")[2] * (1 + 1/par("xaxp")[3])), "1970-01-01")  
+                             ((par("xaxp")[3] + 1) * par("xaxp")[2] + par("xaxp")[1]) / par("xaxp")[3]), "1970-01-01")  
                  } else TRUE, 
                  cex.axis = axis.cex),
             graphicalparameters("axis", ...)
             )
           )
-  
+
   ### Axis title
   do.call(title,
           c(list(xlab = c(xlab, graphicalparameters("title", ...)),
@@ -276,7 +276,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
             )
           )
   do.call(arrows,
-          c(list(x0 = inftimes[infectors == "index"] - par("xaxp")[3]/100,
+          c(list(x0 = inftimes[infectors == "index"] - (par("xaxp")[2] - par("xaxp")[1])/1000,
                  y0 = plotrank[infectors == "index"],
                  x1 = inftimes[infectors == "index"],
                  lwd = arrow.lwd, 
