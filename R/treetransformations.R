@@ -14,18 +14,18 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   
   ### give first coalescent node number Nsamples + 1 for compatibility with phylo
   currentrootnode <- which(nodeparents == which(nodeparents == 0))
-  if(currentrootnode != Nhosts + 1) {
+  if(currentrootnode != Nsamples + 1) {
     #swap hosts and times
-    nodehosts[c(Nhosts + 1, currentrootnode)] <- nodehosts[c(currentrootnode, Nhosts + 1)]
-    nodetimes[c(Nhosts + 1, currentrootnode)] <- nodetimes[c(currentrootnode, Nhosts + 1)]
+    nodehosts[c(Nsamples + 1, currentrootnode)] <- nodehosts[c(currentrootnode, Nsamples + 1)]
+    nodetimes[c(Nsamples + 1, currentrootnode)] <- nodetimes[c(currentrootnode, Nsamples + 1)]
     
     #swap parents
-    nodeparents[c(Nhosts + 1, currentrootnode)] <- nodeparents[c(currentrootnode, Nhosts + 1)]
+    nodeparents[c(Nhosts + 1, currentrootnode)] <- nodeparents[c(currentrootnode, Nsamples + 1)]
 
     #change parents of all nodes
     tooldroot <- nodeparents == currentrootnode
-    tonewroot <- nodeparents == Nhosts + 1
-    nodeparents[tooldroot] <- Nhosts + 1
+    tonewroot <- nodeparents == Nsamples + 1
+    nodeparents[tooldroot] <- Nsamples + 1
     nodeparents[tonewroot] <- currentrootnode
   }
   
@@ -145,48 +145,73 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
 
 
 ### vars should contain $sample.times
+### vars may contain $sample.hosts, from which host names will be taken (otherwise names of sample times or just numbers)
 ### vars may contain $sim.infection.times, $sim.infectors, and $sim.tree
-### vars may contain $sample.hosts, but this is not yet used
 ### if resample = TRUE, then resamplepars should contain
 ###     $mean.sample, $shape.sample, $mean.gen, $shape.gen, $wh.model, $wh.slope
 transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
 
-  ### extract variables
+  ### extract and order samples
   refdate <- min(vars$sample.times)
-  samtimes <- as.numeric(vars$sample.times - refdate)
+  samtimes <- vars$sample.times - refdate
   Nsamples <- length(samtimes)
-  hostnames <- names(vars$sample.times)
-  ##### NB: adjustment needed for .rinftimes to deal with multiple samples #####
+  if(exists("sample.hosts", vars)) {
+    samhosts <- vars$sample.hosts
+    
+    if(length(samtimes) != length(samhosts)) {
+      stop("lengths of sample.times and sample.hosts not equal")
+    }
+    
+    if(!is.null(names(samtimes))) {
+      if(!is.null(names(samhosts))) {
+        if(!(all(names(samtimes) %in% names(samhosts)))) {
+          stop("sample.times and sample.hosts don't have same names")
+        }
+        samhosts <- samhosts[names(samtimes)]
+      } else {
+        names(samhosts) <- names(samtimes)
+      }
+    }
+    
+    samhosts <- samhosts[order(samtimes)]
+    if(is.null(names(samhosts))) {
+      names(samhosts) <- 1:Nsamples
+    }
+  } else {
+    if(!is.null(names(samtimes))) {
+      samhosts <- names(samtimes)
+      names(samhosts) <- names(samtimes)
+      samhosts <- samhosts[order(samtimes)]
+    } else {
+      samhosts <- 1:Nsamples
+      names(samhosts) <- 1:Nsamples
+    }
+  }
+  samtimes <- as.numeric(sort(samtimes))
+  hostnames <- unique(samhosts)
+  Nhosts <- length(hostnames)
+  
+  ### reorder sampletimes: first the first per host, then all others
+  
+  firstsamples <- !duplicated(samhosts)
+  finalorder <- c(which(firstsamples), which(!firstsamples))
+  samtimes <- samtimes[finalorder]
+  samhosts <- samhosts[finalorder]
+  
+  ### infection times and infectors
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
     resample <- TRUE
-    inftimes <- .rinftimes(samtimes, resamplepars$mean.sample, resamplepars$shape.sample)
+    inftimes <- .rinftimes(samtimes[1:Nhosts], resamplepars$mean.sample, resamplepars$shape.sample)
     infectors <- .rinfectors(inftimes, resamplepars$mean.gen, resamplepars$shape.gen)
   } else {
     inftimes <- as.numeric(vars$sim.infection.times - refdate)
     infectors <- match(vars$sim.infectors, hostnames)
     infectors[is.na(infectors)] <- 0
+    if(length(hostnames) != length(infectors) | length(hostnames) != length(inftimes)) {
+      stop("numbers of infection times and infectors should match the number of sampled hosts")
+    }
   }
-  Nhosts <- length(inftimes)
-  if(is.null(hostnames)) hostnames <- 1:Nhosts
 
-  ##### NB: to be implemented later
-  if(is.null(vars$sample.hosts)) {
-    if(Nhosts != Nsamples) {
-      stop("samples cannot be linked to hosts: add sample.hosts data")
-    }
-    samhosts <- 1:Nsamples
-  } else {
-    if(length(vars$sample.hosts) != Nsamples) {
-      if(Nhosts != Nsamples) {
-        stop("samples cannot be linked to hosts: adjust length of sample.hosts data")
-      }
-      warning("sample.hosts has incorrect length and is ignored")
-      samhosts <- hostnames
-    } else {
-      samhosts <- match(vars$sample.hosts, hostnames)
-    }
-  }
-  
 
   nodetypes <- c(rep("s", Nsamples), rep("c", Nsamples - 1),
                  rep("t", Nhosts))  #node type (sampling, coalescent, transmission)
