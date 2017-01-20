@@ -108,7 +108,6 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   
   if(output.class == "obkData") {
     seqs <- res$SNPlist
-    row.names(seqs) <- hostnames
     toreturn <- new("obkData",
                     individuals = data.frame(
                       infector = infectors,
@@ -118,7 +117,6 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                     dna.individualID = hostnames, trees = treesout)
   } else {
     seqs <- res$SNPlist
-    names(seqs) <- hostnames
     toreturn <- list(
       sequences = seqs,
       sample.times = sampletimes,
