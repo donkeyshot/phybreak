@@ -1,3 +1,11 @@
+# phybreak 0.1.1.9004
+
+## BUG FIXES
+
+* Bug in axis plotting with plotTrans if time did not start at 0
+* Bug in sim.phybreak giving error with option output.class = "obkData"
+
+
 # phybreak 0.1.1.9003
 
 ## Minor Changes
