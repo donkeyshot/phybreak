@@ -188,7 +188,9 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     }
   }
   samtimes <- as.numeric(sort(samtimes))
+  samplenames <- names(samhosts)
   hostnames <- unique(samhosts)
+  samhosts <- match(samhosts, hostnames)
   Nhosts <- length(hostnames)
   
   ### reorder sampletimes: first the first per host, then all others
@@ -253,7 +255,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   
   return(list(
     d = list(hostnames = hostnames,
-             samplenames = hostnames,
+             samplenames = samplenames,
              reference.date = refdate),
     v = list(nodetimes = round(nodetimes, digits = 12),
              nodehosts = nodehosts,

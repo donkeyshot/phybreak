@@ -10,11 +10,14 @@
 #' @param popsize The population size in which to simulate. If it is not defined (default), 
 #'   an optimal population size will be chosen based on R0 and obsize. Be aware that choosing a \code{popsize} and
 #'   an \code{obsize} can severely increase the simulation time, depending on \code{R0}.
+#' @param samplesperhost Number of samples to be taken per host, either a vector or a single number.
 #' @param R0 The basic reproduction ratio used for simulation. The offspring distribution is Poisson.
 #' @param shape.gen The shape parameter of the gamma-distributed generation interval.
 #' @param mean.gen The mean generation interval.
 #' @param shape.sample The shape parameter of the gamma-distributed sampling interval.
-#' @param mean.sample The mean sampling interval.
+#' @param mean.sample The mean sampling interval (for the first sample of each host).
+#' @param additionalsampledelay Sampling intervals since first sampling times of each host. Values in this vector will be 
+#'   used first for all additional samples of host 1, then of host 2, etc.
 #' @param wh.model The model for within-host pathogen dynamics (effective pathogen population size = 
 #'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
 #'   \enumerate{
@@ -95,41 +98,36 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   res <- .sim.sequences(res, mu, sequence.length)
   hostnames <- paste0("host.", 1:obsize)
   samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples], ".", nthsample(res))
+  names(res$sequences) <- samplenames
 
-  ### make an obkData object
+  ### make a phylo tree
   treesout <- vector('list',1)
   treesout[[1]] <- phybreak2phylo(vars = res, samplenames = samplenames, simmap = FALSE)
   class(treesout) <- "multiPhylo"
   
-  sampletimes <- c(res$sampletimes, res$addsampletimes)
-  names(sampletimes) <- samplenames
-  samplehosts <- hostnames[c(1:obsize, res$addsamplehosts)]
-  names(samplehosts) <- samplenames
-  infectiontimes <- res$infectiontimes
-  names(infectiontimes) <- hostnames
-  infectors <- c("index", hostnames)[1 + res$infector]
-  names(infectors) <- hostnames
-  
+
   if(output.class == "obkData") {
-    seqs <- res$SNPlist
-    toreturn <- new("obkData",
+    toreturn <- with(res, new("obkData",
                     individuals = data.frame(
-                      infector = infectors,
+                      infector = c("index", hostnames)[1 + infectors],
                       date = as.Date(infectiontimes, origin = "2000-01-01"),
                       row.names = hostnames),
-                    dna = list(SNPs = ape::as.DNAbin(res$SNPlist)), dna.date = as.Date(res$sampletimes, origin = "2000-01-01"),
-                    dna.individualID = hostnames, trees = treesout)
+                    dna = list(SNPs = ape::as.DNAbin(sequences)), 
+                    dna.individualID = hostnames[c(1:obs, addsamplehosts)], 
+                    dna.date = as.Date(c(sampletimes, addsampletimes), origin = "2000-01-01"),
+                    sample = samplenames,
+                    trees = treesout))
   } else {
-    seqs <- res$SNPlist
-    toreturn <- list(
-      sequences = seqs,
-      sample.times = sampletimes,
-      sample.hosts = samplehosts,
+    toreturn <- with(res,
+                     phybreakdata(
+      sequences = sequences,
+      sample.times = c(sampletimes, addsampletimes),
+      sample.names = samplenames,
+      host.names = hostnames[c(1:obs, addsamplehosts)],
       sim.infection.times = infectiontimes,
       sim.infectors = infectors,
       sim.tree = treesout[[1]]
-    )
-    class(toreturn) <- "phybreakdata"
+    ))
   }
   return(toreturn)
 }
@@ -231,7 +229,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
     Nsamples <- sim.object$obs + sum(addsamplesizes)
     addsamplehosts <- addsamplehosts
     addsampletimes <- addsampletimes
-    })[c(1, 7, 2, 5, 6, 3, 4)])
+    }))
 }
 
 ### simulate a phylogenetic tree given a transmission tree
@@ -307,7 +305,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
     
     ### construct the strains from the simulation by going backwards
     ### through the phylotree from each tip and placing mutations
-    nodestrains <- matrix(data = rep(sample(4, nmutations, replace = TRUE), each = Nsamples), ncol = nmutations)
+    nodestrains <- matrix(data = rep(sample(4, nmutations, replace = TRUE), each = Nsamples), nrow = Nsamples)
     for(i in 1:Nsamples) {
       currentedge <- i
       recentmutations <- rep(FALSE, nmutations) #keep more recent mutations on each locus
@@ -330,13 +328,13 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
     
     # make phyDat-object and change attributes to get entire sequence, with single acgt at front removed
     nodestrains <- phangorn::as.phyDat(nodestrains)
-    mutlocs <- sample(4, sequence.length - nmutations, replace = TRUE)
+    mutlocs <- sample(4, max(0, sequence.length - nmutations), replace = TRUE)
     attr(nodestrains, "index") <- c(attr(nodestrains, "index")[-(1:4)], mutlocs)
     attr(nodestrains, "weight")[1:4] <- attr(nodestrains, "weight")[1:4] + tabulate(mutlocs, 4) - 1
     
     return(
       within(sim.object,{
-        SNPlist <- nodestrains
+        sequences <- nodestrains
       })
     )
   }
