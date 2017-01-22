@@ -122,9 +122,11 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
   nodetypes <- vars$nodetypes
   Nhosts <- sum(nodetypes == "t")
   if(is.null(hostnames)) hostnames <- paste0("host.",1:Nhosts)
-  if(length(hostnames) != Nhosts) {
+  if(length(hostnames) < Nhosts) {
     warning("length of hostnames does not match number of hosts; hostnames not used")
     hostnames <- paste0("host.",1:Nhosts)
+  } else {
+    hostnames <- unique(hostnames)
   }
   
   ### make new variables
@@ -199,6 +201,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   finalorder <- c(which(firstsamples), which(!firstsamples))
   samtimes <- samtimes[finalorder]
   samhosts <- samhosts[finalorder]
+  samplenames <- samplenames[finalorder]
   
   ### infection times and infectors
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
@@ -248,14 +251,14 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     phytree <- vars$sim.tree
     nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:Nsamples]),
                    inftimes)
-    nodehosts_parents <- make_nodehostsparents(phytree$edge, samhosts, infectors)
+    nodehosts_parents <- make_nodehostsparents(phytree$edge, samhosts[match(phytree$tip.label, samplenames)], infectors)
     nodehosts <- nodehosts_parents[, 1]
     nodeparents <- nodehosts_parents[, 2]
     }
   
   return(list(
     d = list(hostnames = hostnames,
-             samplenames = samplenames,
+             samplenames = phytree$tip.label,
              reference.date = refdate),
     v = list(nodetimes = round(nodetimes, digits = 12),
              nodehosts = nodehosts,
@@ -268,10 +271,14 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
 obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   ### extract variables
   samtimes <- OutbreakTools::get.dates(data, "dna")
-  names(samtimes) <- OutbreakTools::get.individuals(data)
+  names(samtimes) <- OutbreakTools::get.data(data, "sample")
+  samhosts <- OutbreakTools::get.data(data, "individualID")
+  names(samhosts) <- OutbreakTools::get.data(data, "sample")
   if(!resample) {
     inftimes <- OutbreakTools::get.dates(data, "individuals")
+    names(inftimes) <- OutbreakTools::get.individuals(data)
     infectors <- OutbreakTools::get.data(data, "infector")
+    names(inftimes) <- OutbreakTools::get.individuals(data)
     tree <- OutbreakTools::get.trees(data)[[1]]  
   } else {
     inftimes <- NULL
@@ -281,6 +288,7 @@ obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   
   varslist <- list(
     sample.times = samtimes,
+    sample.hosts = samhosts,
     sim.infection.times = inftimes,
     sim.infectors = infectors,
     sim.tree = tree

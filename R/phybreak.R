@@ -126,9 +126,11 @@ phybreak <- function(data, times = NULL,
   
   #names
   if(inherits(data, "obkData")) {
-    dataslot$names <- OutbreakTools::get.individuals(data)
+    dataslot$names <- OutbreakTools::get.data(data, "sample")
+    dataslot$hostnames <- OutbreakTools::get.data(data, "individualID")
   } else {
     dataslot$names <- names(data$sample.times)
+    dataslot$hostnames <- data$sample.hosts
   }
   
   #sequences (SNP)
@@ -150,10 +152,10 @@ phybreak <- function(data, times = NULL,
   #sample times
   if(inherits(data, "obkData")) {
     dataslot$sample.times <- OutbreakTools::get.dates(data, "dna")
+    names(dataslot$sample.times) <- dataslot$names
   } else {
     dataslot$sample.times <- data$sample.times
   }
-  names(dataslot$sample.times) <- dataslot$names
   
   #SNP count
   SNPpatterns <- do.call(rbind, dataslot$sequences)
@@ -165,13 +167,14 @@ phybreak <- function(data, times = NULL,
               ) * attr(dataslot$sequences, "weight")
         )
     )
-  seqmat <- as.character(dataslot$sequences)
+  #seqmat <- as.character(dataslot$sequences)
 
   ##############################
   ### third slot: parameters ###
   ##############################
   parameterslot <- list(
-    obs = length(dataslot$sample.times),
+    obs = length(unique(dataslot$hostnames)),
+    Nsamples = length(dataslot$names),
     mu = NULL,
     mean.sample = sample.mean,
     mean.gen = gen.mean,
@@ -190,6 +193,7 @@ phybreak <- function(data, times = NULL,
     phybreakvariables <- obkData2phybreak(data, resample = !use.tree, resamplepars = parameterslot)
   }
   variableslot <- phybreakvariables$v
+  dataslot$names <- phybreakvariables$d$samplenames
   dataslot$reference.date <- phybreakvariables$d$reference.date
   
   #################
@@ -198,7 +202,8 @@ phybreak <- function(data, times = NULL,
   if(is.null(mu)) {
     treelength <- with(variableslot, sum(nodetimes[nodeparents != 0] - nodetimes[nodeparents]))
     curparsimony <- phangorn::parsimony(phybreak2phylo(variableslot), dataslot$sequences)
-    parameterslot$mu <- (curparsimony / ncol(seqmat)) / treelength / 0.75
+    sequencelength <- sum(attr(dataslot$sequences, "weight"))
+    parameterslot$mu <- (curparsimony / sequencelength) / treelength / 0.75
   } else {
     parameterslot$mu <- mu
   }

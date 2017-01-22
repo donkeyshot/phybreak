@@ -63,6 +63,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
   if(inherits(x, "phybreakdata")) {
     if(exists("sim.infection.times", x) && exists("sim.infectors", x)) {
       vars <- x
+      names(vars$sample.times) <- vars$sample.hosts
       tg.mean <- NA
       tg.shape <- NA
     } else {
@@ -85,12 +86,14 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
       tree2plot <- suppressWarnings(transtree(x, plot.which, 
                                               infection.times = "infector", time.quantiles = 0.5))
       vars <- list(sample.times = x$d$sample.times,
+                   sample.hosts = x$d$hostnames,
                    sim.infection.times = tree2plot[, 3],
                    sim.infectors = as.character(tree2plot[, 1]),
                    post.support = tree2plot[, 2])
-      names(vars$sim.infection.times) <- names(vars$sample.times)
-      names(vars$sim.infectors) <- names(vars$sample.times)
-      names(vars$post.support) <- names(vars$sample.times)
+      names(vars$sample.times) <- x$d$hostnames
+      names(vars$sim.infection.times) <- x$d$hostnames[1:x$p$obs]
+      names(vars$sim.infectors) <- x$d$hostnames[1:x$p$obs]
+      names(vars$post.support) <- x$d$hostnames[1:x$p$obs]
       if(is.null(arrow.col)) {
         arrow.col <- c("blue", "green", "orange", "red", "purple")
       }
@@ -105,7 +108,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         nodehosts = x$v$nodehosts,
         nodetypes = x$v$nodetypes
       )
-      vars <- phybreak2trans(vars, x$d$names, x$d$reference.date)
+      vars <- phybreak2trans(vars, x$d$hostnames, x$d$reference.date)
       if(is.null(arrow.col)) {
         arrow.col <- "black"
       } else {
@@ -122,7 +125,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         nodehosts = c(x$v$nodehosts[x$v$nodetypes == "s"], x$s$nodehosts[, samplenr]),
         nodetypes = x$v$nodetypes
       )
-      vars <- phybreak2trans(vars, x$d$names, x$d$reference.date)
+      vars <- phybreak2trans(vars, unique(x$d$hostnames), x$d$reference.date)
       if(is.null(arrow.col)) {
         arrow.col <- "black"
       } else {
@@ -171,7 +174,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
   
   timedorder <- order(head(ordertimes, -1))
   inftimes <- x$sim.infection.times[timedorder]
-  samtimes <- x$sample.times[timedorder]
+  samtimes <- x$sample.times
   infectors <- x$sim.infectors[timedorder]
   arrow.colours <- arrow.colours[timedorder]
   hosts <- names(inftimes)
@@ -290,7 +293,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
   ### Samples
   do.call(points,
           c(list(x = samtimes, 
-                 y = plotrank,
+                 y = plotrank[match(names(samtimes), hosts)],
                  pch = sample.pch, 
                  lwd = sample.lwd, 
                  cex = sample.cex),
