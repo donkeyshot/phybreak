@@ -4,8 +4,9 @@
 \alias{phybreakdata}
 \title{Create a phybreakdata-object from raw data.}
 \usage{
-phybreakdata(sequences, sample.times, host.names = NULL,
-  sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL)
+phybreakdata(sequences, sample.times, sample.names = NULL,
+  host.names = sample.names, sim.infection.times = NULL,
+  sim.infectors = NULL, sim.tree = NULL)
 }
 \arguments{
 \item{sequences}{Sequence data of class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
@@ -14,7 +15,10 @@ or \code{'t'}, will be turned into \code{'n'}.}
 
 \item{sample.times}{A vector of sampling times (\code{numerical} or \code{Date}).}
 
-\item{host.names}{A vector with host names.}
+\item{sample.names}{A vector with sample names.}
+
+\item{host.names}{A vector with host names. The vector identifies the host for each sample, so should be of the same
+length as \code{sample.times}.}
 
 \item{sim.infection.times}{A vector with infection times (\code{numerical} or \code{Date}).}
 
@@ -27,6 +31,7 @@ An object of class \code{phybreakdata} with the following elements
   \describe{
     \item{sequences}{a \code{'phyDat'}-object with the sequence data.}
     \item{sample.times}{a named \code{vector} with the sample times.}
+    \item{sample.hosts}{a named \code{vector} with the hosts from whom the samples have been taken.}
     \item{sim.infection.times}{a named \code{vector} with the (simulated) infection times (if provided).}
     \item{sim.infectors}{a named \code{vector} with the (simulated) infectors (if provided).}
     \item{sim.tree}{a \code{'phylo'}-object with the (simulated) phylogenetic tree (if provided).}
@@ -34,9 +39,9 @@ An object of class \code{phybreakdata} with the following elements
 }
 \description{
 phybreakdata takes as data sequences and sampling times and makes a \code{phybreakdata} object.
-Each sample is assumed to be associated with a separate host. The number of sequences
+If no host names are provided, each sample is assumed to be associated with a separate host. The number of sequences
 should be equal to the length of the sampling time vector, and the position identifies the host (unless named
-vectors are provided). Host names can be provided separately;
+vectors are provided). Sample names can be provided separately;
 otherwise it will be tried to extract them from the sequences or sampling times.
 It is also possible to include (otherwise unobserved) simulated data: sim.infection times, sim.infectors, 
 and a (phylogenetic) sim.tree. This is done automatically when using \code{\link{sim.phybreak}}.
