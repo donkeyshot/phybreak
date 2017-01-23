@@ -37,7 +37,9 @@ plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplen
   
   if(inherits(x, "phybreakdata")) {
     if(exists("sim.infection.times", x) && exists("sim.infectors", x) && exists("sim.tree", x)) {
+      samplenames <- names(x$sample.times)
       x <- transphylo2phybreak(x)
+      x$d$names <- samplenames
       plot.which <- "sample"
       samplenr <- 0
     } else {

@@ -119,7 +119,7 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
   allfirsttimes <- sapply(allhosts, function(x) min(sample.times[host.names == x]))
   outputorderhosts <- order(allfirsttimes)
   orderedhosts <- allhosts[outputorderhosts]
-  outputordersamples <- order(match(host.names, orderedhosts), sample.times)
+  outputordersamples <- order(!(sample.times %in% allfirsttimes), match(host.names, orderedhosts), sample.times)
   sequences <- sequences[outputordersamples, ]
   sample.times <- sample.times[outputordersamples]
   sample.names <- sample.names[outputordersamples]
@@ -201,6 +201,10 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
     if(!all(sim.tree$tip.label %in% sample.names)) {
       stop("names in sim.tree don't match sample names")
     }
+    currenttipsinedge <- match(1:length(sample.times), sim.tree$edge[,2])
+    tipreorder <- match(sim.tree$tip.label, sample.names)
+    sim.tree$edge[currenttipsinedge, 2] <- tipreorder
+    sim.tree$tip.label <- sample.names
     res <- c(res, list(sim.tree = sim.tree))
   }
   

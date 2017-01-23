@@ -175,7 +175,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
       }
     }
     
-    samhosts <- samhosts[order(samtimes)]
+    # samhosts <- samhosts[order(samtimes)]
     if(is.null(names(samhosts))) {
       names(samhosts) <- 1:Nsamples
     }
@@ -183,25 +183,30 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     if(!is.null(names(samtimes))) {
       samhosts <- names(samtimes)
       names(samhosts) <- names(samtimes)
-      samhosts <- samhosts[order(samtimes)]
+      # samhosts <- samhosts[order(samtimes)]
     } else {
       samhosts <- 1:Nsamples
       names(samhosts) <- 1:Nsamples
     }
   }
-  samtimes <- as.numeric(sort(samtimes))
+  samtimes <- as.numeric(samtimes)
   samplenames <- names(samhosts)
   hostnames <- unique(samhosts)
   samhosts <- match(samhosts, hostnames)
   Nhosts <- length(hostnames)
+  # samtimes <- as.numeric(sort(samtimes))
+  # samplenames <- names(samhosts)
+  # hostnames <- unique(samhosts)
+  # samhosts <- match(samhosts, hostnames)
+  # Nhosts <- length(hostnames)
   
-  ### reorder sampletimes: first the first per host, then all others
-  
-  firstsamples <- !duplicated(samhosts)
-  finalorder <- c(which(firstsamples), which(!firstsamples))
-  samtimes <- samtimes[finalorder]
-  samhosts <- samhosts[finalorder]
-  samplenames <- samplenames[finalorder]
+  # ### reorder sampletimes: first the first per host, then all others
+  # 
+  # firstsamples <- !duplicated(samhosts)
+  # finalorder <- c(which(firstsamples), which(!firstsamples))
+  # samtimes <- samtimes[finalorder]
+  # samhosts <- samhosts[finalorder]
+  # samplenames <- samplenames[finalorder]
   
   ### infection times and infectors
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
@@ -257,8 +262,8 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     }
   
   return(list(
-    d = list(hostnames = hostnames,
-             samplenames = phytree$tip.label,
+    d = list(names = samplenames,
+             hostnames = hostnames,
              reference.date = refdate),
     v = list(nodetimes = round(nodetimes, digits = 12),
              nodehosts = nodehosts,

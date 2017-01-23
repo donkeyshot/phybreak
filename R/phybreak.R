@@ -193,7 +193,7 @@ phybreak <- function(data, times = NULL,
     phybreakvariables <- obkData2phybreak(data, resample = !use.tree, resamplepars = parameterslot)
   }
   variableslot <- phybreakvariables$v
-  dataslot$names <- phybreakvariables$d$samplenames
+  # dataslot$names <- phybreakvariables$d$samplenames
   dataslot$reference.date <- phybreakvariables$d$reference.date
   
   #################
