@@ -10,7 +10,7 @@
 #' unless a complete tree is given in the data and should be used (\code{use.tree = TRUE}).
 #' It is also possible to provide only sequences as data, and sampling times separately.
 #' 
-#' @param data An object with sequences plus additional data.
+#' @param dataset An object with sequences plus additional data.
 #'  (class \code{'obkData'} or \code{'phybreakdata'}). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
 #'  or \code{'t'}, will be turned into \code{'n'}.  
 #'  
@@ -19,7 +19,7 @@
 #'  \code{individuals} slot, plus (at least) one tree in the \code{'trees'} slot (class \code{'multiPhylo'}).
 #'  
 #'  Data provided as an object of class \code{'phybreakdata'} contain \code{sequences} and \code{sampling.times},
-#'  and potentially \code{infection.times}, \code{infectors}, and \code{trees}. Prepare your data in this format
+#'  and potentially \code{sim.infection.times}, \code{sim.infectors}, and \code{sim.tree}. Prepare your data in this format
 #'  by \code{\link{phybreakdata}} or by simulation with \code{\link{sim.phybreak}}.
 #'  
 #'  It is also possible to provide only sequences as data, (class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
@@ -101,7 +101,7 @@
 #' ### but not with additional data (future implementation)
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
-phybreak <- function(data, times = NULL,
+phybreak <- function(dataset, times = NULL,
          mu = NULL, gen.shape = 3, gen.mean = 1,
          sample.shape = 3, sample.mean = 1, 
          wh.model = 3, wh.slope = 1,
@@ -113,8 +113,8 @@ phybreak <- function(data, times = NULL,
   ###########################################
   ### check for correct classes and sizes ###
   ###########################################
-  data <- testdataclass_phybreak(data, times)
-  if(use.tree) testfortree_phybreak(data)
+  dataset <- testdataclass_phybreak(dataset, times)
+  if(use.tree) testfortree_phybreak(dataset)
   testargumentsclass_phybreak(environment())
   
   ### outbreak parameters ###
@@ -125,19 +125,19 @@ phybreak <- function(data, times = NULL,
   dataslot <- list()
   
   #names
-  if(inherits(data, "obkData")) {
-    dataslot$names <- OutbreakTools::get.data(data, "sample")
-    dataslot$hostnames <- OutbreakTools::get.data(data, "individualID")
+  if(inherits(dataset, "obkData")) {
+    dataslot$names <- OutbreakTools::get.data(dataset, "sample")
+    dataslot$hostnames <- OutbreakTools::get.data(dataset, "individualID")
   } else {
-    dataslot$names <- names(data$sample.times)
-    dataslot$hostnames <- data$sample.hosts
+    dataslot$names <- names(dataset$sample.times)
+    dataslot$hostnames <- dataset$sample.hosts
   }
   
   #sequences (SNP)
   SNP.sample <- c()
-  if(inherits(data, "obkData")) {
-    allgenes <- OutbreakTools::get.dna(data)
-    for(i in 1:(OutbreakTools::get.nlocus(data))) {
+  if(inherits(dataset, "obkData")) {
+    allgenes <- OutbreakTools::get.dna(dataset)
+    for(i in 1:(OutbreakTools::get.nlocus(dataset))) {
       SNP.sample <- cbind(SNP.sample, as.character(allgenes[[i]]))
     }
     if(length(setdiff(SNP.sample, c("a","c","g","t")))) {
@@ -146,15 +146,15 @@ phybreak <- function(data, times = NULL,
     SNP.sample[SNP.sample != "a" & SNP.sample != "c" & SNP.sample != "g" & SNP.sample != "t"] <- "n"
     dataslot$sequences <- phangorn::as.phyDat(SNP.sample)
   } else {
-    dataslot$sequences <- data$sequences
+    dataslot$sequences <- dataset$sequences
   }
   
   #sample times
-  if(inherits(data, "obkData")) {
-    dataslot$sample.times <- OutbreakTools::get.dates(data, "dna")
+  if(inherits(dataset, "obkData")) {
+    dataslot$sample.times <- OutbreakTools::get.dates(dataset, "dna")
     names(dataslot$sample.times) <- dataslot$names
   } else {
-    dataslot$sample.times <- data$sample.times
+    dataslot$sample.times <- dataset$sample.times
   }
   
   #SNP count
@@ -167,14 +167,15 @@ phybreak <- function(data, times = NULL,
               ) * attr(dataslot$sequences, "weight")
         )
     )
-  #seqmat <- as.character(dataslot$sequences)
 
+  #Sample size
+  dataslot$Nsamples <- length(dataslot$names)
+  
   ##############################
   ### third slot: parameters ###
   ##############################
   parameterslot <- list(
     obs = length(unique(dataslot$hostnames)),
-    Nsamples = length(dataslot$names),
     mu = NULL,
     mean.sample = sample.mean,
     mean.gen = gen.mean,
@@ -187,10 +188,10 @@ phybreak <- function(data, times = NULL,
   ##############################
   ### second slot: variables ###
   ##############################
-  if(inherits(data, "phybreakdata")) {
-    phybreakvariables <- transphylo2phybreak(data, resample = !use.tree, resamplepars = parameterslot)
+  if(inherits(dataset, "phybreakdata")) {
+    phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot)
   } else {
-    phybreakvariables <- obkData2phybreak(data, resample = !use.tree, resamplepars = parameterslot)
+    phybreakvariables <- obkData2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot)
   }
   variableslot <- phybreakvariables$v
   # dataslot$names <- phybreakvariables$d$samplenames
@@ -255,43 +256,43 @@ phybreak <- function(data, times = NULL,
 }
 
 
-### Test data class
-testdataclass_phybreak <- function(data, times) {
-  if(inherits(data, c("DNAbin", "phyDat", "matrix"))) {
-    data <- phybreakdata(sequences = data, sample.times = times)
+### Test dataset class
+testdataclass_phybreak <- function(dataset, times) {
+  if(inherits(dataset, c("DNAbin", "phyDat", "matrix"))) {
+    dataset <- phybreakdata(sequences = dataset, sample.times = times)
   }
   
-  if(!inherits(data, c("obkData", "phybreakdata"))) {
-    stop("data should be of class \"obkData\" or \"phybreakdata\"")
+  if(!inherits(dataset, c("obkData", "phybreakdata"))) {
+    stop("dataset should be of class \"obkData\" or \"phybreakdata\"")
   }
   
-  if(inherits(data, "obkData")) {
+  if(inherits(dataset, "obkData")) {
     if(!("OutbreakTools" %in% .packages(TRUE))) {
-      stop("package 'OutbreakTools' not installed, while data-class is \"obkData\"")
+      stop("package 'OutbreakTools' not installed, while dataset-class is \"obkData\"")
     }
     if(!("OutbreakTools" %in% .packages(FALSE))) {
       warning("package 'OutbreakTools' is not attached")
     }
   }
   
-  return(data)
+  return(dataset)
 }
 
 ### Test for presence of tree
-testfortree_phybreak <- function(data) {
-  if(inherits(data, "phybreakdata")) {
-    if(is.null(data$sim.infection.times) | is.null(data$sim.infectors)) {
-      warning("transmission tree can only be used if provided in data; random tree will be generated")
+testfortree_phybreak <- function(dataset) {
+  if(inherits(dataset, "phybreakdata")) {
+    if(is.null(dataset$sim.infection.times) | is.null(dataset$sim.infectors)) {
+      warning("transmission tree can only be used if provided in dataset; random tree will be generated")
     }
-    if(is.null(data$sim.tree)) {
-      warning("phylogenetic tree can only be used if provided in data; random tree will be generated")
+    if(is.null(dataset$sim.tree)) {
+      warning("phylogenetic tree can only be used if provided in dataset; random tree will be generated")
     }
   } else {
-    if(is.null(OutbreakTools::get.dates(data, "individuals")) | is.null(OutbreakTools::get.data(data, "infector"))) {
-      warning("transmission tree can only be used if provided in data; random tree will be generated")
+    if(is.null(OutbreakTools::get.dates(dataset, "individuals")) | is.null(OutbreakTools::get.data(dataset, "infector"))) {
+      warning("transmission tree can only be used if provided in dataset; random tree will be generated")
     }
-    if(is.null(OutbreakTools::get.trees(data))) {
-      warning("phylogenetic tree can only be used if provided in data; random tree will be generated")
+    if(is.null(OutbreakTools::get.trees(dataset))) {
+      warning("phylogenetic tree can only be used if provided in dataset; random tree will be generated")
     }
   }
 }
