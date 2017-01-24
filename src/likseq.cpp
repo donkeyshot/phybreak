@@ -9,9 +9,9 @@ using namespace Rcpp;
 // [[Rcpp::export(name=".likseq")]]
 double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
               IntegerVector nodeparents, NumericVector nodetimes,
-              double mutrate, int obs) {
-  int nnodes = 2*obs - 1;
-  int nSNPs = SNPs.size()/obs;
+              double mutrate, int Nsamples) {
+  int nnodes = 2*Nsamples - 1;
+  int nSNPs = SNPs.size()/Nsamples;
   NumericVector likarray(nnodes * nSNPs * 4);
   NumericVector nlens(nodetimes.size());
   NumericVector SNPsums(nSNPs);
@@ -23,7 +23,7 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
   double totprob;
   double result;
   
-  for(int i = 0; i < obs; ++i) {
+  for(int i = 0; i < Nsamples; ++i) {
     for(int j = 0; j < nSNPs; ++j) {
       if(SNPs[i*nSNPs + j] == 1) {
         likarray[(i * nSNPs + j) * 4] = 1;
@@ -53,7 +53,7 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
       }
     }
   }
-  for(int i = obs; i < nnodes; ++i) {
+  for(int i = Nsamples; i < nnodes; ++i) {
     for(int j = 0; j < nSNPs; ++j) {
       for(int k = 0; k < 4; ++k) {
         likarray[(i * nSNPs + j) * 4 + k] = 1;
@@ -63,7 +63,7 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
   
   for(int i = 0; i < nlens.size(); ++i) {
     if(nodeparents[i] > 0) {
-      nlens[i] = nodetimes[i] - nodetimes[nodeparents[i]-1];
+      nlens[i] = nodetimes[i] - nodetimes[nodeparents[i] - 1];
     } else {
       rootnode = i;
     }
@@ -73,22 +73,22 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
     ++nextnode;
   }
   rootnode = nextnode;
-  for(int i = 0; i < obs; ++i) {
+  for(int i = 0; i < Nsamples; ++i) {
     routefree[i] = true;
   }
-  for(int i = obs; i < 2*obs-1; ++i) {
+  for(int i = Nsamples; i < 2 * Nsamples - 1; ++i) {
     routefree[i] = false;
   }
-  for(int i = 2*obs - 1; i < routefree.size(); ++i) {
+  for(int i = 2 * Nsamples - 1; i < routefree.size(); ++i) {
     routefree[i] = true;
   }
   
-  for(int i = 0; i < obs; ++i) {
+  for(int i = 0; i < Nsamples; ++i) {
     curnode = i;
     nextnode = nodeparents[curnode] - 1;
     edgelen = nlens[curnode];
     while(routefree[curnode] && nextnode != -1) {
-      if(nextnode < 2*obs - 1) {
+      if(nextnode < 2*Nsamples - 1) {
         for(int j = 0; j < nSNPs; ++j) {
           totprob = likarray[(curnode * nSNPs + j) * 4];
           for(int k = 1; k < 4; ++k) {
@@ -96,8 +96,8 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
           }
           for(int k = 0; k < 4; ++k) {
             likarray[(nextnode * nSNPs + j) * 4 + k] *=
-              0.25*totprob + (likarray[(curnode * nSNPs + j) * 4 + k] -
-              0.25*totprob)*exp(-mutrate*edgelen);
+              0.25 * totprob + (likarray[(curnode * nSNPs + j) * 4 + k] -
+              0.25 * totprob) * exp(-mutrate * edgelen);
           }
         }
         curnode = nextnode;

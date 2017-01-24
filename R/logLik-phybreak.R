@@ -39,12 +39,12 @@
 logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, ...) {
     res <- 0
     if (genetic) {
-        res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = p$obs), 
+        res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$Nsamples), 
                                           attr(d$sequences, "weight"), 
-                                          v$nodeparents, v$nodetimes, p$mu, p$obs))
+                                          v$nodeparents, v$nodetimes, p$mu, d$Nsamples))
     }
     if (generation) {
-        res <- res + with(object, .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes))
+        res <- res + with(object, .lik.gentimes(d$Nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes))
     }
     if (sampling) {
         res <- res + with(object, .lik.sampletimes(p$shape.sample, p$mean.sample, v$nodetimes, v$nodetypes))
@@ -63,8 +63,8 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 
 
 ### calculate the log-likelihood of sampling intervals 
-.lik.gentimes <- function(obs, shapeG, meanG, nodetimes, nodehosts, nodetypes) {
-    sum(dgamma(nodetimes[nodetypes == "t" & nodehosts > 0] - nodetimes[nodehosts[nodetypes == "t" & nodehosts > 0] + 2 * obs - 
+.lik.gentimes <- function(Nsamples, shapeG, meanG, nodetimes, nodehosts, nodetypes) {
+    sum(dgamma(nodetimes[nodetypes == "t" & nodehosts > 0] - nodetimes[nodehosts[nodetypes == "t" & nodehosts > 0] + 2 * Nsamples - 
         1], shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
