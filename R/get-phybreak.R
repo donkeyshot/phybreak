@@ -35,7 +35,7 @@ get.tree <- function(phybreak.object, samplenr = 0) {
     )
   }
   
-  res <- phybreak2trans(vars, phybreak.object$d$names, phybreak.object$d$reference.date)
+  res <- phybreak2trans(vars, phybreak.object$d$hostnames, phybreak.object$d$reference.date)
   infectors <- c("index", phybreak.object$d$names)[1 + tail(phybreak.object$v$nodehosts, phybreak.object$p$obs)]
   inftimes <- tail(phybreak.object$v$nodetimes, phybreak.object$p$obs)
   res <- with(res, 

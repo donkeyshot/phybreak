@@ -133,9 +133,9 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
   samtimes <- nodetimes[nodetypes == "s"] + reference.date
   names(samtimes) <- hostnames[nodehosts[nodetypes == "s"]]
   inftimes <- nodetimes[nodetypes == "t"] + reference.date
-  names(inftimes) <- hostnames
+  names(inftimes) <- unique(hostnames)
   infectors <- c("index",hostnames)[1 + nodehosts[nodetypes == "t"]]
-  names(infectors) <- hostnames
+  names(infectors) <- unique(hostnames)
   
   ### return result
   return(list(
