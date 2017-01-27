@@ -35,7 +35,7 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
   curtime <- Sys.time()
   
   for (rep in 1:ncycles) {
-    if(Sys.time() - curtime > 0) {
+    if(Sys.time() - curtime > 10) {
       mcmcdiagnostics(.pbe0,rep,Ngenes)
       curtime <- Sys.time()
     }

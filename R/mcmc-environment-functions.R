@@ -177,16 +177,7 @@
                                                                v$nodeparents[gene, ])
       nodetips[[gene]] <- nodetips[[gene]][is.na(match(nodetips[[gene]], chnodes[[gene]]))]
     }
-   # if( (sum(unlist(lapply(nodetips,sum))) == sum(nodetips[[1]])*3) == FALSE){
-  #    print("nodetips: FALSE")
-  #    print(sum(unlist(lapply(nodetips,sum))) == sum(nodetips[[1]])*3 )
-  #    print(nodetips)
-    #}
-    #if( (sum(unlist(lapply(chnodes,sum))) == sum(chnodes[[1]])*3) == FALSE){
-    #  print("chnodes: FALSE")
-    #  print(chnodes)
-    #}
-
+    
   } else if (f == "mu") {
     for(gene in 1:Ngenes) {chnodes[[gene]] <-(p$obs + 1):(2 * p$obs - 1)}
     for(gene in 1:Ngenes) {nodetips[[gene]] <- 1:p$obs}

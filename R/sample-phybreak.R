@@ -23,68 +23,83 @@
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
-sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2, phylotopology_only = 0) {
-    ### tests
-    if(nsample < 1) stop("nsample should be positive")
-    if(thin < 1) stop("thin should be positive")
-    if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
-    if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
-    if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
+sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2,phylotopology_only = 0) {
+  ### tests
+  if(nsample < 1) stop("nsample should be positive")
+  if(thin < 1) stop("thin should be positive")
+  if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
+  if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
+  if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
+  if(length(phybreak.object$d$nSNPs)>1 & keepphylo >0 ) {
+    warning("Multiple genes detected, keepphylo set to zero!")
+    keepphylo <- 0
+  }
   
-    ### create room in s to add the new posterior samples
-    s.post <- list(nodetimes = with(phybreak.object, cbind(s$nodetimes, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodehosts = with(phybreak.object, 
-        cbind(s$nodehosts, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodeparents = with(phybreak.object, cbind(s$nodeparents, 
-        matrix(NA, nrow = 3 * p$obs - 1, ncol = nsample))), mu = c(phybreak.object$s$mu, rep(NA, nsample)), mG = c(phybreak.object$s$mG, 
-        rep(NA, nsample)), mS = c(phybreak.object$s$mS, rep(NA, nsample)), slope = c(phybreak.object$s$slope, rep(NA, nsample)), 
-        logLik = c(phybreak.object$s$logLik, rep(NA, nsample)))
-    
-    .build.pbe(phybreak.object)
-    
-    curtime <- Sys.time()
-    
-    for (sa in tail(1:length(s.post$mu), nsample)) {
-      
-      if(Sys.time() - curtime > 10) {
-        cat(paste0("sample ", sa, ": logLik = ", 
-                   round(.pbe0$logLikgen + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
-                   "; mu = ", signif(.pbe0$p$mu, 3), 
-                   "; mean.gen = ", signif(.pbe0$p$mean.gen, 3),
-                   "; mean.sample = ", signif(.pbe0$p$mean.sample, 3),
-                   "; parsimony = ", phangorn::parsimony(
-                     phybreak2phylo(.pbe0$v), .pbe0$d$sequences),
-                   " (nSNPs = ", .pbe0$d$nSNPs, ")\n"
-        ))
-        curtime <- Sys.time()
-      }
-      
-      for (rep in 1:thin) {
-            for (i in sample(phybreak.object$p$obs)) {
-              if (runif(1) < 1 - keepphylo - phylotopology_only) 
-                .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + phylotopology_only)) {
-                  .updatehost.keepphylo(i)
-                } else .updatehost.topology(i)
-            }
-            if (phybreak.object$h$est.mG) 
-                .update.mG()
-            if (phybreak.object$h$est.mS) 
-                .update.mS()
-            if (phybreak.object$h$est.wh) 
-                .update.wh()
-            .update.mu()
+  Ngenes <- dim(phybreak.object$v$nodetimes)[1]
+  GeneNames <- paste("gene",1:Ngenes,sep="")
+  
+  s.post <- list(nodetimes =lapply(1:Ngenes, function(x) with(phybreak.object, cbind(s$nodetimes[[x]], matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample)))),
+                 nodehosts = with(phybreak.object, cbind(s$nodehosts, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))),
+                 nodeparents = lapply(1:Ngenes, function(x) with(phybreak.object, cbind(s$nodeparents[[x]], matrix(NA, nrow = 3 * p$obs - 1, ncol = nsample)))),
+                 mu = c(phybreak.object$s$mu, rep(NA, nsample)),
+                 mG = c(phybreak.object$s$mG, rep(NA, nsample)),
+                 mS = c(phybreak.object$s$mS, rep(NA, nsample)),
+                 slope = c(phybreak.object$s$slope, rep(NA, nsample)),
+                 logLikseq = with(phybreak.object, cbind(phybreak.object$s$logLikseq, matrix(NA, nrow =Ngenes, ncol = nsample))),
+                 rho = c(phybreak.object$s$rho, rep(NA, phybreak.object$h$est.rho*(nsample))),
+                 reassortment = with(phybreak.object, cbind(s$reassortment, matrix(rep(rep(NA, h$est.rho*(nsample)), p$obs), nrow = p$obs)))
+                )
+  names(s.post$nodetimes) <- GeneNames
+  names(s.post$nodeparents) <- GeneNames
+  
+  .build.pbe(phybreak.object)
+  
+  curtime <- Sys.time()
+  
+  for (sa in tail(1:length(s.post$mu), nsample)) { 
+    # mcmc Diagnostics
+    if(Sys.time() - curtime > 10) {
+      mcmcdiagnostics(.pbe0,sa,Ngenes)
+      curtime <- Sys.time()
+    }
+    for (rep in 1:thin) {
+      if (phybreak.object$h$est.rho) .update.rho()   # Set hosts in which gene reassortment possibly occured.
+      for (i in sample(phybreak.object$p$obs)) {
+        if (runif(1) < 1 - keepphylo - phylotopology_only) {
+          .updatehost(i) 
+        } else if (runif(1) < keepphylo/(keepphylo + phylotopology_only)) {
+          .updatehost.keepphylo(i)
+        } else {
+          .updatehost.topology(i)
         }
-        s.post$nodetimes[, sa] <- tail(.pbe0$v$nodetimes, -phybreak.object$p$obs)
-        s.post$nodehosts[, sa] <- tail(.pbe0$v$nodehosts, -phybreak.object$p$obs)
-        s.post$nodeparents[, sa] <- .pbe0$v$nodeparents
+      }
+      if (phybreak.object$h$est.mG)
+        .update.mG()
+      if (phybreak.object$h$est.mS)
+        .update.mS()
+      if (phybreak.object$h$est.wh)
+        .update.wh()
+      .update.mu()
+    }
+    
+    for (gene in 1:Ngenes) {
+      s.post$nodetimes[[gene]][, sa]  <- tail(.pbe0$v$nodetimes[gene, ], -phybreak.object$p$obs)
+      s.post$nodeparents[[gene]][, sa] <- .pbe0$v$nodeparents[gene, ]
+      if (gene == 1){
         s.post$mu[sa] <- .pbe0$p$mu
+        s.post$logLikseq[, sa] <- .pbe0$logLikseq + .pbe0$logLiksam  +.pbe0$logLikgen + .pbe0$logLikcoal
+        s.post$nodehosts[, sa] <- tail(.pbe0$v$nodehosts, -phybreak.object$p$obs)
         s.post$mG[sa] <- .pbe0$p$mean.gen
         s.post$mS[sa] <- .pbe0$p$mean.sample
         s.post$slope[sa] <- .pbe0$p$wh.slope
-        s.post$logLik[sa] <- .pbe0$logLikseq + .pbe0$logLiksam + +.pbe0$logLikgen + .pbe0$logLikcoal
+        if(Ngenes > 1 & .pbe0$h$est.rho){
+          s.post$rho[sa] <- .pbe0$p$rho
+          s.post$reassortment[, sa] <- .pbe0$v$reassortment
+        }
+      }
     }
-    
-    res <- .destroy.pbe(s.post)
-    
-    
-    return(res)
-    
+  }
+  
+  res <- .destroy.pbe(s.post)
+  return(res)
 }
