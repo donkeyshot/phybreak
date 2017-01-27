@@ -188,15 +188,14 @@ get.phylo <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
     warning("requested 'samplenr' not available; current state used")
     samplenr <- 0
   }
-  
   ### make tree
   if (samplenr == 0) {
     return(phybreak2phylo(phybreak.object$v, phybreak.object$d$names, simmap)) 
   } else {
     vars <- with(phybreak.object, 
                  list(
-                   nodetimes = c(v$nodetimes[v$nodetypes == "s"], s$nodetimes[, samplenr]),
-                   nodeparents = s$nodeparents[, samplenr],
+                   nodetimes = matrix(c(v$nodetimes[v$nodetypes == "s"], s$nodetimes[, samplenr]),nrow = 1), 
+                   nodeparents = matrix(s$nodeparents[, samplenr],nrow = 1),
                    nodehosts = c(v$nodehosts[v$nodetypes == "s"], s$nodehosts[, samplenr]),
                    nodetypes = v$nodetypes
                  ))
