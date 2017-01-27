@@ -39,7 +39,7 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
       mcmcdiagnostics(.pbe0,rep,Ngenes)
       curtime <- Sys.time()
     }
-    if (phybreak.object$h$est.wh) .update.rho()
+    if (phybreak.object$h$est.wh) .update.rho()      # Assign reassortment events to hosts
     for (i in sample(phybreak.object$p$obs)) {
       if (runif(1) < 1 - keepphylo)                  # If this is true, a new phylogeny + transmission tree is chosen
         .updatehost(i) else .updatehost.keepphylo(i) # Else a new trans tree is chosen while keeping phylo.
@@ -51,9 +51,6 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
       .update.mS()
     if (phybreak.object$h$est.wh)
       .update.wh()
-    #if (phybreak.object$h$est.wh)
-    #  .update.rho()
-    
     .update.mu()
   }
   
@@ -62,9 +59,9 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
   return(res)
 }
 
-## Function for displaying mcmc diagnostics given environment .pbe0.
+## Function for displaying mcmc diagnostics given environment .pbe0, current mcmc cycle and the number of genes
 # Called by burnin-phybreak.R and sample-phybreak.R
-mcmcdiagnostics <- function(envir,cycle,Ngenes){
+mcmcdiagnostics <- function(envir, cycle, Ngenes){
   cat(paste0("cycle ", cycle, ": logLik = ",
              round(sum(envir$logLikseq) + envir$logLiksam + envir$logLikgen + envir$logLikcoal, 2),
              "; mu = ", signif(envir$p$mu, 3),

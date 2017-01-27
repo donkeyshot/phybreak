@@ -7,13 +7,23 @@
   le <- environment()
   p <- .pbe1$p
   v <- .pbe1$v
+  Ngenes <- dim(v$nodetimes)[1]
   
   # phylotree in hostID
-  v$nodeparents[v$nodehosts == hostID] <- 
+  if (v$reassortment[hostID] == 0) { 
+    v$nodeparents[, v$nodehosts == hostID] <- 
     .sampletopology(which(v$nodehosts == hostID), 
-                    v$nodetimes[v$nodehosts == hostID], 
+                    v$nodetimes[1, v$nodehosts == hostID], 
                     v$nodetypes[v$nodehosts == hostID], 
                     hostID + 2 * p$obs - 1, p$wh.model)
+  } else {
+    v$nodeparents[ ,v$nodehosts == hostID] <- 
+      t(sapply(1:Ngenes,
+               function(x) .sampletopology(which(v$nodehosts == hostID),
+                                           v$nodetimes[x , v$nodehosts == hostID],
+                                           v$nodetypes[v$nodehosts == hostID],
+                                           hostID + 2 * p$obs - 1, p$wh.model)))
+  }
   
   ### update proposal environment
   .copy2pbe1("v", le)
@@ -25,7 +35,7 @@
   .propose.pbe("topology")
   
   ### calculate acceptance probability
-  logaccprob <- .pbe1$logLikseq - .pbe0$logLikseq + logproposalratio
+  logaccprob <- sum(.pbe1$logLikseq) - sum(.pbe0$logLikseq) + logproposalratio
   
   ### accept or reject
   if (runif(1) < exp(logaccprob)) {
