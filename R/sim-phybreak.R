@@ -129,7 +129,6 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
   names(seqs) <-  paste("SNPs_Gene",1:Ngenes, sep = "" )
   
   if(output.class == "obkData") {
-    treesout <- converttreesout(treesout,Ngenes)
     toreturn <- new("obkData",
                     individuals = data.frame(
                       infector = infectors,
@@ -139,7 +138,6 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
                     dna.individualID = hostnames, trees = treesout,
                     reassortment = reassortment)
     toreturn@dna@dna <- seqs
-    toreturn@trees <- treesout
   } else {
     toreturn <- list(
       sequences = seqs,
@@ -363,62 +361,20 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
   })
 }
 
-
-### Tree information should be modified for multiple genes in order to build an obkData object.
-### called by:
-# sim.phybreak
-converttreesout <- function(treesout, Ngenes){
-  trees <- c()
-  
-  for (i in 1:Ngenes){
-    trees$edge[[i]] <- treesout[[i]]$edge
-    trees$edge.length[[i]] <- treesout[[i]]$edge.length
-    trees$Nnode <- treesout[[1]]$Nnode
-    trees$tip.label <- treesout[[1]]$tip.label
-    trees$root.edge[[i]] <- treesout[[i]]$root.edge
-  }
-  
-  names(trees$edge) <-  paste("Gene",1:Ngenes, sep = "" )
-  names(trees$edge.length) <-  paste("Gene",1:Ngenes, sep = "" )
-  names(trees$root.edge) <-  paste("Gene",1:Ngenes, sep = "" )
-  class(trees) <- "multiPhylo"
-  
-  return(trees)
-}
 ### Extract a tree for gene x from either an Ngenes>1 obkData or phybreak object
 extractTree <- function(data.object, gene){
   
-  if (class(data.object) == "phybreakdata") {
+  if (class(data.object)[1] == "phybreak") {
     tree <- data.object
     tree$d$sequences <- data.object$d$sequences[[gene]]
-    tree$v$nodetimes <- data.object$v$nodetimes[gene, ]
-    tree$v$nodeparents <- data.object$v$nodeparents[gene,]
+    tree$v$nodetimes <- matrix(data.object$v$nodetimes[gene, ],nrow = 1)
+    tree$v$nodeparents <- matrix(data.object$v$nodeparents[gene,],nrow = 1)
     tree$s$nodetimes <- data.object$s$nodetimes[[gene]]
     tree$s$nodeparents <- data.object$s$nodeparents[[gene]]
-    tree$s$logLikseq <- data.object$s$logLikseq[genes, ]
+    tree$s$logLikseq <- data.object$s$logLikseq[gene, ]
     tree$d$nSNPs <- data.object$d$nSNPs[gene]
-  } else if (class(data.object) == "obkData"){
-    tree <- data.object
-    edge <- data.object@trees$edge[[gene]]
-    edge.length <-data.object@trees$edge.length[[gene]]
-    root.edge <-  data.object@trees$root.edge[[gene]]
-    DNA <- data.object@dna@dna[[gene]]
-    
-    # Build tree for a selected gene
-    trees <- list()
-    trees$edge <- edge
-    trees$edge.length <- edge.length  
-    trees$Nnode <- data.object@trees$Nnode
-    trees$tip.label <- data.object@trees$tip.label
-    trees$root.edge <- root.edge
-    class(trees) <- "phylo"
-    class(trees) <- "multiPhylo"
-    
-    tree@trees <- trees
-    tree@dna@dna <- NULL
-    tree@dna@dna$SNPs <- DNA
   } else {
-    stop("data object input is not of class 'obkData' or 'phybreakdata' ")
+    stop("class is not of 'phybreak' ")
   }
-  return(do)
+  return(tree)
 }
