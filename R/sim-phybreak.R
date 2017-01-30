@@ -45,21 +45,22 @@
 #' @examples 
 #' simulation <- sim.phybreak()
 #' @export
-sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
+sim.phybreak <- function(obsize = 50, popsize = NA, 
                          R0 = 1.5, shape.gen = 10, mean.gen = 1, 
                          shape.sample = 10, mean.sample = 1,
                          wh.model = 3, wh.slope = 1, 
-                         mu = 0.0001, sequence.length = rep(10000,Ngenes), output.class = c("list", "obkData"),
-                         simmap = FALSE, reassortment = FALSE, reassortment.prob = reassortment*0.1) {
-    
+                         mu = 0.0001, Ngenes = 1, sequence.length = rep(10000,Ngenes), 
+                         output.class = c("phybreakdata", "obkData"),
+                         simmap = FALSE, reassortment = 0) {
+  
   ### tests
-  output.class <- output.class[output.class %in% c("list", "obkData")][1]
+  output.class <- output.class[output.class %in% c("phybreakdata", "obkData")][1]
   if(is.na(output.class)) {
-    stop("output.class should be \"list\" or \"obkData\"")
+    stop("output.class should be \"phybreakdata\" or \"obkData\"")
   }
   if(output.class == "obkData" & !("OutbreakTools" %in% .packages(TRUE))) {
-    warning("package 'OutbreakTools' not installed: output.class is \"list\"")
-    output.class <- "list"
+    warning("package 'OutbreakTools' not installed: output.class is \"phybreakdata\"")
+    output.class <- "phybreakdata"
   }
   if(output.class == "obkData" & !("OutbreakTools" %in% .packages(FALSE))) {
     #    warning("package 'OutbreakTools' is not attached")
@@ -84,13 +85,10 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
   if ( length(sequence.length) != Ngenes ) {
     stop("ngenes not equal to the given number of sequence lengths")
   }
-  if (!is.logical(reassortment)) {
-    stop("reassortment should be TRUE or FALSE")
+  if (reassortment < 0 | reassortment > 1){
+    stop("reassortment probability should be between 0 and 1")
   }
-  if (reassortment.prob < 0 | reassortment.prob > 1){
-    stop("reassortment probabilty should be between 0 and 1")
-  }
-
+  
   ### simulate step by step
   if(is.na(obsize)) {
     res <- .sim.outbreak(popsize, R0, shape.gen, mean.gen, shape.sample, mean.sample)
@@ -102,22 +100,19 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
                               shape.sample, mean.sample) 
   }
   
-  if(reassortment == TRUE & Ngenes>1){
-    reassortment <- sample(c(0,1), obsize, replace = TRUE, prob = c(1-reassortment.prob, reassortment.prob))
-  } else {
-    reassortment <- rep(0, obsize)
-  }
+  reassortmentvector <- sample(c(1, 0), obsize, replace = TRUE, 
+                               prob = c(reassortment, 1 - reassortment))
   
   # Simulate phylotree given a transmission tree
-  res <- .sim.phylotree(res, wh.model, wh.slope, Ngenes, reassortment)  
+  res <- .sim.phylotree(res, wh.model, wh.slope, Ngenes, reassortmentvector)  
   res <- .sim.sequences(res, mu, sequence.length, Ngenes) 
   hostnames <- paste0("host.", 1:obsize)
   
   ### make an obkData object 
   treesout <- vector('list',Ngenes)
-  for(i in 1:Ngenes) {treesout[[i]] <-phybreak2phylo(vars = res, samplenames = hostnames, simmap = simmap, gene = i)}
+  for(i in 1:Ngenes) {treesout[[i]] <- phybreak2phylo(vars = res, samplenames = hostnames, simmap = simmap, gene = i)}
   class(treesout) <- "multiPhylo" 
-  names(treesout) <-  paste("Gene",1:Ngenes, sep = "" )
+  names(treesout) <-  paste0("gene.",1:Ngenes )
   
   sampletimes <- res$sampletimes
   names(sampletimes) <- hostnames
@@ -126,7 +121,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
   infectors <- c("index", hostnames)[1 + res$infector]
   names(infectors) <- hostnames
   seqs <- res$SNPlist
-  names(seqs) <-  paste("SNPs_Gene",1:Ngenes, sep = "" )
+  names(seqs) <-  paste0("gene.",1:Ngenes )
   
   if(output.class == "obkData") {
     toreturn <- new("obkData",
@@ -136,7 +131,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
                       row.names = hostnames),
                     dna = list(SNPs = seqs[[1]] ), dna.date = as.Date(res$sampletimes, origin = "2000-01-01"),
                     dna.individualID = hostnames, trees = treesout,
-                    reassortment = reassortment)
+                    reassortment = reassortmentvector)
     toreturn@dna@dna <- seqs
   } else {
     toreturn <- list(
@@ -145,7 +140,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
       sim.infection.times = infectiontimes,
       sim.infectors = infectors,
       sim.tree = treesout,
-      reassortment = reassortment
+      reassortment = reassortmentvector
     )
     class(toreturn) <- "phybreakdata"
   }
@@ -239,11 +234,11 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
 ### calls:
 # .samplecoaltimes
 # .sampletopology
-.sim.phylotree <- function (sim.object, wh.model, wh.slope, Ngenes, reassortment) {
+.sim.phylotree <- function (sim.object, wh.model, wh.slope, Ngenes, reassortmentvector) {
   with(
     sim.object,
     {
-      nodeparents <- matrix(rep( rep(0,3*obs - 1), Ngenes), nrow = Ngenes )  # initialize nodes: will containsparent node in phylotree
+      nodeparents <- matrix(rep(0, (3*obs - 1) * Ngenes), nrow = Ngenes )  # initialize nodes: will containsparent node in phylotree
       nodetimes <- nodeparents        # initialize nodes: will contain time of node
       nodehosts <- nodeparents[1, ]   # initialize nodes: will contain host carrying the node
       nodetypes <- c(rep("s",obs), rep("c",obs - 1),
@@ -272,7 +267,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
       
       ## sample the times of the coalescence nodes
       for(i in 1:obs) {
-        if (reassortment[i] == 1){
+        if (reassortmentvector[i] == 1){
           for(j in 1:Ngenes) {
             nodetimes[j, nodehosts == i & nodetypes == "c"] <-   # change the times of the coalescence nodes in host i...
               nodetimes[j, i + 2*obs - 1] +                      # ...to the infection time +
@@ -309,7 +304,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
 ### called by:
 # sim.phybreak
 .sim.sequences <- function (sim.object, mu, sequence.length, Ngenes) {
-  if (Ngenes > 1) SNPList <- list() else SNPList <- c()
+  SNPList <- list()
   with(sim.object,{
     for (j in 1:Ngenes) {
       ### simulate the mutations on the phylotree
@@ -355,7 +350,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, Ngenes = 1,
       attr(nodestrains, "index") <- c(attr(nodestrains, "index")[-(1:4)], mutlocs)
       attr(nodestrains, "weight")[1:4] <- attr(nodestrains, "weight")[1:4] + tabulate(mutlocs, 4) - 1
       
-      SNPList[[j]] <- ape::as.DNAbin(nodestrains) 
+      SNPList[[j]] <- nodestrains
     }
     return(within(sim.object,{SNPlist <- SNPList}))
   })
