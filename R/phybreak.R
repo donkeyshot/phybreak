@@ -102,19 +102,20 @@
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
 phybreak <- function(data, times = NULL,
-         mu = NULL, gen.shape = 3, gen.mean = 1,
-         sample.shape = 3, sample.mean = 1, 
-         wh.model = 3, wh.slope = 1,
-         est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
-         est.sample.mean = TRUE, prior.mean.sample.mean = 1, prior.mean.sample.sd = Inf,
-         est.wh.slope = TRUE, prior.wh.shape = 3, prior.wh.mean = 1,
-         use.tree = FALSE) {
+                     mu = NULL, gen.shape = 3, gen.mean = 1,
+                     sample.shape = 3, sample.mean = 1, 
+                     wh.model = 3, wh.slope = 1,
+                     est.reassortment = FALSE, prior.shape1.rho = 1, prior.shape2.rho = 9,
+                     est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
+                     est.sample.mean = TRUE, prior.mean.sample.mean = 1, prior.mean.sample.sd = Inf,
+                     est.wh.slope = TRUE, prior.wh.shape = 3, prior.wh.mean = 1,
+                     use.tree = FALSE) {
   
   ###########################################
   ### check for correct classes and sizes ###
   ###########################################
   data <- testdataclass_phybreak(data, times)
-  if(use.tree) testfortree_phybreak(data)
+  if(use.tree) testfortree_phybreak(data)          # Should also work for Ngenes > 1 
   testargumentsclass_phybreak(environment())
   
   ### outbreak parameters ###
@@ -122,18 +123,19 @@ phybreak <- function(data, times = NULL,
   ########################
   ### first slot: data ###
   ########################
+  Ngenes <- length(data$sequences)         
   dataslot <- list()
   
   #names
-  if(inherits(data, "obkData")) {
-    dataslot$names <- OutbreakTools::get.individuals(data)
+  if(all(sapply(data,class)=="obkData")) {
+    dataslot$names <- OutbreakTools::get.individuals(data[[1]])
   } else {
     dataslot$names <- names(data$sample.times)
   }
-  
-  #sequences (SNP)
+  # Function should also work with Ngenes > 1 & class == "obkData"!
+  # sequences (SNP)
   SNP.sample <- c()
-  if(inherits(data, "obkData")) {
+  if(all(sapply(data,class) == "obkData")) {
     allgenes <- OutbreakTools::get.dna(data)
     for(i in 1:(OutbreakTools::get.nlocus(data))) {
       SNP.sample <- cbind(SNP.sample, as.character(allgenes[[i]]))
@@ -146,9 +148,10 @@ phybreak <- function(data, times = NULL,
   } else {
     dataslot$sequences <- data$sequences
   }
+  names(dataslot$sequences) <- paste0("gene", 1:Ngenes)
   
   #sample times
-  if(inherits(data, "obkData")) {
+  if(all(sapply(data,class) == "obkData")) {
     dataslot$sample.times <- OutbreakTools::get.dates(data, "dna")
   } else {
     dataslot$sample.times <- data$sample.times
@@ -156,17 +159,19 @@ phybreak <- function(data, times = NULL,
   names(dataslot$sample.times) <- dataslot$names
   
   #SNP count
-  SNPpatterns <- do.call(rbind, dataslot$sequences)
-  dataslot$nSNPs <- as.integer(
-    sum(apply(SNPpatterns, 2, 
-              function(x) {
-                max(0, length(unique(x[x < 5])) - 1)
-              }
-              ) * attr(dataslot$sequences, "weight")
-        )
+  for (gene in 1:Ngenes){
+    SNPpatterns <- do.call(rbind, dataslot$sequences[[gene]])
+    dataslot$nSNPs[[gene]] <- as.integer(
+      sum(
+        apply(SNPpatterns, 2,function(x) {max(0, length(unique(x[x < 5])) - 1)})*
+          attr(dataslot$sequences[[gene]], "weight")
+      )
     )
-  seqmat <- as.character(dataslot$sequences)
-
+  }
+  seqmat <- lapply(1:Ngenes, function(gene) as.character(dataslot$sequences[[gene]]))
+  rho <- est.reassortment*prior.shape1.rho/(prior.shape1.rho + prior.shape2.rho)
+  reassortment <- sample(c(0,1), length(dataslot$sample.times ), replace = TRUE, prob = c(1-rho,rho))*est.reassortment
+  
   ##############################
   ### third slot: parameters ###
   ##############################
@@ -178,27 +183,36 @@ phybreak <- function(data, times = NULL,
     shape.sample = sample.shape,
     shape.gen = gen.shape,
     wh.model = wh.model,
-    wh.slope = wh.slope
+    wh.slope = wh.slope,
+    rho = rho
   )
   
   ##############################
   ### second slot: variables ###
   ##############################
   if(inherits(data, "phybreakdata")) {
-    phybreakvariables <- transphylo2phybreak(data, resample = !use.tree, resamplepars = parameterslot)
+    phybreakvariables <- transphylo2phybreak(data, resample = !use.tree, resamplepars = parameterslot, ngenes = Ngenes, reassortment)
   } else {
-    phybreakvariables <- obkData2phybreak(data, resample = !use.tree, resamplepars = parameterslot)
+    phybreakvariables <- obkData2phybreak(data, resample = !use.tree, resamplepars = parameterslot, ngenes = Ngenes)
   }
   variableslot <- phybreakvariables$v
+  variableslot$reassortment <- reassortment
   dataslot$reference.date <- phybreakvariables$d$reference.date
   
   #################
   # parameters$mu #
   #################
   if(is.null(mu)) {
-    treelength <- with(variableslot, sum(nodetimes[nodeparents != 0] - nodetimes[nodeparents]))
-    curparsimony <- phangorn::parsimony(phybreak2phylo(variableslot), dataslot$sequences)
-    parameterslot$mu <- (curparsimony / ncol(seqmat)) / treelength / 0.75
+    tempmu <- rep(0,Ngenes)
+    variableslottemp <- variableslot
+    for (gene in 1:Ngenes) {
+      variableslottemp$nodetimes <- variableslot$nodetimes[gene, ]
+      variableslottemp$nodeparents <- variableslot$nodeparents[gene, ]
+      treelength <- with(variableslottemp, sum(nodetimes[nodeparents != 0] - nodetimes[nodeparents]))
+      curparsimony <- phangorn::parsimony(phybreak2phylo(variableslot, gene = gene), dataslot$sequences[[gene]])
+      tempmu[gene] <- (curparsimony / ncol(seqmat[[gene]])) / treelength / 0.75
+    }
+    parameterslot$mu <- sum(tempmu)
   } else {
     parameterslot$mu <- mu
   }
@@ -206,18 +220,21 @@ phybreak <- function(data, times = NULL,
   #################################
   ### fourth slot: helper input ###
   #################################
-  helperslot <- list(si.mu = if(dataslot$nSNPs == 0) 0 else 2.38*sqrt(trigamma(dataslot$nSNPs)),
+  helperslot <- list(si.mu = if(sum(dataslot$nSNPs) == 0) 0 else 2.38*sqrt(trigamma(sum(dataslot$nSNPs))),
                      si.wh = 2.38*sqrt(trigamma(parameterslot$obs - 1)),
-                     dist = distmatrix_phybreak(dataslot$sequences),
+                     dist = distmatrix_phybreak(dataslot$sequences,Ngenes),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
                      est.wh = est.wh.slope,
+                     est.rho = est.reassortment,
                      mG.av = prior.mean.gen.mean,
                      mG.sd = prior.mean.gen.sd,
                      mS.av = prior.mean.sample.mean,
                      mS.sd = prior.mean.sample.sd,
                      wh.sh = prior.wh.shape,
-                     wh.av = prior.wh.mean)
+                     wh.av = prior.wh.mean,
+                     rho.b1 = est.reassortment*prior.shape1.rho,
+                     rho.b2 = prior.shape2.rho)
   
   ###########################
   ### fifth slot: samples ###
@@ -230,9 +247,11 @@ phybreak <- function(data, times = NULL,
     mG = c(),
     mS = c(),
     slope = c(),
-    logLik = c()
+    logLik = c(),
+    rho = c(),
+    reassortment = c()
   )
-
+  
   ################################
   ### make the phybreak object ###
   ################################
@@ -242,7 +261,7 @@ phybreak <- function(data, times = NULL,
     p = parameterslot,
     h = helperslot,
     s = sampleslot
-    )
+  )
   
   class(res) <- c("phybreak", "list")
   
@@ -252,15 +271,20 @@ phybreak <- function(data, times = NULL,
 
 ### Test data class
 testdataclass_phybreak <- function(data, times) {
-  if(inherits(data, c("DNAbin", "phyDat", "matrix"))) {
+  
+  if(class(data) != "list" & inherits(data, c("DNAbin", "phyDat", "matrix"))) {    
+    Ngenes <- 1 
+    data <- phybreakdata(sequences = data, sample.times = times)
+  } else if (class(data) == "list" & all(lapply(data,class) %in% c("DNAbin", "phyDat", "matrix"))){
+    Ngenes <- length(data)
     data <- phybreakdata(sequences = data, sample.times = times)
   }
   
-  if(!inherits(data, c("obkData", "phybreakdata"))) {
+  if(!any(sapply(1:Ngenes, function(gene) inherits(data$sequences[[gene]], c("obkData", "phybreakdata")))) == FALSE) {
     stop("data should be of class \"obkData\" or \"phybreakdata\"")
   }
-  
-  if(inherits(data, "obkData")) {
+  # Make sure that within a list everything is either of class "obkData or "phybreakdata
+  if(inherits(data$sequences[[1]], "obkData")) {
     if(!("OutbreakTools" %in% .packages(TRUE))) {
       stop("package 'OutbreakTools' not installed, while data-class is \"obkData\"")
     }
@@ -268,7 +292,6 @@ testdataclass_phybreak <- function(data, times) {
       warning("package 'OutbreakTools' is not attached")
     }
   }
-  
   return(data)
 }
 
@@ -299,7 +322,8 @@ testargumentsclass_phybreak <- function(env) {
       unlist(
         lapply(
           list(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-               wh.model, wh.slope, prior.mean.gen.mean, prior.mean.gen.sd,
+               wh.model, wh.slope, prior.shape1.rho, prior.shape2.rho,
+               prior.mean.gen.mean, prior.mean.gen.sd,
                prior.mean.sample.mean, prior.mean.sample.sd,
                prior.wh.shape, prior.wh.mean),
           class
@@ -308,24 +332,29 @@ testargumentsclass_phybreak <- function(env) {
     if(any(numFALSE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "wh.model", "wh.slope", "prior.mean.gen.mean", "prior.mean.gen.sd",
+                    "wh.model", "wh.slope", "prior.shape1.rho", "prior.shape2.rho",
+                    "prior.mean.gen.mean", "prior.mean.gen.sd",
                     "prior.mean.shape.mean", "prior.mean.shape.sd",
-                    "prior.wh.shape", "prior.wh.mean")[numFALSE],
+                    "prior.wh.shape", "prior.wh.mean",
+                    "prior.rho")[numFALSE],
                   " should be numeric"))
     }
     numNEGATIVE <- 
       c(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-        wh.model, wh.slope, prior.mean.gen.mean, prior.mean.gen.sd,
+        wh.model, wh.slope, prior.shape1.rho, prior.shape2.rho,
+        prior.mean.gen.mean, prior.mean.gen.sd,
         prior.mean.sample.mean, prior.mean.sample.sd,
         prior.wh.shape, prior.wh.mean) <= 0
     if(any(numNEGATIVE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "wh.model", "wh.slope", "prior.mean.gen.mean", "prior.mean.gen.sd",
+                    "wh.model", "wh.slope",  "prior.shape1.rho", "prior.shape2.rho",
+                    "prior.mean.gen.mean", "prior.mean.gen.sd",
                     "prior.mean.shape.mean", "prior.mean.shape.sd",
                     "prior.wh.shape", "prior.wh.mean")[numNEGATIVE],
                   " should be positive"))
     }
+    
     logFALSE <- 
       unlist(
         lapply(
@@ -335,17 +364,17 @@ testargumentsclass_phybreak <- function(env) {
       ) != "logical"
     if(any(logFALSE)) {
       stop(paste0("parameters ",
-                  c("est.gen.mean", "est.sample.mean", "est.wh.slope", "use.tree")[logFALSE],
+                  c("est.gen.mean", "est.sample.mean", "est.wh.slope","est.reassortment", "use.tree")[logFALSE],
                   " should be logical"))
     }
   })
 }
 
-
-
 ### pseudo-distance matrix between sequences given SNP data
-distmatrix_phybreak <- function(sequences) {
+distmatrix_phybreak <- function(sequences,Ngenes) {
   
+  # Fuse all genes
+  sequences <- phangorn::as.phyDat(do.call(cbind,lapply(1:Ngenes,function(gene) as.character(sequences[[gene]]))))
   # count SNPs excluding "n"
   res <- as.matrix(phangorn::dist.hamming(sequences, exclude = "pairwise", ratio = FALSE))
   
@@ -359,7 +388,6 @@ distmatrix_phybreak <- function(sequences) {
                        function(x, y) sum((seqs_n[x,] | seqs_n[y,]) * attr(sequences, "weight"))
                      )) * nscore
   
-
   #add 1 to avoid division by 0, and make distances proportional
   return((res + 1) / max(res + 1))
 }
