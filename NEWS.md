@@ -1,3 +1,14 @@
+# phybreak 0.1.1.9005
+
+## Minor Changes
+
+* Customize plot labels in plotTrans
+
+## BUG FIXES
+
+* Correct on-screen log-likelihood during MCMC
+
+
 # phybreak 0.1.1.9004
 
 ## BUG FIXES
