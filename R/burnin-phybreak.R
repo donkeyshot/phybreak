@@ -36,7 +36,7 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
   for (rep in 1:ncycles) {
     if(Sys.time() - curtime > 10) {
       cat(paste0("cycle ", rep, ": logLik = ", 
-                   round(.pbe0$logLikgen + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
+                   round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
                    "; mu = ", signif(.pbe0$p$mu, 3), 
                    "; mean.gen = ", signif(.pbe0$p$mean.gen, 3),
                    "; mean.sample = ", signif(.pbe0$p$mean.sample, 3),

@@ -219,7 +219,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
                              ((par("xaxp")[3] + 1) * par("xaxp")[2] + par("xaxp")[1]) / par("xaxp")[3]), "1970-01-01")  
                  } else TRUE, 
                  cex.axis = axis.cex),
-            graphicalparameters("axis", ...)
+            graphicalparameters("axis", 1, ...)
             )
           )
 
@@ -227,7 +227,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
   do.call(title,
           c(list(xlab = c(xlab, graphicalparameters("title", ...)),
                  line = par("mar")[1]*5/8),
-            graphicalparameters("title", ...)
+            graphicalparameters("title", 1, ...)
             )
           )
   
@@ -241,17 +241,25 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
                    y = plotrank[i] + 0.3 * c(widths, -rev(widths)),
                    col = polygon.col, 
                    border = polygon.border),
-              graphicalparameters("polygon", ...)
+              graphicalparameters("polygon", 1, ...)
               )
             )
-    do.call(text,
-            c(list(x = max(samtimes) + 10 * tstep,
-                   y = plotrank[i],
-                   labels = hosts[i], 
-                   adj = label.adj, 
-                   cex = label.cex),
-              graphicalparameters("label", ...)))
+#     do.call(text,
+#             c(list(x = max(samtimes) + 10 * tstep,
+#                    y = plotrank[i],
+#                    labels = hosts[i], 
+#                    adj = label.adj, 
+#                    cex = label.cex),
+#               graphicalparameters("label", timedorder, ...)))
   }
+  do.call(text,
+          c(list(x = max(samtimes) + 10 * tstep,
+                 y = plotrank,
+                 labels = hosts, 
+                 adj = label.adj, 
+                 cex = label.cex),
+            graphicalparameters("label", timedorder, ...)))
+  
   
   ### Horizontal lines
   do.call(segments,
@@ -259,7 +267,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
                  y0 = plotrank,
                  x1 = max(samtimes),
                  lty = line.lty),
-            graphicalparameters("line", ...)
+            graphicalparameters("line", 1, ...)
             )
           )
   
@@ -272,7 +280,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
                  length = arrow.length, 
                  col = arrow.colours[infectors != "index"], 
                  code = 1),
-            graphicalparameters("arrow", ...)
+            graphicalparameters("arrow", 1, ...)
             )
           )
   do.call(arrows,
@@ -283,7 +291,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
                  length = arrow.length, 
                  col = arrow.colours[infectors == "index"], 
                  code = 2),
-            graphicalparameters("arrow", ...)
+            graphicalparameters("arrow", 1, ...)
             )
           )
   
@@ -294,7 +302,7 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
                  pch = sample.pch, 
                  lwd = sample.lwd, 
                  cex = sample.cex),
-            graphicalparameters("sample", ...)
+            graphicalparameters("sample", 1, ...)
             )
           )
 }
@@ -360,9 +368,10 @@ rankhostsforplot <- function(hosts, infectors) {
 }
 
 
-graphicalparameters <- function(which, ...) {
+graphicalparameters <- function(which, timedorder, ...) {
   res <- list(...)
   res <- res[grep(paste0(which, "."), names(res))]
+  res <- lapply(res, function(x) rep_len(x, length(timedorder))[timedorder])
   names(res) <- substring(names(res), nchar(which) + 2)
   return(res)
 }
