@@ -49,24 +49,25 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
   ##########################################################
   ### testing the input: first the essential information ###
   ##########################################################
-  if(class(sequences) != "list" & !any(class(sequences) %in% c("DNAbin", "phyDat", "matrix"))) {
+  if(inherits(sequences, "list")) {
+    classtest <- all(sapply(sequences, inherits, what = c("DNAbin", "phyDat", "matrix")))
+    if(is.null(names(sequences))) names(sequences) <- paste0("gene.", 1:length(sequences))
+  } else {
+    classtest <- inherits(sequences, what = c("DNAbin", "phyDat", "matrix")) &
+      sequences <- list(gene.1 = sequences)
+  }
+  if(!classtest) {
     stop("sequences should be of class \"DNAbin\", \"phyDat\", or \"character\"")
   }
-  if(class(sequences) == "list") {Ngenes <- length(sequences)} else {Ngenes <- 1}
-  if(inherits(sequences, "matrix") && !inherits(sequences[1], "character")) {
+  if(any(sapply(sequences, function(x) inherits(x, "matrix") && !inherits(x[1], "character")))) {
     stop("sequences matrix should contain \"character\" elements")
   }
-  if(all(lapply(sequences,class) == "DNAbin")) {
-    Ngenes <- length(sequences)
-    sequences <- lapply(1:Ngenes, function(gene) phangorn::as.phyDat(sequences[[gene]]))
-  }
-  if(all(lapply(sequences,class) == "phyDat")) {
-    sequences <- lapply(1:Ngenes, function(gene) as.character(sequences[[gene]]))
-  }
+  sequences <- lapply(sequences, phangorn::as.phyDat)
+  sequences <- lapply(sequences, as.character)
   if(!inherits(sample.times, c("Date", "numeric", "integer"))) {
     stop("sample.times should be numeric or of class \"Date\"")
   }
-  if(all(lapply(sequences,nrow) != length(sample.times))) {
+  if(all(sapply(sequences, nrow) != length(sample.times))) {
     stop("numbers of sequences and sample.times don't match")
   }
   if(!is.null(host.names)) {
@@ -81,36 +82,57 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
       warning("names in sample.times don't match host.names and are therefore overwritten")
       names(sample.times) <- host.names
     }
-    if(any(sapply(1:Ngenes, function(gene) is.null(row.names(sequences[[gene]]))))) {
-      for (gene in 1:Ngenes) { row.names(sequences[[gene]]) <- host.names }
-    } else if (any(row.names(sequences) %in% host.names)) {
-      for (gene in 1:Ngenes) {sequences <- sequences[[gene]][host.names, ] }
-    } else {
-      warning("names in sequences don't match host.names and are therefore overwritten")
-      for (gene in 1:Ngenes) {row.names(sequences[[gene]]) <- host.names}
+    warn <- FALSE
+    for(gene in 1:length(sequences)) {
+      if(is.null(row.names(sequences[[gene]]))) {
+        row.names(sequences[[gene]]) <- host.names
+      } else if (all(row.names(sequences[[gene]]) %in% host.names)) {
+        sequences[[gene]] <- sequences[[gene]][host.names, ]
+      } else {
+        warn <- TRUE
+        row.names(sequences[[gene]]) <- host.names
+      }
     }
-  } else if(!any(sapply(1:Ngenes, function(gene) is.null(row.names(sequences[[gene]]))))) {
-    host.names <- row.names(sequences[[1]])
-    if(is.null(names(sample.times))) {
-      names(sample.times) <- host.names
-    } else if (all(names(sample.times) %in% host.names)) {
-      sample.times <- sample.times[host.names]
-    } else {
-      warning("names in sample.times don't match sequence names and are therefore overwritten")
-      names(sample.times) <- host.names
-    }
-  } else if(!is.null(names(sample.times))) {
-    host.names <- names(sample.times)
-    for (gene in 1:Ngenes) {row.names(sequences[[gene]]) <- host.names}
+    if(warn) warning("names in sequences don't match host.names and are therefore overwritten")
   } else {
-    host.names <- paste0("host.", 1:length(sample.times))
-    for (gene in 1:Ngenes) {row.names(sequences[[gene]]) <- host.names}
-    names(sample.times) <- host.names
+    namedsequences <- sapply(sequences, function(gene) !is.null(row.names(gene)))
+    if(any(namedsequences)) {
+      host.names <- row.names(sequences[[which(namedsequences)[1]]])
+      if(is.null(names(sample.times))) {
+        names(sample.times) <- host.names
+      } else if (all(names(sample.times) %in% host.names)) {
+        sample.times <- sample.times[host.names]
+      } else {
+        warning("names in sample.times don't match sequence names and are therefore overwritten")
+        names(sample.times) <- host.names
+      }
+      warn <- FALSE
+      for(gene in 1:length(sequences)) {
+        if(!namedsequences[gene]) {
+          row.names(sequences[[gene]]) <- host.names
+        } else if (all(row.names(sequences[[gene]]) %in% host.names)) {
+          sequences[[gene]] <- sequences[[gene]][host.names, ]
+        } else {
+          warn <- TRUE
+          row.names(sequences[[gene]]) <- host.names
+        }
+      }
+      if(warn) warning("names in different genes are not the same; some are therefore overwritten")
+    }
+    else if(!is.null(names(sample.times))) {
+      host.names <- names(sample.times)
+      for (gene in 1:length(sequences)) {row.names(sequences[[gene]]) <- host.names}
+    } else {
+      host.names <- paste0("host.", 1:length(sample.times))
+      for (gene in 1:length(sequences)) {row.names(sequences[[gene]]) <- host.names}
+      names(sample.times) <- host.names
+    }
   }
   
   #################################################
   ### place essential information in outputlist ###
   #################################################
+  Ngenes <- length(sequences)
   for (gene in 1:Ngenes) {
     if(length(setdiff(sequences[[gene]],c("a","c","g","t")))) warning("all nucleotides other than actg are turned into n")
     sequences[[gene]][sequences[[gene]] != "a" & sequences[[gene]] != "c" & 
