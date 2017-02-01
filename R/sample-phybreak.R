@@ -35,7 +35,6 @@ sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2,phyl
     keepphylo <- 0
   }
   
-<<<<<<< HEAD
   Ngenes <- dim(phybreak.object$v$nodetimes)[1]
   GeneNames <- paste("gene",1:Ngenes,sep="")
   
