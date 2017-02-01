@@ -44,7 +44,7 @@
 #' dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 #' @export
 phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infection.times = NULL,
-                         sim.infectors = NULL, sim.tree = NULL) {
+                         sim.infectors = NULL, sim.tree = NULL, sim.reassortment = NULL) {
   
   ##########################################################
   ### testing the input: first the essential information ###
@@ -202,6 +202,27 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
     }
     res <- c(res, list(sim.tree = sim.tree))
   }
+  if(!is.null(sim.reassortment)) {
+    if(inherits(sim.reassortment, c("numeric", "integer"))) {
+      sim.reassortment <- sim.reassortment != 0
+    }
+    if(!inherits(sim.reassortment, c("logical"))) {
+      stop("sim.reassortment should be logical or numeric (0 indicating no reassortment)")
+    }
+    if(length(sim.reassortment) != length(sample.times)) {
+      stop("length of sim.reassortment does not match number of hosts")
+    }
+    if(is.null(names(sim.reassortment))) {
+      names(sim.reassortment) <- host.names
+    } else if (all(names(sim.reassortment) %in% host.names)) {
+      sim.reassortment <- sim.reassortment[host.names]
+    } else {
+      warning("names in sim.reassortment don't match host.names and are therefore overwritten")
+      names(sim.reassortment) <- host.names
+    }
+    res <- c(res, list(sim.reassortment = sim.reassortment))
+  }
+  
   
   class(res) <- "phybreakdata"
   return(res)

@@ -100,7 +100,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                               shape.sample, mean.sample) 
   }
   
-  reassortmentvector <- sample(c(1, 0), obsize, replace = TRUE, 
+  reassortmentvector <- sample(c(TRUE, FALSE), obsize, replace = TRUE, 
                                prob = c(reass.prob, 1 - reass.prob))
   
   # Simulate phylotree given a transmission tree
@@ -138,7 +138,8 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
       sample.times = sampletimes,
       sim.infection.times = infectiontimes,
       sim.infectors = infectors,
-      sim.tree = treesout
+      sim.tree = treesout,
+      sim.reassortment = reassortmentvector
     )
     class(toreturn) <- "phybreakdata"
   }
@@ -265,7 +266,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
       
       ## sample the times of the coalescence nodes
       for(i in 1:obs) {
-        if (reassortmentvector[i] == 1){
+        if (reassortmentvector[i]){
           for(j in 1:Ngenes) {
             nodetimes[j, nodehosts == i & nodetypes == "c"] <-   # change the times of the coalescence nodes in host i...
               nodetimes[j, i + 2*obs - 1] +                      # ...to the infection time +

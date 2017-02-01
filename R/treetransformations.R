@@ -248,6 +248,12 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
       stop("using the input tree does not work with these trees")
     }
     nodehosts <- nodehosts[1, ]
+    
+    #reassortment in hosts with different minitrees
+    hostreassortment[unique(nodehosts[rowSums(t(nodetimes) == nodetimes[1, ]) != Ngenes])] <- TRUE
+    if(!is.null(vars$sim.reassortment)) {
+      hostreassortment <- vars$sim.reassortment | hostreassortment
+    }
   }
   
   return(list(

@@ -108,7 +108,7 @@ phybreak <- function(dataset, times = NULL,
                      est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
                      est.sample.mean = TRUE, prior.mean.sample.mean = 1, prior.mean.sample.sd = Inf,
                      est.wh.slope = TRUE, prior.wh.shape = 3, prior.wh.mean = 1,
-                     reass.prob = 0, est.reassortment = FALSE, 
+                     reass.prob = NULL, est.reassortment = FALSE, 
                      prior.reass.shape1 = 1, prior.reass.shape2 = 9,
                      use.tree = FALSE) {
   
@@ -192,7 +192,7 @@ phybreak <- function(dataset, times = NULL,
     shape.gen = gen.shape,
     wh.model = wh.model,
     wh.slope = wh.slope,
-    reass.prob = reass.prob * (Ngenes > 1)
+    reass.prob = if(is.null(reass.prob)) 0 else reass.prob
   )
 
   ##############################
@@ -226,6 +226,22 @@ phybreak <- function(dataset, times = NULL,
   } else {
     parameterslot$mu <- mu
   }
+  
+  #########################
+  # parameters$reass.prob #
+  #########################
+  parameterslot$reass.prob <- sum(variableslot$hostreassortment)/parameterslot$obs
+  if(!is.null(reass.prob)) {
+    if(parameterslot$reass.prob > 0 && reass.prob == 0) {
+      if(est.reassortment) {
+        warning("sim.tree contains reassortment event: reass.prob not initialized at 0")
+      } else {
+        stop("sim.tree contains reassortment event: reass.prob cannot be 0")
+      }
+    } else {
+      parameterslot$reass.prob <- reass.prob
+    }
+  } 
   
   #################################
   ### fourth slot: helper input ###
