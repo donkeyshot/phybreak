@@ -51,7 +51,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                          wh.model = 3, wh.slope = 1, 
                          mu = 0.0001, Ngenes = 1, sequence.length = rep(10000,Ngenes), 
                          output.class = c("phybreakdata", "obkData"),
-                         simmap = FALSE, reassortment = 0) {
+                         simmap = FALSE, reass.prob = 0) {
   
   ### tests
   output.class <- output.class[output.class %in% c("phybreakdata", "obkData")][1]
@@ -85,8 +85,8 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   if ( length(sequence.length) != Ngenes ) {
     stop("ngenes not equal to the given number of sequence lengths")
   }
-  if (reassortment < 0 | reassortment > 1){
-    stop("reassortment probability should be between 0 and 1")
+  if (reass.prob < 0 | reass.prob > 1){
+    stop("reass.prob should be between 0 and 1")
   }
   
   ### simulate step by step
@@ -101,7 +101,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   }
   
   reassortmentvector <- sample(c(1, 0), obsize, replace = TRUE, 
-                               prob = c(reassortment, 1 - reassortment))
+                               prob = c(reass.prob, 1 - reass.prob))
   
   # Simulate phylotree given a transmission tree
   res <- .sim.phylotree(res, wh.model, wh.slope, Ngenes, reassortmentvector)  
@@ -130,8 +130,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                       date = as.Date(infectiontimes, origin = "2000-01-01"),
                       row.names = hostnames),
                     dna = list(SNPs = seqs[[1]] ), dna.date = as.Date(res$sampletimes, origin = "2000-01-01"),
-                    dna.individualID = hostnames, trees = treesout,
-                    reassortment = reassortmentvector)
+                    dna.individualID = hostnames, trees = treesout)
     toreturn@dna@dna <- seqs
   } else {
     toreturn <- list(
@@ -139,8 +138,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
       sample.times = sampletimes,
       sim.infection.times = infectiontimes,
       sim.infectors = infectors,
-      sim.tree = treesout,
-      reassortment = reassortmentvector
+      sim.tree = treesout
     )
     class(toreturn) <- "phybreakdata"
   }
