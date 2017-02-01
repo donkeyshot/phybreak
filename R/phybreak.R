@@ -10,21 +10,21 @@
 #' unless a complete tree is given in the data and should be used (\code{use.tree = TRUE}).
 #' It is also possible to provide only sequences as data, and sampling times separately.
 #' 
-#' @param data An object with sequences plus additional data.
+#' @param dataset An object with sequences plus additional data.
 #'  (class \code{'obkData'} or \code{'phybreakdata'}). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
 #'  or \code{'t'}, will be turned into \code{'n'}.  
 #'  
-#'  If the data are provided as an object of class \code{'obkData'}, these should contain sequences and sampling times 
+#'  If the dataset is provided as an object of class \code{'obkData'}, it should contain sequences and sampling times 
 #'  as metadata with these sequences. The object may also contain \code{infector} and infection \code{date} vectors in the
 #'  \code{individuals} slot, plus (at least) one tree in the \code{'trees'} slot (class \code{'multiPhylo'}).
 #'  
 #'  Data provided as an object of class \code{'phybreakdata'} contain \code{sequences} and \code{sampling.times},
-#'  and potentially \code{infection.times}, \code{infectors}, and \code{trees}. Prepare your data in this format
+#'  and potentially \code{infection.times}, \code{infectors}, and \code{trees}. Prepare your dataset in this format
 #'  by \code{\link{phybreakdata}} or by simulation with \code{\link{sim.phybreak}}.
 #'  
-#'  It is also possible to provide only sequences as data, (class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
+#'  It is also possible to provide only sequences as dataset, (class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
 #'  each row a host, each column a nucleotide), and corresponding sampling times in the separate \code{times} argument.
-#' @param times Vector of sampling times, needed if the data consist of only sequences. If the vector is named,
+#' @param times Vector of sampling times, needed if the dataset consists of only sequences. If the vector is named,
 #'   these names will be used to identify the hosts.
 #' @param mu Initial value for mutation rate (defined per site per unit of time). If \code{NULL} (default), then an initial
 #'   value is calculated by dividing the number of SNPs by the product: 0.75 times 'total sequence length' times 'sum of
@@ -101,21 +101,22 @@
 #' ### but not with additional data (future implementation)
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
-phybreak <- function(data, times = NULL,
+phybreak <- function(dataset, times = NULL,
                      mu = NULL, gen.shape = 3, gen.mean = 1,
                      sample.shape = 3, sample.mean = 1, 
                      wh.model = 3, wh.slope = 1,
-                     est.reassortment = FALSE, prior.shape1.rho = 1, prior.shape2.rho = 9,
                      est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
                      est.sample.mean = TRUE, prior.mean.sample.mean = 1, prior.mean.sample.sd = Inf,
                      est.wh.slope = TRUE, prior.wh.shape = 3, prior.wh.mean = 1,
+                     reass.prob = 0, est.reassortment = FALSE, 
+                     prior.reass.shape1 = 1, prior.reass.shape2 = 9,
                      use.tree = FALSE) {
   
   ###########################################
   ### check for correct classes and sizes ###
   ###########################################
-  data <- testdataclass_phybreak(data, times)
-  if(use.tree) testfortree_phybreak(data)          # Should also work for Ngenes > 1 
+  dataset <- testdataclass_phybreak(dataset, times)
+  if(use.tree) testfortree_phybreak(dataset)           
   testargumentsclass_phybreak(environment())
   
   ### outbreak parameters ###
@@ -123,54 +124,61 @@ phybreak <- function(data, times = NULL,
   ########################
   ### first slot: data ###
   ########################
-  Ngenes <- length(data$sequences)         
   dataslot <- list()
   
   #names
-  if(all(sapply(data,class)=="obkData")) {
-    dataslot$names <- OutbreakTools::get.individuals(data[[1]])
+  if(inherits(dataset, "obkData")) {
+    dataslot$names <- OutbreakTools::get.individuals(dataset)
+    Ngenes <- OutbreakTools::get.nlocus(dataset)
   } else {
-    dataslot$names <- names(data$sample.times)
+    dataslot$names <- names(dataset$sample.times)
+    Ngenes <- length(dataset$sequences)         
   }
-  # Function should also work with Ngenes > 1 & class == "obkData"!
+
   # sequences (SNP)
-  SNP.sample <- c()
-  if(all(sapply(data,class) == "obkData")) {
-    allgenes <- OutbreakTools::get.dna(data)
-    for(i in 1:(OutbreakTools::get.nlocus(data))) {
-      SNP.sample <- cbind(SNP.sample, as.character(allgenes[[i]]))
+  if(inherits(dataset, "obkData")) {
+    SNP.sample <- list()
+    warn <- FALSE
+    allgenes <- OutbreakTools::get.dna(dataset)
+    for(i in 1:(OutbreakTools::get.nlocus(dataset))) {
+      nextgene <- as.character(allgenes[[i]])
+      if(length(setdiff(nextgene, c("a","c","g","t")))) {
+        warn <- TRUE
+      }
+      nextgene[nextgene != "a" & nextgene != "c" & nextgene != "g" & nextgene != "t"] <- "n"
+      SNP.sample <- c(SNP.sample, list(phangorn::as.phyDat(nextgene)))
     }
-    if(length(setdiff(SNP.sample, c("a","c","g","t")))) {
+    if(warn) {
       warning("all nucleotides other than actg are turned into n")
     }
-    SNP.sample[SNP.sample != "a" & SNP.sample != "c" & SNP.sample != "g" & SNP.sample != "t"] <- "n"
-    dataslot$sequences <- phangorn::as.phyDat(SNP.sample)
+    names(SNP.sample) <- names(OutbreakTools::get.dna(dataset))
+    dataslot$sequences <- SNP.sample
   } else {
-    dataslot$sequences <- data$sequences
+    dataslot$sequences <- dataset$sequences
   }
-  names(dataslot$sequences) <- paste0("gene", 1:Ngenes)
-  
+
   #sample times
-  if(all(sapply(data,class) == "obkData")) {
-    dataslot$sample.times <- OutbreakTools::get.dates(data, "dna")
+  if(inherits(dataset, "obkData")) {
+    dataslot$sample.times <- OutbreakTools::get.dates(dataset, "dna")
   } else {
-    dataslot$sample.times <- data$sample.times
+    dataslot$sample.times <- dataset$sample.times
   }
   names(dataslot$sample.times) <- dataslot$names
   
   #SNP count
-  for (gene in 1:Ngenes){
-    SNPpatterns <- do.call(rbind, dataslot$sequences[[gene]])
-    dataslot$nSNPs[[gene]] <- as.integer(
+  dataslot$nSNPs <- c()
+  for(gene in dataslot$sequences) {
+    SNPpatterns <- do.call(rbind, gene)
+    dataslot$nSNPs <- c(dataslot$nSNPs, as.integer(
       sum(
-        apply(SNPpatterns, 2,function(x) {max(0, length(unique(x[x < 5])) - 1)})*
-          attr(dataslot$sequences[[gene]], "weight")
+        apply(SNPpatterns, 2,function(x) {
+          max(0, length(unique(x[x < 5])) - 1)
+          }
+        ) * attr(gene, "weight")
       )
-    )
+    ))
   }
-  seqmat <- lapply(1:Ngenes, function(gene) as.character(dataslot$sequences[[gene]]))
-  rho <- est.reassortment*prior.shape1.rho/(prior.shape1.rho + prior.shape2.rho)
-  reassortment <- sample(c(0,1), length(dataslot$sample.times ), replace = TRUE, prob = c(1-rho,rho))*est.reassortment
+  seqmat <- lapply(dataslot$sequences, as.character)
   
   ##############################
   ### third slot: parameters ###
@@ -184,35 +192,37 @@ phybreak <- function(data, times = NULL,
     shape.gen = gen.shape,
     wh.model = wh.model,
     wh.slope = wh.slope,
-    rho = rho
+    reass.prob = reass.prob * (Ngenes > 1)
   )
-  
+
   ##############################
   ### second slot: variables ###
   ##############################
-  if(inherits(data, "phybreakdata")) {
-    phybreakvariables <- transphylo2phybreak(data, resample = !use.tree, resamplepars = parameterslot, ngenes = Ngenes, reassortment)
+  if(inherits(dataset, "phybreakdata")) {
+    phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot)
   } else {
-    phybreakvariables <- obkData2phybreak(data, resample = !use.tree, resamplepars = parameterslot, ngenes = Ngenes)
+    phybreakvariables <- obkData2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot)
   }
   variableslot <- phybreakvariables$v
-  variableslot$reassortment <- reassortment
   dataslot$reference.date <- phybreakvariables$d$reference.date
-  
+
   #################
   # parameters$mu #
   #################
   if(is.null(mu)) {
-    tempmu <- rep(0,Ngenes)
-    variableslottemp <- variableslot
-    for (gene in 1:Ngenes) {
-      variableslottemp$nodetimes <- variableslot$nodetimes[gene, ]
-      variableslottemp$nodeparents <- variableslot$nodeparents[gene, ]
-      treelength <- with(variableslottemp, sum(nodetimes[nodeparents != 0] - nodetimes[nodeparents]))
-      curparsimony <- phangorn::parsimony(phybreak2phylo(variableslot, gene = gene), dataslot$sequences[[gene]])
-      tempmu[gene] <- (curparsimony / ncol(seqmat[[gene]])) / treelength / 0.75
-    }
-    parameterslot$mu <- sum(tempmu)
+    treelengths <- with(variableslot, 
+                        colSums(sapply(1:Ngenes, 
+                               function(x) {
+                                 nodetimes[x, nodeparents[x, ] != 0] -
+                                   nodetimes[x, nodeparents[x, ]]
+                                 })))
+    curparsimonies <- sapply(1:Ngenes,
+                             function(x) {
+                               phangorn::parsimony(phybreak2phylo(variableslot, gene = x),
+                                                   dataslot$sequences[[x]])
+                             })
+    sequencelengths <- sapply(seqmat, ncol)
+    parameterslot$mu <- sum(curparsimonies) / sum(sequencelengths * treelengths) / 0.75
   } else {
     parameterslot$mu <- mu
   }
@@ -222,19 +232,19 @@ phybreak <- function(data, times = NULL,
   #################################
   helperslot <- list(si.mu = if(sum(dataslot$nSNPs) == 0) 0 else 2.38*sqrt(trigamma(sum(dataslot$nSNPs))),
                      si.wh = 2.38*sqrt(trigamma(parameterslot$obs - 1)),
-                     dist = distmatrix_phybreak(dataslot$sequences,Ngenes),
+                     dist = distmatrix_phybreak(dataslot$sequences),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
                      est.wh = est.wh.slope,
-                     est.rho = est.reassortment,
+                     est.reass = est.reassortment & Ngenes > 1,
                      mG.av = prior.mean.gen.mean,
                      mG.sd = prior.mean.gen.sd,
                      mS.av = prior.mean.sample.mean,
                      mS.sd = prior.mean.sample.sd,
                      wh.sh = prior.wh.shape,
                      wh.av = prior.wh.mean,
-                     rho.b1 = est.reassortment*prior.shape1.rho,
-                     rho.b2 = prior.shape2.rho)
+                     reass.b1 = prior.reass.shape1,
+                     reass.b2 = prior.reass.shape2)
   
   ###########################
   ### fifth slot: samples ###
@@ -247,8 +257,8 @@ phybreak <- function(data, times = NULL,
     mG = c(),
     mS = c(),
     slope = c(),
+    reass = c(),
     logLik = c(),
-    rho = c(),
     reassortment = c()
   )
   
@@ -269,47 +279,39 @@ phybreak <- function(data, times = NULL,
 }
 
 
-### Test data class
-testdataclass_phybreak <- function(data, times) {
+### Test dataset class
+testdataclass_phybreak <- function(dataset, times) {
   
-  if(class(data) != "list" & inherits(data, c("DNAbin", "phyDat", "matrix"))) {    
-    Ngenes <- 1 
-    data <- phybreakdata(sequences = data, sample.times = times)
-  } else if (class(data) == "list" & all(lapply(data,class) %in% c("DNAbin", "phyDat", "matrix"))){
-    Ngenes <- length(data)
-    data <- phybreakdata(sequences = data, sample.times = times)
-  }
+  if(inherits(dataset, c("DNAbin", "phyDat", "matrix", "list"))) {    
+    dataset <- phybreakdata(sequences = dataset, sample.times = times)
+  } 
   
-  if(!any(sapply(1:Ngenes, function(gene) inherits(data$sequences[[gene]], c("obkData", "phybreakdata")))) == FALSE) {
-    stop("data should be of class \"obkData\" or \"phybreakdata\"")
-  }
-  # Make sure that within a list everything is either of class "obkData or "phybreakdata
-  if(inherits(data$sequences[[1]], "obkData")) {
+  if(inherits(dataset, "obkData")) {
     if(!("OutbreakTools" %in% .packages(TRUE))) {
-      stop("package 'OutbreakTools' not installed, while data-class is \"obkData\"")
+      stop("package 'OutbreakTools' not installed, while dataset-class is \"obkData\"")
     }
     if(!("OutbreakTools" %in% .packages(FALSE))) {
       warning("package 'OutbreakTools' is not attached")
     }
   }
-  return(data)
+  return(dataset)
 }
 
 ### Test for presence of tree
-testfortree_phybreak <- function(data) {
-  if(inherits(data, "phybreakdata")) {
-    if(is.null(data$sim.infection.times) | is.null(data$sim.infectors)) {
-      warning("transmission tree can only be used if provided in data; random tree will be generated")
+testfortree_phybreak <- function(dataset) {
+  if(inherits(dataset, "phybreakdata")) {
+    if(is.null(dataset$sim.infection.times) | is.null(dataset$sim.infectors)) {
+      warning("transmission tree can only be used if provided in dataset; random tree will be generated")
     }
-    if(is.null(data$sim.tree)) {
-      warning("phylogenetic tree can only be used if provided in data; random tree will be generated")
+    if(is.null(dataset$sim.tree)) {
+      warning("phylogenetic tree can only be used if provided in dataset; random tree will be generated")
     }
   } else {
-    if(is.null(OutbreakTools::get.dates(data, "individuals")) | is.null(OutbreakTools::get.data(data, "infector"))) {
-      warning("transmission tree can only be used if provided in data; random tree will be generated")
+    if(is.null(OutbreakTools::get.dates(dataset, "individuals")) | is.null(OutbreakTools::get.data(dataset, "infector"))) {
+      warning("transmission tree can only be used if provided in dataset; random tree will be generated")
     }
-    if(is.null(OutbreakTools::get.trees(data))) {
-      warning("phylogenetic tree can only be used if provided in data; random tree will be generated")
+    if(is.null(OutbreakTools::get.trees(dataset))) {
+      warning("phylogenetic tree can only be used if provided in dataset; random tree will be generated")
     }
   }
 }
@@ -322,7 +324,7 @@ testargumentsclass_phybreak <- function(env) {
       unlist(
         lapply(
           list(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-               wh.model, wh.slope, prior.shape1.rho, prior.shape2.rho,
+               wh.model, wh.slope, prior.reass.shape1, prior.reass.shape2,
                prior.mean.gen.mean, prior.mean.gen.sd,
                prior.mean.sample.mean, prior.mean.sample.sd,
                prior.wh.shape, prior.wh.mean),
@@ -332,23 +334,22 @@ testargumentsclass_phybreak <- function(env) {
     if(any(numFALSE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "wh.model", "wh.slope", "prior.shape1.rho", "prior.shape2.rho",
+                    "wh.model", "wh.slope", "prior.reass.shape1", "prior.reass.shape2",
                     "prior.mean.gen.mean", "prior.mean.gen.sd",
                     "prior.mean.shape.mean", "prior.mean.shape.sd",
-                    "prior.wh.shape", "prior.wh.mean",
-                    "prior.rho")[numFALSE],
+                    "prior.wh.shape", "prior.wh.mean")[numFALSE],
                   " should be numeric"))
     }
     numNEGATIVE <- 
       c(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-        wh.model, wh.slope, prior.shape1.rho, prior.shape2.rho,
+        wh.model, wh.slope, prior.reass.shape1, prior.reass.shape2,
         prior.mean.gen.mean, prior.mean.gen.sd,
         prior.mean.sample.mean, prior.mean.sample.sd,
         prior.wh.shape, prior.wh.mean) <= 0
     if(any(numNEGATIVE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "wh.model", "wh.slope",  "prior.shape1.rho", "prior.shape2.rho",
+                    "wh.model", "wh.slope",  "prior.reass.shape1", "prior.reass.shape2",
                     "prior.mean.gen.mean", "prior.mean.gen.sd",
                     "prior.mean.shape.mean", "prior.mean.shape.sd",
                     "prior.wh.shape", "prior.wh.mean")[numNEGATIVE],
@@ -371,10 +372,11 @@ testargumentsclass_phybreak <- function(env) {
 }
 
 ### pseudo-distance matrix between sequences given SNP data
-distmatrix_phybreak <- function(sequences,Ngenes) {
+distmatrix_phybreak <- function(sequences) {
   
-  # Fuse all genes
-  sequences <- phangorn::as.phyDat(do.call(cbind,lapply(1:Ngenes,function(gene) as.character(sequences[[gene]]))))
+  # concatenate all genes
+  sequences <- do.call(c, sequences)
+  
   # count SNPs excluding "n"
   res <- as.matrix(phangorn::dist.hamming(sequences, exclude = "pairwise", ratio = FALSE))
   

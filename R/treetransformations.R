@@ -144,17 +144,18 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
 }
 
 
-### vars should contain $sample.times
+### vars should contain $sequences and $sample.times
 ### vars may contain $sim.infection.times, $sim.infectors, and $sim.tree
 ### vars may contain $sample.hosts, but this is not yet used
 ### if resample = TRUE, then resamplepars should contain
 ###     $mean.sample, $shape.sample, $mean.gen, $shape.gen, $wh.model, $wh.slope
-transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL, ngenes = 1, reassortment = c()) {
+transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   
   ### extract variables
   refdate <- min(vars$sample.times)
   samtimes <- as.numeric(vars$sample.times - refdate)
   Nsamples <- length(samtimes)
+  Ngenes <- length(vars$sequences)
   hostnames <- names(vars$sample.times)
   ##### NB: adjustment needed for .rinftimes to deal with multiple samples #####
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
@@ -190,22 +191,26 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL, nge
   nodetypes <- c(rep("s", Nsamples), rep("c", Nsamples - 1),
                  rep("t", Nhosts))  #node type (sampling, coalescent, transmission)
   
+  ##initialize nodetimes with sampling and infection times
+  nodetimes <- matrix(rep(c(samtimes, rep(NA, Nsamples - 1), inftimes), each = Ngenes), nrow = Ngenes)
+  
+  ##initialize nodeparents 
+  nodeparents <- 0*nodetimes
+  
+  ##initialize reassortmentvector
+  hostreassortment <- rep(FALSE, Nhosts)
+
   if(is.null(vars$sim.tree) | resample) {
     ##nodehosts, coalescent nodes in hosts with secondary cases or multiple samples
     coalnodehosts <- sort(c(infectors, samhosts))
     coalnodehosts <- coalnodehosts[duplicated(coalnodehosts)]
     nodehosts <- c(samhosts, coalnodehosts, infectors)
     
-    ##initialize nodetimes with sampling and infection times
-    nodetimes <- matrix(rep(c(samtimes, rep(NA, Nsamples - 1), inftimes),ngenes), byrow = TRUE, nrow = ngenes)
-    
-    ##initialize nodeparents 
-    nodeparents <- 0*nodetimes
-    
     ##sample coalescent times and nodeparents
     for(i in 1:Nhosts) {
-      if (reassortment[i] == 1){
-        for(gene in 1:ngenes) {
+      hostreassortment[i] <- runif(1) < resamplepars$reass.prob
+      if (hostreassortment[i]) {
+        for(gene in 1:Ngenes) {
           nodetimes[gene, nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
             inftimes[i] +                      #...to the infection time +
             .samplecoaltimes(nodetimes[gene, nodehosts == i & nodetypes != "c"] -  inftimes[i],
@@ -219,23 +224,30 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL, nge
       } else {  
         nodetimes[ , nodehosts == i & nodetypes == "c"] <- matrix(rep(
           inftimes[i] +                     
-          .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c"] - inftimes[i],
-                           resamplepars$wh.model, resamplepars$wh.slope),
-          ngenes), nrow = ngenes, byrow = TRUE)
+            .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c"] - inftimes[i],
+                             resamplepars$wh.model, resamplepars$wh.slope),
+          each = Ngenes), nrow = Ngenes)
         
-        nodeparents[ ,nodehosts == i] <-matrix(rep(     
+        nodeparents[ ,nodehosts == i] <- matrix(rep(     
           .sampletopology(which(nodehosts == i), nodetimes[1, nodehosts == i], 
                           nodetypes[nodehosts == i], i + 2*Nsamples - 1, resamplepars$wh.model),
-          ngenes), nrow = ngenes, byrow = TRUE)
+          each = Ngenes), nrow = Ngenes)
       }
     }
   } else {
-    phytree <- vars$sim.tree
-    nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:Nsamples]),
-                   inftimes)
-    nodehosts_parents <- make_nodehostsparents(phytree$edge, samhosts, infectors) 
-    nodehosts <- nodehosts_parents[, 1]
-    nodeparents <- nodehosts_parents[, 2]
+    nodehosts <- nodeparents
+    for(gene in 1:Ngenes) {
+      phytree <- vars$sim.tree[[gene]]
+      nodetimes[gene, ] <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:Nsamples]),
+                     inftimes)
+      nodehosts_parents <- make_nodehostsparents(phytree$edge, samhosts, infectors) 
+      nodehosts[gene, ] <- nodehosts_parents[, 1]
+      nodeparents[gene, ] <- nodehosts_parents[, 2]
+    }
+    if(!all(rowSums(t(nodehosts) == nodehosts[1, ]) == Ngenes)) {
+      stop("using the input tree does not work with these trees")
+    }
+    nodehosts <- nodehosts[1, ]
   }
   
   return(list(
@@ -245,7 +257,8 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL, nge
     v = list(nodetimes = round(nodetimes, digits = 12),
              nodehosts = nodehosts,
              nodeparents = nodeparents,
-             nodetypes = nodetypes)
+             nodetypes = nodetypes,
+             hostreassortment = hostreassortment)
   ))
 }
 
@@ -257,7 +270,7 @@ obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   if(!resample) {
     inftimes <- OutbreakTools::get.dates(data, "individuals")
     infectors <- OutbreakTools::get.data(data, "infector")
-    tree <- OutbreakTools::get.trees(data)[[1]]  
+    tree <- OutbreakTools::get.trees(data)  
   } else {
     inftimes <- NULL
     infectors <- NULL
@@ -265,6 +278,7 @@ obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   }
   
   varslist <- list(
+    sequences = OutbreakTools::get.dna(data),
     sample.times = samtimes,
     sim.infection.times = inftimes,
     sim.infectors = infectors,
