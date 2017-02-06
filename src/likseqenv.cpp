@@ -15,12 +15,15 @@ using namespace Rcpp;
 // [[Rcpp::export(name=".likseqenv")]]
 double likseqenv(Environment pbenv, 
                  IntegerVector nodestochange, IntegerVector tips) {
+  List data = pbenv["d"];
   List vars = pbenv["v"];
   List pars = pbenv["p"];
   NumericVector likarray = pbenv["likarray"];
   IntegerVector SNPfreqs = pbenv["likarrayfreq"];
+  IntegerVector SNPgenes = pbenv["likarraygene"];
   IntegerVector nodeparents = vars["nodeparents"];
   NumericVector nodetimes = vars["nodetimes"];
+  int ngenes = data["ngenes"];
   double mu = pars["mu"];
   int obs = pars["obs"];
   int nSNPs = SNPfreqs.size();
@@ -29,7 +32,7 @@ double likseqenv(Environment pbenv,
   LogicalVector routefree(nodetimes.size());
   int curnode;
   int nextnode;
-  int rootnode = 0;
+  int rootnode = nodetimes.size() * ngenes;
   double edgelen;
   double totprob;
   double result;
@@ -42,15 +45,18 @@ double likseqenv(Environment pbenv,
     }
   }
   
-  for(int i = 0; i < nlens.size(); ++i) {
-    if(nodeparents[i] > 0) {
-      nlens[i] = nodetimes[i] - nodetimes[nodeparents[i]-1];
-    } else {
-      rootnode = i;
+  
+  for(int i = 0; i < 3*obs - 1; ++i) {
+    for(int j = 0; j < ngenes; ++j) {
+      if(nodeparents[ngenes * i + j] > 0) {
+        nlens[ngenes * i + j] = nodetimes[ngenes * i + j] - nodetimes[ngenes * (nodeparents[ngenes * i + j] - 1) + j];
+      } else {
+        rootnode = i;
+      }
     }
   }
   nextnode = 0;
-  while(nodeparents[nextnode] - 1 != rootnode) {
+  while(nodeparents[nextnode * ngenes] - 1 != rootnode) {
     ++nextnode;
   }
   rootnode = nextnode;
@@ -58,37 +64,43 @@ double likseqenv(Environment pbenv,
     routefree[i] = true;
   }
   for(int i = 0; i < nodestochange.size(); ++i) {
-    routefree[nodestochange[i] - 1] = false;
+    for(int j = 0; j < ngenes; ++j) {
+      routefree[ngenes * (nodestochange[i] - 1) + j] = false;
+    }
   }
   
   for(int i = 0; i < tips.size(); ++i) {
-    curnode = tips[i] - 1;
-    nextnode = nodeparents[curnode] - 1;
-    edgelen = nlens[curnode];
-    while(routefree[curnode] && nextnode != -1) {
-      if(nextnode < 2*obs - 1) {
-        for(int j = 0; j < nSNPs; ++j) {
-          totprob = likarray[curnode*nSNPs*4 + j*4];
-          for(int k = 1; k < 4; ++k) {
-            totprob += likarray[curnode*nSNPs*4 + j*4 + k];
+    for(int j = 0; j < ngenes; ++j) {
+      curnode = tips[i] - 1;
+      nextnode = nodeparents[ngenes * curnode + j] - 1;
+      edgelen = nlens[ngenes * curnode + j];
+      while(routefree[ngenes * curnode + j] && nextnode != -1) {
+        if(nextnode < 2*obs - 1) {
+          for(int k = 0; k < nSNPs; ++k) {
+            if(SNPgenes[k] - 1 == j) {
+              totprob = likarray[curnode*nSNPs*4 + k*4];
+              for(int l = 1; l < 4; ++l) {
+                totprob += likarray[curnode*nSNPs*4 + k*4 + l];
+              }
+              for(int l = 0; l < 4; ++l) {
+                likarray[(nextnode * nSNPs + k) * 4 + l] *=
+                  0.25*totprob + (likarray[(curnode * nSNPs + k) * 4 + l] -
+                  0.25*totprob)*exp(-mu*edgelen);
+              }
+            }
           }
-          for(int k = 0; k < 4; ++k) {
-            likarray[(nextnode * nSNPs + j) * 4 + k] *=
-              0.25*totprob + (likarray[(curnode * nSNPs + j) * 4 + k] -
-              0.25*totprob)*exp(-mu*edgelen);
-          }
+          curnode = nextnode;
+          edgelen = nlens[ngenes * curnode + j];
+          nextnode = nodeparents[ngenes * curnode + j] - 1;
+        } else {
+          edgelen += nlens[ngenes * nextnode + j];
+          nextnode = nodeparents[ngenes * nextnode + j] - 1;
         }
-        curnode = nextnode;
-        edgelen = nlens[curnode];
-        nextnode = nodeparents[curnode] - 1;
-      } else {
-        edgelen += nlens[nextnode];
-        nextnode = nodeparents[nextnode] - 1;
       }
+      routefree[ngenes * curnode + j] = true;
     }
-    routefree[curnode] = true;
   }
-  
+
   for(int j = 0; j < nSNPs; ++j) {
     SNPsums[j] = 0.25*likarray[(rootnode * nSNPs + j) * 4];
     for(int k = 1; k < 4; ++k) {

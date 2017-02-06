@@ -39,19 +39,20 @@
   h <- phybreak.obj$h
   v <- phybreak.obj$v  # Later defined again in the if branch, fix this.
   p <- phybreak.obj$p
-  Ngenes = length(d$nSNPs)
-  SNP <- lapply(1:Ngenes, function(x) t(matrix(unlist(d$sequences[[x]]), ncol =p$obs)))
-  SNPfr <- lapply(1:Ngenes,function(x) attr(d$sequences[[x]], "weight"))              
-  GeneNames <- paste("gene",1:Ngenes,sep="");    names(SNPfr)<- GeneNames; names(SNP) <- GeneNames # Doe ik hier nog wat mee, zo niet WEG!
+
+  SNP <- lapply(d$sequences, function(x) t(matrix(unlist(x), ncol = p$obs)))
+  SNPfr <- lapply(d$sequences, attr, which = "weight")              
+
   ### Jukes-Cantor: reduce diversity by naming each nucleotide by its frequency order, and grouping SNPs by same pattern across
   ### hosts
-  
-  fn <- function(snpvector) {match(snpvector, names(sort(table(snpvector), decreasing = TRUE)))}
-  snpreduced <- lapply(1:Ngenes, function(x) {apply(SNP[[x]], 2, fn)}); names(snpreduced) = GeneNames
+  fn <- function(snpvector) {
+    match(snpvector, names(sort(table(snpvector), decreasing = TRUE)))
+  }
+  snpreduced <- lapply(SNP, function(x) apply(x, 2, fn))
   snpfrreduced <- SNPfr
-  for(i in 1:Ngenes){ snpreduced[[i]][  SNP[[i]] == 16  ] <- 5 }  
-  
-  for(gene in 1:Ngenes){
+  likarraygene <- c()
+  lapply(1:d$ngenes, function(x) snpreduced[[x]][SNP[[x]] == 16] <<- 5)  
+  for(gene in 1:d$ngenes) {
     if (ncol(SNP[[gene]]) > 1) {
       for (i in (ncol(SNP[[gene]]) - 1):1) {
         for (j in length(snpfrreduced[[gene]]):(i + 1)) {
@@ -63,62 +64,40 @@
         }
       }
     }
+    likarraygene <- c(likarraygene, rep(gene, ncol(snpreduced[[gene]])))
   }
-  likarrayfreq    <- snpfrreduced  
-  Templikarrayfreq <- likarrayfreq
+  likarrayfreq <- unlist(snpfrreduced)  
+  snpreduced <- do.call(cbind, snpreduced)
   
-  # Initialize collection list and vectors
-  LikCollect <- list() 
-  LikCollect <- sapply(paste("gene", 1:Ngenes, sep = ""), function(x) NULL)
-  logLikcoal <- rep(0,Ngenes)
-  logLikseqCollect <- rep(0,Ngenes)
   
-  for(gene in 1:Ngenes){
-    ### initialize all dimensions of likarray
-    likarray <- array(1, dim = c(4, length(snpfrreduced[[gene]]), 2 * p$obs - 1)) # 3D array
-    likarrayfreq <- Templikarrayfreq[[gene]]
-    
-    # Note that nodehost will probably become a matrix.
-    v <- list(nodetimes = phybreak.obj$v$nodetimes[gene, ], nodehosts = phybreak.obj$v$nodehosts,
-              nodeparents = phybreak.obj$v$nodeparents[gene, ], nodetypes = phybreak.obj$v$nodetypes)
-    
-    
-    ### initialize likarray with observations on sampling nodes: 0 or 1
-    likarray[cbind(1, rep(1:length(snpfrreduced[[gene]]), p$obs), rep(1:p$obs, 
-                                                                      each = length(snpfrreduced[[gene]])))] <- 1 * t(snpreduced[[gene]] == 1 | snpreduced[[gene]] == 5)
-    likarray[cbind(2, rep(1:length(snpfrreduced[[gene]]), p$obs), rep(1:p$obs, 
-                                                                      each = length(snpfrreduced[[gene]])))] <- 1 * t(snpreduced[[gene]] == 2 | snpreduced[[gene]] == 5)
-    likarray[cbind(3, rep(1:length(snpfrreduced[[gene]]), p$obs), rep(1:p$obs, 
-                                                                      each = length(snpfrreduced[[gene]])))] <- 1 * t(snpreduced[[gene]] == 3 | snpreduced[[gene]] == 5)
-    likarray[cbind(4, rep(1:length(snpfrreduced[[gene]]), p$obs), rep(1:p$obs, 
-                                                                      each = length(snpfrreduced[[gene]])))] <- 1 * t(snpreduced[[gene]] == 4 | snpreduced[[gene]] == 5)
-    
-    ### complete likarray and calculate log-likelihood of sequences
-    .likseqenv(le, (p$obs + 1):(2 * p$obs - 1), 1:p$obs)
-    
-    
-    
-    LikCollect[[gene]] <- likarray 
-    logLikseqCollect[gene] <- logLikseq
-    Templikarrayfreq[[gene]] <- likarrayfreq
+  ### initialize all dimensions of all likarrays
+  likarray <- array(1, dim = c(4, length(likarrayfreq), 2 * p$obs - 1))
+
+  ### initialize likarrays with observations on sampling nodes: 0 or 1
+  for(nucleotide in 1:4) {
+    likarray[cbind(nucleotide, rep(1:length(likarrayfreq), p$obs), 
+                   rep(1:p$obs, each = length(likarrayfreq)))] <- 
+      1 * t(snpreduced == nucleotide | snpreduced == 5)
   }
-  v <- phybreak.obj$v
   
+  ### complete likarrays and calculate log-likelihood of sequences
+  .likseqenv(le, (p$obs + 1):(2 * p$obs - 1), 1:p$obs)
+  
+
   ### calculate the other log-likelihoods
   logLiksam <- .lik.sampletimes(p$shape.sample, p$mean.sample, v$nodetimes, v$nodetypes) 
   logLikgen <- .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes) 
-  logLikcoal<- .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes, v$reassortment) 
+  logLikcoal <- .lik.coaltimes(p$obs, d$ngenes, p$wh.model, p$wh.slope, p$reass.prob, 
+                              v$nodetimes, v$nodehosts, v$nodetypes, v$hostreassortment) 
   
-  logLikseq <- logLikseqCollect
-  likarray <- LikCollect
-  likarrayfreq <- Templikarrayfreq
-  
+
   ### copy everything into .pbe0
   .copy2pbe0("d", le)
   .copy2pbe0("h", le)
   .copy2pbe0("v", le)
   .copy2pbe0("p", le)
   .copy2pbe0("likarrayfreq", le)
+  .copy2pbe0("likarraygene", le)
   .copy2pbe0("likarray", le)
   .copy2pbe0("logLikseq", le)
   .copy2pbe0("logLiksam", le)
@@ -143,77 +122,49 @@
   .copy2pbe1("v", .pbe0)
   .copy2pbe1("p", .pbe0)
   
-  .pbe1$likarray <- lapply(1:length(.pbe0$d$nSNPs), function(gene) .pbe0$likarray[[gene]] +0) # make a true copy, not a pointer
+  .pbe1$likarray <- .pbe0$likarray + 0 # make a true copy, not a pointer
   .copy2pbe1("likarrayfreq", .pbe0)
-  .pbe1$logLikseq <- lapply(1:length(.pbe0$d$nSNPs), function(gene).pbe0$logLikseq[[gene]] + 0) 
+  .copy2pbe1("likarraygene", .pbe0)
+  .pbe1$logLikseq <- .pbe0$logLikseq + 0 # make a true copy, not a pointer
 }
 
 ## calculate the new log-likelihoods where necessary and adjust likarray. Argument f indicates which type of function it is
 ### called from called from: .updatepathA - .updatepathJ .update.mu, .update.mS, .update.mG, .update.wh calls: .likseqenv ##
 ### C++ function .liksampletimes .likgentimes .likcoaltimes
-.propose.pbe <- function(f) {
+.propose.pbe <- function(f, hosts = NULL) {
+  ### Making variables and parameters available within the function
   le <- environment()
+  d <- .pbe1$d
   v <- .pbe1$v
   p <- .pbe1$p
-  hostID <- .pbe0$hostID
-  Ngenes <- dim(v$nodetimes)[1]
-  chnodes <- vector(mode = "list", length = Ngenes)
-  nodetips <- chnodes
-  
+
   # If reassortment == 1, different number of chnodes may be chosen per gene and
   # nodetips order may vary between genes and sometimes different nodes are chosen!
   if (f == "phylotrans" || f == "topology") {
-    for (gene in 1:Ngenes) {
-      # identify changed nodes              #
-      chnodes[[gene]] <- which((v$nodeparents[gene, ] != .pbe0$v$nodeparents[gene, ]) |
-                                 (v$nodetimes[gene, ] != .pbe0$v$nodetimes[gene, ]))
-      chnodes[[gene]] <- unique(unlist(sapply(chnodes[[gene]], .ptr, pars = v$nodeparents[gene, ])))
-      chnodes[[gene]] <- chnodes[[gene]][chnodes[[gene]] > p$obs & chnodes[[gene]] < 2 * p$obs]
-      
-      # identify nodetips
-      nodetips[[gene]] <- c(match(chnodes[[gene]], v$nodeparents[gene, ]), 
-                            3 * p$obs - match(chnodes[[gene]], rev(v$nodeparents[gene, ])))
-      nodetips[[gene]][nodetips[[gene]] >= 2 * p$obs] <- match(nodetips[[gene]][nodetips[[gene]] >= 2 * p$obs],
-                                                               v$nodeparents[gene, ])
-      nodetips[[gene]] <- nodetips[[gene]][is.na(match(nodetips[[gene]], chnodes[[gene]]))]
-    }
+    # identify changed nodes              #
+    chnodes <- which(v$nodehosts %in% hosts)
+    chnodes <- unique(unlist(apply(v$nodeparents, 1, function(x) sapply(chnodes, .ptr, pars = x))))
+    chnodes <- chnodes[chnodes > p$obs & chnodes < 2 * p$obs]
+    
+    # identify nodetips
+    nodetips <- c(match(chnodes, v$nodeparents[1, ]), 
+                  3 * p$obs - match(chnodes, rev(v$nodeparents[1, ])))
+    nodetips[nodetips >= 2 * p$obs] <- 
+      match(nodetips[nodetips >= 2 * p$obs], v$nodeparents[1, ])
+    nodetips <- nodetips[is.na(match(nodetips, chnodes))]
     
   } else if (f == "mu") {
-    for(gene in 1:Ngenes) {chnodes[[gene]] <-(p$obs + 1):(2 * p$obs - 1)}
-    for(gene in 1:Ngenes) {nodetips[[gene]] <- 1:p$obs}
+    chnodes <- (p$obs + 1):(2 * p$obs - 1)
+    nodetips <- 1:p$obs
   } else {
-    chnodes <- vector(mode = "list", Ngenes)
+    chnodes <- NULL
   }
   
-  # Initialize collection list and vectors
-  LikCollect <- list()
-  logLikseqCollect <- rep(0,Ngenes)
-  for (gene in 1:Ngenes) {
-    if (!is.null(chnodes[[gene]])) {
-      v <- list(nodetimes = .pbe1$v$nodetimes[gene, ], nodehosts = .pbe1$v$nodehosts,
-                nodeparents = .pbe1$v$nodeparents[gene, ] , nodetypes = .pbe1$v$nodetypes)
-      d <- list(names = .pbe1$d$names, sequences = .pbe1$d$sequences[[gene]],
-                sample.times = .pbe1$d$sample.times, nSNPs =.pbe1$d$nSNPS[gene] )
-      
-      likarray <- .pbe1$likarray[[gene]]
-      likarrayfreq <- .pbe1$likarrayfreq[[gene]]
-      
-      .likseqenv(le, chnodes[[gene]], nodetips[[gene]])
-      
-      LikCollect[[gene]] <- likarray 
-      logLikseqCollect[gene] <- logLikseq
-    }
+  if (!is.null(chnodes)) {
+    .likseqenv(.pbe1, chnodes, nodetips)
   }
-  #print(logLikseqCollect)
-  likarray <- LikCollect
-  logLikseq <- logLikseqCollect
   
-  #rm(LikCollect, logLikseqCollect, envir = le) #, nodeparents, nodetimes, envir = le) 
-  .copy2pbe1("logLikseq", le)
-  .copy2pbe1("likarray", le)  
-  v <- .pbe1$v
-  d <- .pbe1$d
-  
+ 
   if (f == "phylotrans" || f == "trans" || f == "mG") {
     logLikgen <- .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes[1, ], v$nodehosts, v$nodetypes)
     .copy2pbe1("logLikgen", le)
@@ -224,8 +175,9 @@
     .copy2pbe1("logLiksam", le)
   }
   
-  if (f == "trans" || f == "slope") {
-    logLikcoal <- with(.pbe1, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes,v$reassortment))
+  if (f == "trans" || f == "slope" || f == "reass") {
+    logLikcoal <- with(.pbe1, .lik.coaltimes(p$obs, d$ngenes, p$wh.model, p$wh.slope, p$reass.prob, 
+                                             v$nodetimes, v$nodehosts, v$nodetypes, v$hostreassortment))
     .copy2pbe1("logLikcoal", le)
   }
 }
@@ -250,12 +202,13 @@
     .copy2pbe0("logLikgen", .pbe1)
   }
   
-  if(f == "trans" || f == "slope") {
+  if(f == "trans" || f == "slope" || f == "reass") {
     .copy2pbe0("logLikcoal", .pbe1)
   }
   
   if(f == "phylotrans") {
-    logLikcoal <- with(.pbe1, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes,v$reassortment))
+    logLikcoal <- with(.pbe1, .lik.coaltimes(p$obs, d$ngenes, p$wh.model, p$wh.slope, p$reass.prob, 
+                                             v$nodetimes, v$nodehosts, v$nodetypes, v$hostreassortment))
     .copy2pbe0("logLikcoal", environment())
   }
   rm(list = ls(.pbe1), envir = .pbe1)
