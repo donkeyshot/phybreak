@@ -32,7 +32,7 @@
   logproposalratio <- 0
 
   ### calculate likelihood
-  .propose.pbe("topology")
+  .propose.pbe("topology", hosts = hostID)
   
   ### calculate acceptance probability
   logaccprob <- sum(.pbe1$logLikseq) - sum(.pbe0$logLikseq) + logproposalratio
