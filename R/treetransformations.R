@@ -117,7 +117,7 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE, gene = 1) {
 
 phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
   ### extract variables
-  nodetimes <- vars$nodetimes
+  nodetimes <- vars$nodetimes[1, ]
   nodehosts <- vars$nodehosts
   nodetypes <- vars$nodetypes
   Nhosts <- sum(nodetypes == "t")
@@ -155,7 +155,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   refdate <- min(vars$sample.times)
   samtimes <- as.numeric(vars$sample.times - refdate)
   Nsamples <- length(samtimes)
-  Ngenes <- length(vars$sequences)
+  ngenes <- length(vars$sequences)
   hostnames <- names(vars$sample.times)
   ##### NB: adjustment needed for .rinftimes to deal with multiple samples #####
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
@@ -192,7 +192,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
                  rep("t", Nhosts))  #node type (sampling, coalescent, transmission)
   
   ##initialize nodetimes with sampling and infection times
-  nodetimes <- matrix(rep(c(samtimes, rep(NA, Nsamples - 1), inftimes), each = Ngenes), nrow = Ngenes)
+  nodetimes <- matrix(rep(c(samtimes, rep(NA, Nsamples - 1), inftimes), each = ngenes), nrow = ngenes)
   
   ##initialize nodeparents 
   nodeparents <- 0*nodetimes
@@ -210,7 +210,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     for(i in 1:Nhosts) {
       hostreassortment[i] <- runif(1) < resamplepars$reass.prob
       if (hostreassortment[i]) {
-        for(gene in 1:Ngenes) {
+        for(gene in 1:ngenes) {
           nodetimes[gene, nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
             inftimes[i] +                      #...to the infection time +
             .samplecoaltimes(nodetimes[gene, nodehosts == i & nodetypes != "c"] -  inftimes[i],
@@ -226,17 +226,17 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
           inftimes[i] +                     
             .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c"] - inftimes[i],
                              resamplepars$wh.model, resamplepars$wh.slope),
-          each = Ngenes), nrow = Ngenes)
+          each = ngenes), nrow = ngenes)
         
         nodeparents[ ,nodehosts == i] <- matrix(rep(     
           .sampletopology(which(nodehosts == i), nodetimes[1, nodehosts == i], 
                           nodetypes[nodehosts == i], i + 2*Nsamples - 1, resamplepars$wh.model),
-          each = Ngenes), nrow = Ngenes)
+          each = ngenes), nrow = ngenes)
       }
     }
   } else {
     nodehosts <- nodeparents
-    for(gene in 1:Ngenes) {
+    for(gene in 1:ngenes) {
       phytree <- vars$sim.tree[[gene]]
       nodetimes[gene, ] <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:Nsamples]),
                      inftimes)
@@ -244,13 +244,14 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
       nodehosts[gene, ] <- nodehosts_parents[, 1]
       nodeparents[gene, ] <- nodehosts_parents[, 2]
     }
-    if(!all(rowSums(t(nodehosts) == nodehosts[1, ]) == Ngenes)) {
+    if(!all(rowSums(t(nodehosts) == nodehosts[1, ]) == ngenes)) {
       stop("using the input tree does not work with these trees")
     }
     nodehosts <- nodehosts[1, ]
+    nodetimes <- round(nodetimes, digits = 12)
     
     #reassortment in hosts with different minitrees
-    hostreassortment[unique(nodehosts[rowSums(t(nodetimes) == nodetimes[1, ]) != Ngenes])] <- TRUE
+    hostreassortment[unique(nodehosts[rowSums(t(nodetimes) == nodetimes[1, ]) != ngenes])] <- TRUE
     if(!is.null(vars$sim.reassortment)) {
       hostreassortment <- vars$sim.reassortment | hostreassortment
     }

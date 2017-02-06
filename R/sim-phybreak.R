@@ -24,7 +24,8 @@
 #'   }
 #' @param wh.slope Within-host increase of effective population size, used if \code{wh.model = 3}.
 #' @param mu Expected number of mutations per nucleotide per unit of time along each lineage. 
-#' @param sequence.length Number of available nucleotides for mutations.
+#' @param ngenes Number of genes.
+#' @param sequence.length Number of available nucleotides for mutations per gene.
 #' @param output.class Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
 #'  class \code{'obkData'}
 #' @return The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
@@ -49,9 +50,9 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                          R0 = 1.5, shape.gen = 10, mean.gen = 1, 
                          shape.sample = 10, mean.sample = 1,
                          wh.model = 3, wh.slope = 1, 
-                         mu = 0.0001, Ngenes = 1, sequence.length = rep(10000,Ngenes), 
+                         mu = 0.0001, ngenes = 1, sequence.length = rep(10000, ngenes), 
                          output.class = c("phybreakdata", "obkData"),
-                         simmap = FALSE, reass.prob = 0) {
+                         reass.prob = 0) {
   
   ### tests
   output.class <- output.class[output.class %in% c("phybreakdata", "obkData")][1]
@@ -82,10 +83,10 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   if(any(c(shape.gen, mean.gen, shape.sample, mean.sample, wh.slope, mu) <= 0)) {
     stop("parameter values should be positive")
   }
-  if ( length(sequence.length) != Ngenes ) {
-    stop("ngenes not equal to the given number of sequence lengths")
+  if(length(sequence.length) != ngenes) {
+    sequence.length <- rep_len(sequence.length, ngenes)
   }
-  if (reass.prob < 0 | reass.prob > 1){
+  if(reass.prob < 0 | reass.prob > 1){
     stop("reass.prob should be between 0 and 1")
   }
   
@@ -104,15 +105,14 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
                                prob = c(reass.prob, 1 - reass.prob))
   
   # Simulate phylotree given a transmission tree
-  res <- .sim.phylotree(res, wh.model, wh.slope, Ngenes, reassortmentvector)  
-  res <- .sim.sequences(res, mu, sequence.length, Ngenes) 
+  res <- .sim.phylotree(res, wh.model, wh.slope, ngenes, reassortmentvector)  
+  res <- .sim.sequences(res, mu, sequence.length, ngenes) 
   hostnames <- paste0("host.", 1:obsize)
   
   ### make an obkData object 
-  treesout <- vector('list',Ngenes)
-  for(i in 1:Ngenes) {treesout[[i]] <- phybreak2phylo(vars = res, samplenames = hostnames, simmap = simmap, gene = i)}
+  treesout <- lapply(1:ngenes, phybreak2phylo, vars = res, samplenames = hostnames, simmap = FALSE)
   class(treesout) <- "multiPhylo" 
-  names(treesout) <-  paste0("gene.",1:Ngenes )
+  names(treesout) <-  paste0("gene.", 1:ngenes )
   
   sampletimes <- res$sampletimes
   names(sampletimes) <- hostnames
@@ -121,7 +121,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   infectors <- c("index", hostnames)[1 + res$infector]
   names(infectors) <- hostnames
   seqs <- res$SNPlist
-  names(seqs) <-  paste0("gene.",1:Ngenes )
+  names(seqs) <-  paste0("gene.", 1:ngenes )
   
   if(output.class == "obkData") {
     toreturn <- new("obkData",
@@ -233,18 +233,18 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
 ### calls:
 # .samplecoaltimes
 # .sampletopology
-.sim.phylotree <- function (sim.object, wh.model, wh.slope, Ngenes, reassortmentvector) {
+.sim.phylotree <- function (sim.object, wh.model, wh.slope, ngenes, reassortmentvector) {
   with(
     sim.object,
     {
-      nodeparents <- matrix(rep(0, (3*obs - 1) * Ngenes), nrow = Ngenes )  # initialize nodes: will containsparent node in phylotree
+      nodeparents <- matrix(rep(0, (3*obs - 1) * ngenes), nrow = ngenes )  # initialize nodes: will containsparent node in phylotree
       nodetimes <- nodeparents        # initialize nodes: will contain time of node
       nodehosts <- nodeparents[1, ]   # initialize nodes: will contain host carrying the node
       nodetypes <- c(rep("s",obs), rep("c",obs - 1),
                      rep("t",obs))    # initialize nodes: will contain node type (sampling, coalescent, transmission)
       
-      nodetimes[, 1:obs] <- matrix(rep(sampletimes,Ngenes), nrow = Ngenes, byrow = TRUE)                 # sampling nodes at sample times
-      nodetimes[, 1:obs + 2*obs - 1] <- matrix(rep(infectiontimes,Ngenes), nrow = Ngenes, byrow = TRUE)  # transmission nodes at infection times
+      nodetimes[, 1:obs] <- matrix(rep(sampletimes,ngenes), nrow = ngenes, byrow = TRUE)                 # sampling nodes at sample times
+      nodetimes[, 1:obs + 2*obs - 1] <- matrix(rep(infectiontimes,ngenes), nrow = ngenes, byrow = TRUE)  # transmission nodes at infection times
       
       nextcoalnode <- obs + 1  # needed in next loop: which is the next available coalescence node
       
@@ -267,7 +267,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
       ## sample the times of the coalescence nodes
       for(i in 1:obs) {
         if (reassortmentvector[i]){
-          for(j in 1:Ngenes) {
+          for(j in 1:ngenes) {
             nodetimes[j, nodehosts == i & nodetypes == "c"] <-   # change the times of the coalescence nodes in host i...
               nodetimes[j, i + 2*obs - 1] +                      # ...to the infection time +
               .samplecoaltimes(nodetimes[j, nodehosts == i & nodetypes != "c"] - nodetimes[j, i + 2*obs - 1],
@@ -281,11 +281,11 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
           coalt <-  nodetimes[1, i + 2*obs - 1] + 
             .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c"] - nodetimes[1, i + 2*obs - 1],
                              wh.model, wh.slope)  
-          nodetimes[, nodehosts == i & nodetypes == "c"] <- matrix(rep(coalt,Ngenes),nrow = Ngenes, byrow = TRUE)
+          nodetimes[, nodehosts == i & nodetypes == "c"] <- matrix(rep(coalt,ngenes),nrow = ngenes, byrow = TRUE)
           
           nodep <-  matrix(rep(.sampletopology(which(nodehosts == i), nodetimes[1, nodehosts == i],
-                                               nodetypes[nodehosts == i], i + 2*obs - 1, wh.model), Ngenes),
-                           byrow = TRUE, nrow = Ngenes)
+                                               nodetypes[nodehosts == i], i + 2*obs - 1, wh.model), ngenes),
+                           byrow = TRUE, nrow = ngenes)
           nodeparents[, nodehosts == i] <- nodep
         }
       }
@@ -302,10 +302,10 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
 ### simulate sequences given a phylogenetic tree
 ### called by:
 # sim.phybreak
-.sim.sequences <- function (sim.object, mu, sequence.length, Ngenes) {
+.sim.sequences <- function (sim.object, mu, sequence.length, ngenes) {
   SNPList <- list()
   with(sim.object,{
-    for (j in 1:Ngenes) {
+    for (j in 1:ngenes) {
       ### simulate the mutations on the phylotree
       # number of mutations
       edgelengths <- nodetimes[j, ] - c(0,nodetimes[j, ])[1+nodeparents[j, ]]
@@ -355,20 +355,3 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
   })
 }
 
-### Extract a tree for gene x from either an Ngenes>1 obkData or phybreak object
-extractTree <- function(data.object, gene){
-  
-  if (class(data.object)[1] == "phybreak") {
-    tree <- data.object
-    tree$d$sequences <- data.object$d$sequences[[gene]]
-    tree$v$nodetimes <- matrix(data.object$v$nodetimes[gene, ],nrow = 1)
-    tree$v$nodeparents <- matrix(data.object$v$nodeparents[gene,],nrow = 1)
-    tree$s$nodetimes <- data.object$s$nodetimes[[gene]]
-    tree$s$nodeparents <- data.object$s$nodeparents[[gene]]
-    tree$s$logLikseq <- data.object$s$logLikseq[gene, ]
-    tree$d$nSNPs <- data.object$d$nSNPs[gene]
-  } else {
-    stop("class is not of 'phybreak' ")
-  }
-  return(tree)
-}

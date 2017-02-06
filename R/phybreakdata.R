@@ -132,8 +132,8 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
   #################################################
   ### place essential information in outputlist ###
   #################################################
-  Ngenes <- length(sequences)
-  for (gene in 1:Ngenes) {
+  ngenes <- length(sequences)
+  for (gene in 1:ngenes) {
     if(length(setdiff(sequences[[gene]],c("a","c","g","t")))) warning("all nucleotides other than actg are turned into n")
     sequences[[gene]][sequences[[gene]] != "a" & sequences[[gene]] != "c" & 
                         sequences[[gene]] != "g" & sequences[[gene]] != "t"] <- "n"

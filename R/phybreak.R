@@ -129,10 +129,10 @@ phybreak <- function(dataset, times = NULL,
   #names
   if(inherits(dataset, "obkData")) {
     dataslot$names <- OutbreakTools::get.individuals(dataset)
-    Ngenes <- OutbreakTools::get.nlocus(dataset)
+    ngenes <- OutbreakTools::get.nlocus(dataset)
   } else {
     dataslot$names <- names(dataset$sample.times)
-    Ngenes <- length(dataset$sequences)         
+    ngenes <- length(dataset$sequences)         
   }
 
   # sequences (SNP)
@@ -164,6 +164,9 @@ phybreak <- function(dataset, times = NULL,
     dataslot$sample.times <- dataset$sample.times
   }
   names(dataslot$sample.times) <- dataslot$names
+  
+  #gene count
+  dataslot$ngenes <- ngenes
   
   #SNP count
   dataslot$nSNPs <- c()
@@ -211,12 +214,12 @@ phybreak <- function(dataset, times = NULL,
   #################
   if(is.null(mu)) {
     treelengths <- with(variableslot, 
-                        colSums(sapply(1:Ngenes, 
+                        colSums(sapply(1:ngenes, 
                                function(x) {
                                  nodetimes[x, nodeparents[x, ] != 0] -
                                    nodetimes[x, nodeparents[x, ]]
                                  })))
-    curparsimonies <- sapply(1:Ngenes,
+    curparsimonies <- sapply(1:ngenes,
                              function(x) {
                                phangorn::parsimony(phybreak2phylo(variableslot, gene = x),
                                                    dataslot$sequences[[x]])
@@ -252,7 +255,7 @@ phybreak <- function(dataset, times = NULL,
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
                      est.wh = est.wh.slope & wh.model == 3,
-                     est.reass = est.reassortment & Ngenes > 1 & wh.model == 3,
+                     est.reass = est.reassortment & ngenes > 1 & wh.model == 3,
                      mG.av = prior.mean.gen.mean,
                      mG.sd = prior.mean.gen.sd,
                      mS.av = prior.mean.sample.mean,
