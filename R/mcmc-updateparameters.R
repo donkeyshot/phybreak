@@ -65,26 +65,28 @@
 }
 
 ### updating rho by sampling from the posterior, conditional on the current tree called from: burnin.phybreak sample.phybreak
-.update.rho <- function() {
+.update.reass <- function() {
   ### create an up-to-date proposal-environment
   .prepare.pbe()
   
   ### making variables and parameters available within the function
   le <- environment()
   h <- .pbe0$h
-  p <- .pbe0$p
-  v <- .pbe0$v
+  p <- .pbe1$p
+  v <- .pbe1$v
 
-  # Sample directly from the posterior distribution
-  p$rho <- rbeta(1, h$rho.b1 + sum(v$reassortment), h$rho.b2 + p$obs-sum(v$reassortment) )
-  v$reassortment <- sample(c(0,1), replace = TRUE, size = p$obs, prob = c(1-p$rho,p$rho))
-  
-  ### Accept and update environment pbe0
+  ### change to proposal state
+  p$reass.prob <- rbeta(1, h$reass.b1 + sum(v$hostreassortment), h$reass.b2 + p$obs - sum(v$hostreassortment) )
+
+  ### update proposal environment
   .copy2pbe1("p", le)
-  .copy2pbe1("v", le)
-  .copy2pbe0("p", le)
-  .copy2pbe0("v", le)
- 
+  
+  ### calculate likelihood
+  .propose.pbe(("reass"))
+  
+  ### accept
+  .accept.pbe("reass")
+
 }
 
 
