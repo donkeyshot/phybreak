@@ -4,30 +4,31 @@
 \alias{phybreak}
 \title{Create a phybreak-object from data and prior distributions.}
 \usage{
-phybreak(data, times = NULL, mu = NULL, gen.shape = 3, gen.mean = 1,
+phybreak(dataset, times = NULL, mu = NULL, gen.shape = 3, gen.mean = 1,
   sample.shape = 3, sample.mean = 1, wh.model = 3, wh.slope = 1,
   est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
   est.sample.mean = TRUE, prior.mean.sample.mean = 1,
   prior.mean.sample.sd = Inf, est.wh.slope = TRUE, prior.wh.shape = 3,
-  prior.wh.mean = 1, use.tree = FALSE)
+  prior.wh.mean = 1, reass.prob = NULL, est.reassortment = FALSE,
+  prior.reass.shape1 = 1, prior.reass.shape2 = 9, use.tree = FALSE)
 }
 \arguments{
-\item{data}{An object with sequences plus additional data.
+\item{dataset}{An object with sequences plus additional data.
 (class \code{'obkData'} or \code{'phybreakdata'}). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
 or \code{'t'}, will be turned into \code{'n'}.  
 
-If the data are provided as an object of class \code{'obkData'}, these should contain sequences and sampling times 
+If the dataset is provided as an object of class \code{'obkData'}, it should contain sequences and sampling times 
 as metadata with these sequences. The object may also contain \code{infector} and infection \code{date} vectors in the
 \code{individuals} slot, plus (at least) one tree in the \code{'trees'} slot (class \code{'multiPhylo'}).
 
 Data provided as an object of class \code{'phybreakdata'} contain \code{sequences} and \code{sampling.times},
-and potentially \code{infection.times}, \code{infectors}, and \code{trees}. Prepare your data in this format
+and potentially \code{infection.times}, \code{infectors}, and \code{trees}. Prepare your dataset in this format
 by \code{\link{phybreakdata}} or by simulation with \code{\link{sim.phybreak}}.
 
-It is also possible to provide only sequences as data, (class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
+It is also possible to provide only sequences as dataset, (class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
 each row a host, each column a nucleotide), and corresponding sampling times in the separate \code{times} argument.}
 
-\item{times}{Vector of sampling times, needed if the data consist of only sequences. If the vector is named,
+\item{times}{Vector of sampling times, needed if the dataset consists of only sequences. If the vector is named,
 these names will be used to identify the hosts.}
 
 \item{mu}{Initial value for mutation rate (defined per site per unit of time). If \code{NULL} (default), then an initial

@@ -5,7 +5,8 @@
 \title{Create a phybreakdata-object from raw data.}
 \usage{
 phybreakdata(sequences, sample.times, host.names = NULL,
-  sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL)
+  sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL,
+  sim.reassortment = NULL)
 }
 \arguments{
 \item{sequences}{Sequence data of class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 

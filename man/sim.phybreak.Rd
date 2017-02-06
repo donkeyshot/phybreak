@@ -6,8 +6,8 @@
 \usage{
 sim.phybreak(obsize = 50, popsize = NA, R0 = 1.5, shape.gen = 10,
   mean.gen = 1, shape.sample = 10, mean.sample = 1, wh.model = 3,
-  wh.slope = 1, mu = 1e-04, sequence.length = 10000,
-  output.class = c("phybreakdata", "obkData"))
+  wh.slope = 1, mu = 1e-04, ngenes = 1, sequence.length = rep(10000,
+  ngenes), output.class = c("phybreakdata", "obkData"), reass.prob = 0)
 }
 \arguments{
 \item{obsize}{The outbreak size (number of cases) to obtain. If \code{obsize = NA}, \code{popsize} should be provided.}
@@ -38,7 +38,9 @@ N*gE = actual population size * pathogen generation time), used to simulate coal
 
 \item{mu}{Expected number of mutations per nucleotide per unit of time along each lineage.}
 
-\item{sequence.length}{Number of available nucleotides for mutations.}
+\item{ngenes}{Number of genes.}
+
+\item{sequence.length}{Number of available nucleotides for mutations per gene.}
 
 \item{output.class}{Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
 class \code{'obkData'}}

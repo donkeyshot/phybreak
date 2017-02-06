@@ -23,7 +23,7 @@
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
-sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2, phylotopology_only = 0) {
+sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2, phylotopology_only = 0) {
   ### tests
   if(nsample < 1) stop("nsample should be positive")
   if(thin < 1) stop("thin should be positive")
