@@ -50,7 +50,7 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
     if (phybreak.object$h$est.wh)
       .update.wh()
     if (phybreak.object$h$est.reass) 
-      .update.rho()     
+      .update.reass()     
     .update.mu()
   }
   
