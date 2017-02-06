@@ -205,34 +205,19 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     coalnodehosts <- sort(c(infectors, samhosts))
     coalnodehosts <- coalnodehosts[duplicated(coalnodehosts)]
     nodehosts <- c(samhosts, coalnodehosts, infectors)
-    
-    ##sample coalescent times and nodeparents
     for(i in 1:Nhosts) {
       hostreassortment[i] <- runif(1) < resamplepars$reass.prob
-      if (hostreassortment[i]) {
-        for(gene in 1:Ngenes) {
-          nodetimes[gene, nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
-            inftimes[i] +                      #...to the infection time +
-            .samplecoaltimes(nodetimes[gene, nodehosts == i & nodetypes != "c"] -  inftimes[i],
-                             resamplepars$wh.model, resamplepars$wh.slope)  #...sampled coalescent times
-          
-          nodeparents[gene, nodehosts == i] <-     #change the parent nodes of all nodes in host i...
-            .sampletopology(which(nodehosts == i), nodetimes[gene, nodehosts == i], 
-                            nodetypes[nodehosts == i],  i + 2*Nsamples - 1, resamplepars$wh.model)
-          #...to a correct topology, randomized where possible
-        } 
-      } else {  
-        nodetimes[ , nodehosts == i & nodetypes == "c"] <- matrix(rep(
-          inftimes[i] +                     
-            .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c"] - inftimes[i],
-                             resamplepars$wh.model, resamplepars$wh.slope),
-          each = Ngenes), nrow = Ngenes)
-        
-        nodeparents[ ,nodehosts == i] <- matrix(rep(     
-          .sampletopology(which(nodehosts == i), nodetimes[1, nodehosts == i], 
-                          nodetypes[nodehosts == i], i + 2*Nsamples - 1, resamplepars$wh.model),
-          each = Ngenes), nrow = Ngenes)
-      }
+      
+      nodetimes[, nodehosts == i & nodetypes == "c"] <-  #change the times of the coalescence nodes in host i...
+        inftimes[i] +   #...to the infection time +  sampled coalescent times
+        .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c"] - inftimes[i], 
+                         reassortment = hostreassortment[i], Ngenes = dim(nodetimes)[1])
+      
+      #change the parent nodes of all nodes in host i to a correct topology, randomized where possible
+      nodeparents[ , nodehosts == i] <-     
+        .sampletopology(which(nodehosts == i), nodetimes[ , nodehosts == i], nodetypes[nodehosts == i],
+                        i + 2*Nsamples - 1, resamplepars$wh.model, reassortment = hostreassortment[i], 
+                        Ngenes = dim(nodetimes)[1])   
     }
   } else {
     nodehosts <- nodeparents

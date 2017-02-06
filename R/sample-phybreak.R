@@ -46,8 +46,8 @@ sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2,phyl
                  mS = c(phybreak.object$s$mS, rep(NA, nsample)),
                  slope = c(phybreak.object$s$slope, rep(NA, nsample)),
                  logLikseq = with(phybreak.object, cbind(phybreak.object$s$logLikseq, matrix(NA, nrow =Ngenes, ncol = nsample))),
-                 rho = c(phybreak.object$s$rho, rep(NA, phybreak.object$h$est.rho*(nsample))),
-                 reassortment = with(phybreak.object, cbind(s$reassortment, matrix(rep(rep(NA, h$est.rho*(nsample)), p$obs), nrow = p$obs)))
+                 reass = c(phybreak.object$s$reass, rep(NA, phybreak.object$h$est.reass*(nsample))),
+                 reassortment = with(phybreak.object, cbind(s$reassortment, matrix(rep(rep(NA, h$est.reass*(nsample)), p$obs), nrow = p$obs)))
                 )
   names(s.post$nodetimes) <- GeneNames
   names(s.post$nodeparents) <- GeneNames
@@ -63,7 +63,6 @@ sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2,phyl
       curtime <- Sys.time()
     }
     for (rep in 1:thin) {
-      if (phybreak.object$h$est.rho) .update.rho()   # Set hosts in which gene reassortment possibly occured.
       for (i in sample(phybreak.object$p$obs)) {
         if (runif(1) < 1 - keepphylo - phylotopology_only) {
           .updatehost(i) 
@@ -79,6 +78,8 @@ sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2,phyl
         .update.mS()
       if (phybreak.object$h$est.wh)
         .update.wh()
+      if (phybreak.object$h$est.reass) 
+        .update.reass()
       .update.mu()
     }
     
@@ -92,9 +93,9 @@ sample.phybreak <- function(phybreak.object, nsample, thin, keepphylo = 0.2,phyl
         s.post$mG[sa] <- .pbe0$p$mean.gen
         s.post$mS[sa] <- .pbe0$p$mean.sample
         s.post$slope[sa] <- .pbe0$p$wh.slope
-        if(Ngenes > 1 & .pbe0$h$est.rho){
-          s.post$rho[sa] <- .pbe0$p$rho
-          s.post$reassortment[, sa] <- .pbe0$v$reassortment
+        if(Ngenes > 1 & .pbe0$h$est.reass){
+          s.post$reass[sa] <- .pbe0$p$reass
+          s.post$reassortment[, sa] <- .pbe0$v$hostreassortment
         }
       }
     }

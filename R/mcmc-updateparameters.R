@@ -13,8 +13,8 @@
   p <- .pbe1$p
   
   ### change to proposal state
-  #p$mu <- exp(log(p$mu) + rnorm(length(p$mu), 0, h$si.mu))
   p$mu <- exp(log(p$mu) + rnorm(1,0,h$si.mu))
+  
   ### update proposal environment
   .copy2pbe1("p", le)
   
@@ -23,6 +23,7 @@
   
   ### calculate acceptance probability
   logaccprob <- .pbe1$logLikseq - .pbe0$logLikseq
+  
   ### accept or reject
   if (runif(1) < mean(exp(logaccprob))) {
     .accept.pbe("mu")
@@ -42,18 +43,10 @@
   p <- .pbe1$p
   v <- .pbe1$v
   
-  if (is.vector(v$nodetimes) == TRUE) {
-    ### change to proposal state
-    sumst <- sum(v$nodetimes[v$nodetypes == "s"] - v$nodetimes[v$nodetypes == "t"])
-    p$mean.sample <- p$shape.sample/rgamma(1, shape = p$shape.sample * p$obs + 2 + (h$mS.av/h$mS.sd)^2, rate = sumst + (h$mS.av/p$shape.sample) *
-                                             (1 + (h$mS.av/h$mS.sd)^2))
-  } else {
-    ### change to proposal state
-    sumst <- sum(v$nodetimes[1,v$nodetypes == "s"] - v$nodetimes[1,v$nodetypes == "t"])
-    p$mean.sample <- p$shape.sample/rgamma(1, shape = p$shape.sample * p$obs + 2 + (h$mS.av/h$mS.sd)^2, rate = sumst + (h$mS.av/p$shape.sample) *
-                                             (1 + (h$mS.av/h$mS.sd)^2))
-  }
-  
+  ### change to proposal state
+  sumst <- sum(v$nodetimes[1,v$nodetypes == "s"] - v$nodetimes[1,v$nodetypes == "t"])
+  p$mean.sample <- p$shape.sample/rgamma(1, shape = p$shape.sample * p$obs + 2 + (h$mS.av/h$mS.sd)^2, rate = sumst + (h$mS.av/p$shape.sample) *
+                                           (1 + (h$mS.av/h$mS.sd)^2))
   ### update proposal environment
   .copy2pbe1("p", le)
   
@@ -64,27 +57,24 @@
   .accept.pbe("mS")
 }
 
-### updating rho by sampling from the posterior, conditional on the current tree called from: burnin.phybreak sample.phybreak
-.update.rho <- function() {
+### updating reassortment probabilty by sampling directly from the posterior distribution,
+### called from: burnin.phybreak sample.phybreak
+.update.reass <- function() {
   ### create an up-to-date proposal-environment
   .prepare.pbe()
   
   ### making variables and parameters available within the function
   le <- environment()
   h <- .pbe0$h
-  p <- .pbe0$p
-  v <- .pbe0$v
+  p <- .pbe1$p
+  v <- .pbe1$v
 
   # Sample directly from the posterior distribution
-  p$rho <- rbeta(1, h$rho.b1 + sum(v$reassortment), h$rho.b2 + p$obs-sum(v$reassortment) )
-  v$reassortment <- sample(c(0,1), replace = TRUE, size = p$obs, prob = c(1-p$rho,p$rho))
+  p$reass.prob <- rbeta(1, h$reass.b1 + sum(v$hostreassortment), h$reass.b2 + p$obs-sum(v$hostreassortment) )
   
   ### Accept and update environment pbe0
   .copy2pbe1("p", le)
-  .copy2pbe1("v", le)
   .copy2pbe0("p", le)
-  .copy2pbe0("v", le)
- 
 }
 
 
@@ -100,23 +90,14 @@
   p <- .pbe1$p
   v <- .pbe1$v
   
-  if (is.vector(v$nodetimes)==TRUE) {
-    ### change to proposal state
-    sumgt <- sum(v$nodetimes[v$nodetypes == "t" & v$nodehosts != 0] -
-                   v$nodetimes[v$nodetypes == "t"][v$nodehosts[v$nodetypes == "t"]])
-    #  p$shape.gen is the same for all genes
-    p$mean.gen <- p$shape.gen/rgamma(1,
-                                     shape = p$shape.gen * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2,
-                                     rate = sumgt + (h$mG.av/p$shape.gen) * (1 + (h$mG.av/h$mG.sd)^2))
-  } else {
-    ### change to proposal state
-    sumgt <- sum(v$nodetimes[1,v$nodetypes == "t" & v$nodehosts != 0] -
-                   v$nodetimes[1,v$nodetypes == "t"][v$nodehosts[v$nodetypes == "t"]])
-    #  p$shape.gen is the same for all genes
-    p$mean.gen <- p$shape.gen/rgamma(1,
-                                     shape = p$shape.gen * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2,
-                                     rate = sumgt + (h$mG.av/p$shape.gen) * (1 + (h$mG.av/h$mG.sd)^2))
-  }
+  ### change to proposal state
+  sumgt <- sum(v$nodetimes[1,v$nodetypes == "t" & v$nodehosts != 0] -
+                 v$nodetimes[1,v$nodetypes == "t"][v$nodehosts[v$nodetypes == "t"]])
+  
+  #  p$shape.gen is the same for all genes
+  p$mean.gen <- p$shape.gen/rgamma(1,
+                                   shape = p$shape.gen * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2,
+                                   rate = sumgt + (h$mG.av/p$shape.gen) * (1 + (h$mG.av/h$mG.sd)^2))
   
   ### update proposal environment
   .copy2pbe1("p", le)
@@ -142,8 +123,8 @@
   v <- .pbe1$v
   
   ### change to proposal state
-  #p$wh.slope <- exp(log(p$wh.slope) + rnorm(Ngenes, 0, h$si.wh))
   p$wh.slope <- exp(log(p$wh.slope) + rnorm(1,0,h$si.wh))
+  
   ### update proposal environment
   .copy2pbe1("p", le)
   

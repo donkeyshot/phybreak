@@ -39,18 +39,18 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
       mcmcdiagnostics(.pbe0,rep,Ngenes)
       curtime <- Sys.time()
     }
-    if (phybreak.object$h$est.wh) .update.rho()      # Assign reassortment events to hosts
     for (i in sample(phybreak.object$p$obs)) {
       if (runif(1) < 1 - keepphylo)                  # If this is true, a new phylogeny + transmission tree is chosen
         .updatehost(i) else .updatehost.keepphylo(i) # Else a new trans tree is chosen while keeping phylo.
     }
-    
     if (phybreak.object$h$est.mG)
       .update.mG()
     if (phybreak.object$h$est.mS)
       .update.mS()
     if (phybreak.object$h$est.wh)
       .update.wh()
+    if (phybreak.object$h$est.reass) 
+      .update.rho()     
     .update.mu()
   }
   
