@@ -20,7 +20,8 @@ Imports:
     Rcpp (>= 0.12.1),
     methods,
     stats,
-    utils
+    utils,
+    abind
 Suggests:
     coda,
     phytools,
