@@ -40,7 +40,7 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   res <- 0
   
   if(genetic) {
-    for(gene in 1:length(object$d$sequences)) {
+    for(gene in 1:object$d$ngenes) {
       res <- res + with(object, 
                         .likseq(matrix(unlist(d$sequences[[gene]]), ncol = p$obs),
                                 attr(d$sequences[[gene]], "weight"),
@@ -58,7 +58,7 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   }
   
   if(withinhost) { 
-    res <- res + with(object, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes, v$hostreassortment)) 
+    res <- res + with(object, .lik.coaltimes(p$obs, d$ngenes, p$wh.model, p$wh.slope, p$reass.prob, v$nodetimes, v$nodehosts, v$nodetypes, v$hostreassortment)) 
   }
   
   attributes(res) <- list(
@@ -84,26 +84,28 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 
 # Specify function inputs
 ### calculate the log-likelihood of coalescent intervals called from: logLik.phybreak .build.phybreakenv .propose.phybreakenv
-.lik.coaltimes <- function(obs, wh.model, slope, nodetimes, nodehosts, nodetypes, hostreassortment) {
-  Ngenes <- dim(nodetimes)[1]
-   
-  if(Ngenes == 1 | !any(hostreassortment)) {
-    return(.lik.coaltimes.singlegene(obs, wh.model, slope, nodetimes[1, ], nodehosts, nodetypes))
+.lik.coaltimes <- function(obs, ngenes, wh.model, slope, reass.prob, nodetimes, nodehosts, nodetypes, hostreassortment) {
+  if(ngenes == 1 | !any(hostreassortment)) {
+    return(.lik.coaltimes.singlegene(wh.model, slope, tail(nodetimes[1, ], obs), nodetimes[1, ], nodehosts, nodetypes))
   } else {
-    res <- .lik.coaltimes.singlegene(obs, wh.model, slope, nodetimes[1, ], nodehosts, nodetypes)
+    res <- .lik.coaltimes.singlegene(wh.model, slope, tail(nodetimes[1, ], obs), nodetimes[1, ], nodehosts, nodetypes)
     nodes_to_include <- nodehosts %in% which(hostreassortment)
-    for(gene in 2:Ngenes) {
-      res <- res + .lik.coaltimes.singlegene(obs, wh.model, slope,
-                                             nodetimes[2, nodes_to_include],
+    for(gene in 2:ngenes) {
+      res <- res + .lik.coaltimes.singlegene(wh.model, slope,
+                                             tail(nodetimes[gene, ], obs),
+                                             nodetimes[gene, nodes_to_include],
                                              nodehosts[nodes_to_include],
                                              nodetypes[nodes_to_include])
+    }
+    if(!all(hostreassortment) | reass.prob < 1) {
+      res <- res + sum(hostreassortment) * log(reass.prob) + (obs - sum(hostreassortment)) * log(1 - reass.prob)
     }
   }
   return(res)
 }
 
 
-.lik.coaltimes.singlegene <- function(obs, wh.model, slope, nodetimes, nodehosts, nodetypes) {
+.lik.coaltimes.singlegene <- function(wh.model, slope, infectiontimes, nodetimes, nodehosts, nodetypes) {
   if (wh.model == 1 || wh.model == 2) 
     return(0)
   
@@ -118,7 +120,7 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   coalmultipliers <- choose(2 + cumsum(2 * coalno - 1), 2)  #coalescence coefficient
   
   ## from t to tau (time since infection)
-  whtimes <- nodetimes - c(0, tail(nodetimes, obs))[1 + nodehosts]
+  whtimes <- nodetimes - c(0, infectiontimes)[1 + nodehosts]
   
   noderates <- 1/(slope * whtimes[orderedtouse])
   # coalescence rate (per pair of lineages)
