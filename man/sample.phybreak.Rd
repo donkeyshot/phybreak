@@ -4,7 +4,7 @@
 \alias{sample.phybreak}
 \title{Sampling from a phybreak MCMC-chain.}
 \usage{
-sample.phybreak(phybreak.object, nsample, thin, keepphylo = 0.2,
+sample.phybreak(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
   phylotopology_only = 0)
 }
 \arguments{

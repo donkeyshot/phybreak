@@ -61,6 +61,12 @@
 #'   (only if \code{est.wh.slope = TRUE}).
 #' @param prior.wh.mean Mean of the (gamma) prior distribution of \code{slope} 
 #'   (only if \code{est.wh.slope = TRUE}).
+#' @param reass.prob Initial value for the reassortment probability. The default value is 0
+#'   unless \code{use.tree = TRUE} and different trees are given for different genes; then
+#'   it is calculated as the fraction of hosts in which reassortment is observed.
+#' @param est.reassortment Whether to estimate the reassortment probability or to keep it fixed.
+#' @param prior.reass.shape1 The first shape parameter of the beta prior distribution for \code{reass.prob}.
+#' @param prior.reass.shape2 The second shape parameter of the beta prior distribution for \code{reass.prob}.
 #' @param use.tree Whether to use the transmission and phylogenetic tree given in data of class \code{'obkData'}, 
 #'   to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
 #'   the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 

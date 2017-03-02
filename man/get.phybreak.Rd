@@ -16,11 +16,11 @@ get.parameters(phybreak.object, samplenr = 0, whichpars = "posterior")
 
 get.mcmc(phybreak.object, thin = 1, nkeep = Inf)
 
-get.phylo(phybreak.object, samplenr = 0, simmap = FALSE)
+get.phylo(phybreak.object, samplenr = 0, gene = 1, simmap = FALSE)
 
-get.multiPhylo(phybreak.object, thin = 1, nkeep = Inf)
+get.multiPhylo(phybreak.object, thin = 1, nkeep = Inf, gene = 1)
 
-get.seqdata(phybreak.object)
+get.seqdata(phybreak.object, gene = 1)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}
@@ -33,6 +33,8 @@ get.seqdata(phybreak.object)
 \item{thin}{Thinning interval.}
 
 \item{nkeep}{Number of samples to keep, counting from tail of the chain.}
+
+\item{gene}{The gene for which to get the phylogenetic tree(s) or sequence data.}
 
 \item{simmap}{Whether to include class \code{"simmap"} elements (package \pkg{phytools}), colouring the branches
 on the tree to indicate hosts. Is used by \code{\link{plotPhylo}}.}

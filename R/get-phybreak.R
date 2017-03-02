@@ -28,8 +28,8 @@ get.tree <- function(phybreak.object, samplenr = 0) {
     # samplenr > 0
     
     vars <- list(
-      nodetimes = c(phybreak.object$v$nodetimes[phybreak.object$v$nodetypes == "s"], phybreak.object$s$nodetimes[, samplenr]),
-      nodeparents = phybreak.object$s$nodeparents[, samplenr],
+      nodetimes = cbind(phybreak.object$v$nodetimes[, phybreak.object$v$nodetypes == "s"], phybreak.object$s$nodetimes[, , samplenr]),
+      nodeparents = phybreak.object$s$nodeparents[, , samplenr],
       nodehosts = c(phybreak.object$v$nodehosts[phybreak.object$v$nodetypes == "s"], phybreak.object$s$nodehosts[, samplenr]),
       nodetypes = phybreak.object$v$nodetypes
     )
@@ -119,7 +119,7 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
     tokeep <- tail(tokeep, nkeep)
     
     ### extracting all variables and parameters, and naming them
-    res <- with(phybreak.object, cbind(t(s$nodetimes[p$obs:(2 * p$obs - 1), tokeep]), t(s$nodehosts[p$obs:(2 * p$obs - 1), tokeep])))
+    res <- with(phybreak.object, cbind(t(s$nodetimes[1, p$obs:(2 * p$obs - 1), tokeep]), t(s$nodehosts[p$obs:(2 * p$obs - 1), tokeep])))
     parnames <- c(paste0("tinf.", phybreak.object$d$names), paste0("infector.", phybreak.object$d$names))
     if (phybreak.object$h$est.wh) {
         res <- cbind(phybreak.object$s$slope[tokeep], res)
@@ -146,6 +146,7 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #'   \code{"simmap"} (package \pkg{phytools}).
 #'   
 #' @param samplenr The posterior tree sample to choose. If \code{samplenr = 0}, the current state is used.
+#' @param gene The gene for which to get the phylogenetic tree(s) or sequence data.
 #' @param simmap Whether to include class \code{"simmap"} elements (package \pkg{phytools}), colouring the branches
 #'   on the tree to indicate hosts. Is used by \code{\link{plotPhylo}}.
 #'   
@@ -173,7 +174,7 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
-get.phylo <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
+get.phylo <- function(phybreak.object, samplenr = 0, gene = 1, simmap = FALSE) {
   ### tests
   if (simmap & !("phytools" %in% .packages(TRUE))) {
     warning("package 'phytools' is not installed; changed input to simmap = FALSE")
@@ -188,18 +189,30 @@ get.phylo <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
     warning("requested 'samplenr' not available; current state used")
     samplenr <- 0
   }
+  if(is.character(gene)) {
+    if(gene %in% names(phybreak.object$d$sequences)) {
+      gene <- which(gene == names(phybreak.object$d$sequences))
+    } else {
+      warning("requested 'gene' not available; first gene taken")
+      gene <- 1
+    }
+  }
+  if (gene > length(phybreak.object$d$sequences)) {
+    warning("requested 'gene' not available; first gene taken")
+    gene <- 1
+  }
   ### make tree
   if (samplenr == 0) {
-    return(phybreak2phylo(phybreak.object$v, phybreak.object$d$names, simmap)) 
+    return(phybreak2phylo(phybreak.object$v, phybreak.object$d$names, simmap, gene)) 
   } else {
     vars <- with(phybreak.object, 
                  list(
-                   nodetimes = matrix(c(v$nodetimes[v$nodetypes == "s"], s$nodetimes[, samplenr]),nrow = 1), 
-                   nodeparents = matrix(s$nodeparents[, samplenr],nrow = 1),
+                   nodetimes = cbind(v$nodetimes[, v$nodetypes == "s"], s$nodetimes[, , samplenr]),
+                   nodeparents = s$nodeparents[, , samplenr],
                    nodehosts = c(v$nodehosts[v$nodetypes == "s"], s$nodehosts[, samplenr]),
                    nodetypes = v$nodetypes
                  ))
-    return(phybreak2phylo(vars, phybreak.object$d$names, simmap))
+    return(phybreak2phylo(vars, phybreak.object$d$names, simmap, gene))
   }
 
 }
@@ -209,7 +222,7 @@ get.phylo <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
 #' @describeIn get.phybreak Returns an object of class \code{\link[ape]{multiphylo}}.
 #'   
 #' @export
-get.multiPhylo <- function(phybreak.object, thin = 1, nkeep = Inf) {
+get.multiPhylo <- function(phybreak.object, thin = 1, nkeep = Inf, gene = 1) {
   ### tests
   if (!inherits(phybreak.object, "phybreak")) {
     stop("object must be of class \"phybreak\"")
@@ -218,6 +231,18 @@ get.multiPhylo <- function(phybreak.object, thin = 1, nkeep = Inf) {
   if (nkeep * thin > chainlength & nkeep < Inf) {
     warning("'nkeep * thin' larger than number of available samples. Fewer trees are included.")
   }
+  if(is.character(gene)) {
+    if(gene %in% names(phybreak.object$d$sequences)) {
+      gene <- which(gene == names(phybreak.object$d$sequences))
+    } else {
+      warning("requested 'gene' not available; first gene taken")
+      gene <- 1
+    }
+  }
+  if (gene > length(phybreak.object$d$sequences)) {
+    warning("requested 'gene' not available; first gene taken")
+    gene <- 1
+  }
   
   ### posterior samples to be included
   tokeep <- seq(thin, chainlength, thin)
@@ -225,7 +250,7 @@ get.multiPhylo <- function(phybreak.object, thin = 1, nkeep = Inf) {
 
   
   ### make trees
-  res <- lapply(tokeep, get.phylo, phybreak.object = phybreak.object)
+  res <- lapply(tokeep, get.phylo, phybreak.object = phybreak.object, gene = gene)
   names(res) <- tokeep
   class(res) <- "multiPhylo"
   
@@ -237,8 +262,8 @@ get.multiPhylo <- function(phybreak.object, thin = 1, nkeep = Inf) {
 ### the sequence data in class 'phyDat'
 #' @describeIn get.phybreak The sequence data in class \code{"phyDat"} (package \pkg{phangorn}).
 #' @export
-get.seqdata <- function(phybreak.object) {
-    return(phybreak.object$d$sequences)
+get.seqdata <- function(phybreak.object, gene = 1) {
+    return(phybreak.object$d$sequences[[gene]])
 }
 
 
