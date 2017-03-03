@@ -5,7 +5,7 @@
 \title{Maximum clade credibility tree.}
 \usage{
 phylotree(phybreak.object, samplesize = Inf, support = c("proportion",
-  "count"), phylo.class = FALSE)
+  "count"), phylo.class = FALSE, gene = 1)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}

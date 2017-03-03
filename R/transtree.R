@@ -55,7 +55,8 @@
 #' plot(MCMCstate, plot.which = "mpc")
 #' @export
 transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mtcc"), samplesize = Inf, infector.name = TRUE, 
-    support = c("proportion", "count"), infection.times = c("all", "infector", "infector.sd"), time.quantiles = c(0.025, 0.5, 0.975), phylo.class = FALSE) {
+    support = c("proportion", "count"), infection.times = c("all", "infector", "infector.sd"), time.quantiles = c(0.025, 0.5, 0.975), 
+    phylo.class = FALSE, gene = 1) {
     chainlength <- length(phybreak.object$s$mu)
     
     ### tests
@@ -97,10 +98,10 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
             return(get.phylo(phybreak.object, samplenr = res, simmap = TRUE))
     }
     if (method[1] == "mtcc") {
-        res <- .mtcctree(phybreak.object$s$nodehosts[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize], phybreak.object$s$nodetimes[obs:(2 * 
+        res <- .mtcctree(phybreak.object$s$nodehosts[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize], phybreak.object$s$nodetimes[1, obs:(2 * 
             obs - 1), (1:samplesize) + chainlength - samplesize], c(obs, samplesize))
         if (phylo.class) 
-            return(get.phylo(phybreak.object, samplenr = tail(res, 1) + chainlength - samplesize, simmap = TRUE))
+            return(get.phylo(phybreak.object, samplenr = tail(res, 1) + chainlength - samplesize, gene = gene, simmap = TRUE))
         res <- matrix(head(res, -1), ncol = 5)
     }
     # if(method[1] == 'cc.construct') { res <- matrix(.CCtranstreeconstruct( phybreak.object$s$nodehosts[obs:(2*obs-1),
@@ -126,7 +127,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     }
     # times
     if (infection.times[1] == "infector") {
-        posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
+        posttimes <- phybreak.object$s$nodetimes[1, obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
         posttimes[res[, 1] != phybreak.object$s$nodehosts[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]] <- NA
         time.out <- apply(posttimes, 1, quantile, probs = time.quantiles, na.rm = TRUE)
         cnames <- paste0("inf.times.Q", 100 * time.quantiles)
@@ -139,7 +140,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
             cnames <- paste0("inf.times.", c("mean", "sd"))
         }
     } else {
-        posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
+        posttimes <- phybreak.object$s$nodetimes[1, obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
         time.out <- apply(posttimes, 1, quantile, probs = time.quantiles)
         cnames <- paste0("inf.times.Q", 100 * time.quantiles)
     }
@@ -168,9 +169,9 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     
     ### get time summaries
     if (includetimes) {
-        timesums <- with(phybreak.object, rowSums(s$nodetimes[obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
+        timesums <- with(phybreak.object, rowSums(s$nodetimes[1, obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
             obsize - 1), samplerange] == res[, 1])))
-        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[obsize:(2 * obsize - 1), samplerange]^2) * (s$nodehosts[obsize:(2 * 
+        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[1, obsize:(2 * obsize - 1), samplerange]^2) * (s$nodehosts[obsize:(2 * 
             obsize - 1), samplerange] == res[, 1])))
         res <- cbind(res, timesums/res[, 2])
         res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
@@ -240,9 +241,9 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     
     ### get time summaries
     if (includetimes) {
-        timesums <- with(phybreak.object, rowSums(s$nodetimes[obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
+        timesums <- with(phybreak.object, rowSums(s$nodetimes[1, obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
             obsize - 1), samplerange] == res[, 1])))
-        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[obsize:(2 * obsize - 1), samplerange]^2) * (s$nodehosts[obsize:(2 * 
+        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[1, obsize:(2 * obsize - 1), samplerange]^2) * (s$nodehosts[obsize:(2 * 
             obsize - 1), samplerange] == res[, 1])))
         res <- cbind(res, timesums/res[, 2])
         res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
@@ -279,13 +280,13 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     res <- matrix(c(posteriorsamples[, besttree], allsupports[, besttree]), ncol = 2)
     
     if (includetimes) {
-        timesums <- with(phybreak.object, rowSums(s$nodetimes[obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
+        timesums <- with(phybreak.object, rowSums(s$nodetimes[1, obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
             obsize - 1), samplerange] == res[, 1])))
-        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[obsize:(2 * obsize - 1), samplerange]^2) * (posteriorsamples == 
+        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[1, obsize:(2 * obsize - 1), samplerange]^2) * (posteriorsamples == 
             res[, 1])))
         res <- cbind(res, timesums/res[, 2])
         res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
-        res <- cbind(res, phybreak.object$s$nodetimes[obsize:(2 * obsize - 1), besttree + samplerange[1] - 1])
+        res <- cbind(res, phybreak.object$s$nodetimes[1, obsize:(2 * obsize - 1), besttree + samplerange[1] - 1])
     }
     
     

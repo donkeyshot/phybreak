@@ -7,7 +7,7 @@
 transtree(phybreak.object, method = c("count", "edmonds", "mpc", "mtcc"),
   samplesize = Inf, infector.name = TRUE, support = c("proportion",
   "count"), infection.times = c("all", "infector", "infector.sd"),
-  time.quantiles = c(0.025, 0.5, 0.975), phylo.class = FALSE)
+  time.quantiles = c(0.025, 0.5, 0.975), phylo.class = FALSE, gene = 1)
 }
 \arguments{
 \item{phybreak.object}{An object of class \code{phybreak}.}

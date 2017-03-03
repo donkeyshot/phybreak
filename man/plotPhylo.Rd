@@ -5,7 +5,7 @@
 \title{Plotting a phybreak object phylogenetic tree.}
 \usage{
 plotPhylo(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplenr = 0,
-  ...)
+  gene = 1, ...)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}

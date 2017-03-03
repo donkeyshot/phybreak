@@ -27,7 +27,7 @@
 #' phylotree(MCMCstate)
 #' plot(phylotree(MCMCstate, phylo.class = TRUE))
 #' @export
-phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion", "count"), phylo.class = FALSE) {
+phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion", "count"), phylo.class = FALSE, gene = 1) {
     chainlength <- length(phybreak.object$s$mu)
     
     ### tests
@@ -39,6 +39,18 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     if (support[1] != "proportion" && support[1] != "count") {
         warning("support is given as proportion")
     }
+    if(is.character(gene)) {
+      if(gene %in% names(phybreak.object$d$sequences)) {
+        gene <- which(gene == names(phybreak.object$d$sequences))
+      } else {
+        warning("requested 'gene' not available; first gene taken")
+        gene <- 1
+      }
+    }
+    if (gene > length(phybreak.object$d$sequences)) {
+      warning("requested 'gene' not available; first gene taken")
+      gene <- 1
+    }
 
     ### initialization
     samplesize <- min(samplesize, chainlength)
@@ -47,10 +59,10 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     
     ### decision tree to use correct model
     # if(method[1] == 'mcc') {
-    res <- .mcctree(.makephyloparsets(phybreak.object$s$nodeparents[, (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 
+    res <- .mcctree(.makephyloparsets(phybreak.object$s$nodeparents[gene, , (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[gene, 1:(obs - 
         1), (1:samplesize) + chainlength - samplesize], c(obs, samplesize))
     if (phylo.class) 
-        return(get.phylo(phybreak.object, samplenr = tail(res, 1) + chainlength - samplesize, simmap = FALSE))
+        return(get.phylo(phybreak.object, samplenr = tail(res, 1) + chainlength - samplesize, gene = gene, simmap = FALSE))
     res <- matrix(head(res, -1), ncol = 5)
     # } if(method[1] == 'cc.construct') { res <- matrix(.CCphylotreeconstruct( .makephyloparsets(phybreak.object$s$nodeparents[,
     # (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 1), (1:samplesize) + chainlength -
@@ -77,8 +89,8 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     }
     
     # times
-    res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs]
-    res[1:obs, 5] <- phybreak.object$v$nodetimes[1:obs]
+    res[1:obs, 3] <- phybreak.object$v$nodetimes[gene, 1:obs]
+    res[1:obs, 5] <- phybreak.object$v$nodetimes[gene, 1:obs]
     
     parents.out <- matrix(res[, 1], ncol = 1, dimnames = list(1:(2 * obs - 1), "parent"))
     # if(method[1] == 'mcc') {

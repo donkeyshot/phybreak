@@ -45,6 +45,7 @@ plot.phybreak <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc", 
     plotTrans(x, plot.which, samplenr)
   } 
   if(plot.which != "edmonds") {
+    for(gene in 1:x$d$ngenes)
     plotPhylo(x, plot.which, samplenr)
   }
   

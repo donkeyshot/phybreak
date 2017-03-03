@@ -117,8 +117,8 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
       # plot.which == "sample" && samplenr > 0
       
       vars <- list(
-        nodetimes = c(x$v$nodetimes[x$v$nodetypes == "s"], x$s$nodetimes[, samplenr]),
-        nodeparents = x$s$nodeparents[, samplenr],
+        nodetimes = cbind(x$v$nodetimes[, x$v$nodetypes == "s"], x$s$nodetimes[, , samplenr]),
+        nodeparents = x$s$nodeparents[, , samplenr],
         nodehosts = c(x$v$nodehosts[x$v$nodetypes == "s"], x$s$nodehosts[, samplenr]),
         nodetypes = x$v$nodetypes
       )

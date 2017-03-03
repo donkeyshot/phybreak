@@ -27,7 +27,7 @@
 #' 
 #' plot(MCMCstate, plot.which = "mpc")
 #' @export
-plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplenr = 0, ...) {
+plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplenr = 0, gene = 1, ...) {
   if(!("phytools" %in% .packages(TRUE))) {
     stop("package 'phytools' should be installed for this function")
   }
@@ -56,21 +56,21 @@ plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplen
 
     
   if (plot.which == "mpc") {
-    simmapplot <- suppressWarnings(transtree(x, "mpc", phylo.class = TRUE))
+    simmapplot <- suppressWarnings(transtree(x, "mpc", phylo.class = TRUE, gene = gene))
   } else if (plot.which == "mtcc") {
-    simmapplot <- suppressWarnings(transtree(x, "mtcc", phylo.class = TRUE))
+    simmapplot <- suppressWarnings(transtree(x, "mtcc", phylo.class = TRUE, gene = gene))
   } else if (plot.which == "mcc") {
-    simmapplot <- suppressWarnings(phylotree(x, phylo.class = TRUE))
+    simmapplot <- suppressWarnings(phylotree(x, phylo.class = TRUE, gene = gene))
   } else if (samplenr == 0) {
-    simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE))
+    simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE, gene = gene))
   } else {
     x$v <- list(
-      nodetimes = c(x$v$nodetimes[x$v$nodetypes == "s"], x$s$nodetimes[, samplenr]),
-      nodeparents = x$s$nodeparents[, samplenr],
+      nodetimes = cbind(x$v$nodetimes[, x$v$nodetypes == "s"], x$s$nodetimes[, , samplenr]),
+      nodeparents = x$s$nodeparents[, , samplenr],
       nodehosts = c(x$v$nodehosts[x$v$nodetypes == "s"], x$s$nodehosts[, samplenr]),
       nodetypes = x$v$nodetypes
     )
-    simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE))
+    simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE, gene = gene))
   }
 
   phytools::plotSimmap(simmapplot, mar = par("mar"), colors = setNames(nm = unique(simmapplot$states)), ...)
