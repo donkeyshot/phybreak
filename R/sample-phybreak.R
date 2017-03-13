@@ -34,7 +34,7 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
   if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
   if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
   if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
-  
+
 
   s.post <- with(phybreak.object,
                  list(

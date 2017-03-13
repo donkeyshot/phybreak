@@ -53,7 +53,6 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = 0.2, phylotopo
       if (runif(1) < 1 - keepphylo)                  # If this is true, a new phylogeny + transmission tree is chosen
         .updatehost(i) else .updatehost.keepphylo(i) # Else a new trans tree is chosen while keeping phylo.
     }
-    
     if (phybreak.object$h$est.mG)
       .update.mG()
     if (phybreak.object$h$est.mS)

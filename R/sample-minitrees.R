@@ -1,6 +1,7 @@
 ### functions to simulate mini-trees ###
 
 
+
 ### sample coalescent times in a host, given the tip times since infection,
 ### ...the wh-model and the slope (used if WHmodel = 3)
 .samplecoaltimes <- function(tleaves, WHmodel = 3, slope = 1, ngenes = 1, reassortment = FALSE) {
@@ -8,7 +9,7 @@
   if(min(tleaves) < 0) stop(".samplecoaltimes with negative tip times")
   if(!any(WHmodel == 1:3)) stop(paste0(".samplecoaltimes called with WHmodel = ",WHmodel))
   if(WHmodel == 3 && slope < 0) stop(".samplecoaltimes called with negative slope")
-  
+
   ### function body
   if(length(tleaves) < 2) return(c())
   
@@ -43,7 +44,6 @@
 .sampletopology <- function(nIDs, ntimes, ntypes, rootnode, WHmodel = 3, reassortment = FALSE) {
   ### tests
   if(!any(WHmodel == 1:3)) stop(paste0(".sampletopology called with WHmodel = ",WHmodel))
-  
   ### function body
   if(length(nIDs) == 1) return(rootnode)
   switch(

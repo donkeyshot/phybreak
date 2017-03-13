@@ -205,8 +205,6 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     coalnodehosts <- sort(c(infectors, samhosts))
     coalnodehosts <- coalnodehosts[duplicated(coalnodehosts)]
     nodehosts <- c(samhosts, coalnodehosts, infectors)
-    
-    ##sample coalescent times and nodeparents
     for(i in 1:Nhosts) {
       hostreassortment[i] <- runif(1) < resamplepars$reass.prob
       nodetimes[, nodehosts == i & nodetypes == "c"] <-   # change the times of the coalescence nodes in host i...

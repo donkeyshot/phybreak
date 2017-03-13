@@ -263,7 +263,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
           iees <- iees[-1]                     # infectee done with
         }
       }
-      
+
       ## sample the times of the coalescence nodes
       for(i in 1:obs) {
         nodetimes[, nodehosts == i & nodetypes == "c"] <-   # change the times of the coalescence nodes in host i...

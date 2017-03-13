@@ -154,7 +154,7 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   v <- .pbe1$v
   hostID <- .pbe1$hostID
   tinf.prop <- .pbe1$tinf.prop
-  
+
   ### change to proposal state
   
   # bookkeeping: change infection time
@@ -412,7 +412,7 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   
   # prepare for phylotree proposals by moving coalescent nodes from current infector to hostID
   v$nodehosts[v$nodehosts == infector.current.ID & v$nodetypes == "c"][1] <- hostID
-  
+
   # propose phylotrees for hostID and the new infector.
   v$hostreassortment[c(hostID, infector.current.ID)] <- sample(c(TRUE, FALSE), size = 2, replace = TRUE, 
                                                                prob = c(p$reass.prob, 1 - p$reass.prob))
@@ -474,8 +474,8 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   v <- .pbe1$v
   hostID <- .pbe1$hostID
   tinf.prop <- .pbe1$tinf.prop
-  Ngenes <-  dim(v$nodetimes)[1] # Only works when ngenes == 1 use a matrix
-
+  Ngenes <-  dim(v$nodetimes)[1]
+  
   ### change to proposal state
   
   # identify the current infector
@@ -513,7 +513,7 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
     #...to a correct topology, randomized where possible
   }
   
-  
+
   ### update proposal environment
   .copy2pbe1("v", le)
   
@@ -542,7 +542,6 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
     .accept.pbe("phylotrans")
   }
 }
-
 
 ### update if hostID is not index and tinf.prop is after the first secondary case called from: .updatehost calling:
 ### .updatepathC
