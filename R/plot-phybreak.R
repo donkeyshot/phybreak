@@ -46,7 +46,7 @@ plot.phybreak <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc", 
   } 
   if(plot.which != "edmonds") {
     for(gene in 1:x$d$ngenes)
-    plotPhylo(x, plot.which, samplenr)
+    plotPhylo(x, plot.which, samplenr, gene)
   }
   
 }
