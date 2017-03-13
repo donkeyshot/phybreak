@@ -163,37 +163,18 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   # phylotrees in hostID  
   v$hostreassortment[hostID] <- sample(c(TRUE, FALSE), 1, prob = c(p$reass.prob, 1 - p$reass.prob))
   
-  if(v$hostreassortment[hostID]) {
-    for(gene in 1:d$ngenes) {
-      v$nodetimes[gene, v$nodehosts == hostID & v$nodetypes == "c"] <-
-        v$nodetimes[gene, hostID + 2 * p$obs - 1] + 
-        .samplecoaltimes(v$nodetimes[gene, v$nodehosts == hostID & v$nodetypes != "c"] - v$nodetimes[gene, hostID + 2 * p$obs - 1], 
-                         p$wh.model, p$wh.slope)
-      
-      v$nodeparents[gene , v$nodehosts == hostID] <-
-        .sampletopology(which(v$nodehosts == hostID), 
-                        v$nodetimes[gene, v$nodehosts == hostID], 
-                        v$nodetypes[v$nodehosts == hostID], 
-                        hostID + 2 * p$obs - 1, p$wh.model)
-    }
-  } else {
-    v$nodetimes[, v$nodehosts == hostID & v$nodetypes == "c"] <-
-      rep(
-        v$nodetimes[1, hostID + 2 * p$obs - 1] + 
-          .samplecoaltimes(v$nodetimes[1, v$nodehosts == hostID & v$nodetypes != "c"] - v$nodetimes[1, hostID + 2 * p$obs - 1], 
-                           p$wh.model, p$wh.slope),
-        each = d$ngenes)
-    
-    v$nodeparents[, v$nodehosts == hostID] <-
-      rep(
-        .sampletopology(which(v$nodehosts == hostID), 
-                        v$nodetimes[1, v$nodehosts == hostID], 
-                        v$nodetypes[v$nodehosts == hostID], 
-                        hostID + 2 * p$obs - 1, p$wh.model),
-        each = d$ngenes)
-  }
+  v$nodetimes[, v$nodehosts == hostID & v$nodetypes == "c"] <-   # change the times of the coalescence nodes in hostID...
+    v$nodetimes[, hostID + 2 * p$obs - 1] +                      # ...to the infection time +
+    .samplecoaltimes(v$nodetimes[1, v$nodehosts == hostID & v$nodetypes != "c", drop = FALSE] - v$nodetimes[1, hostID + 2 * p$obs - 1],
+                     p$wh.model, p$wh.slope, d$ngenes, v$hostreassortment[hostID])               # ...sampled coalescence times
   
+  v$nodeparents[, v$nodehosts == hostID] <-     #change the parent nodes of all nodes in hostID...
+    .sampletopology(which(v$nodehosts == hostID), v$nodetimes[, v$nodehosts == hostID, drop = FALSE], v$nodetypes[v$nodehosts == hostID], 
+                    hostID + 2 * p$obs - 1, 
+                    p$wh.model, v$hostreassortment[hostID])
+  #...to a correct topology, randomized where possible
   
+
   ### update proposal environment
   .copy2pbe1("v", le)
   
@@ -259,35 +240,16 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   v$hostreassortment[c(hostID, infector.proposed.ID)] <- sample(c(TRUE, FALSE), size = 2, replace = TRUE, 
                                                                 prob = c(p$reass.prob, 1 - p$reass.prob))
   for (ID in c(hostID, infector.proposed.ID)) {
-    if(v$hostreassortment[ID]) {
-      for(gene in 1:d$ngenes) {
-        v$nodetimes[gene, v$nodehosts == ID & v$nodetypes == "c"] <-
-          v$nodetimes[gene, ID + 2 * p$obs - 1] + 
-          .samplecoaltimes(v$nodetimes[gene, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[gene, ID + 2 * p$obs - 1], 
-                           p$wh.model, p$wh.slope)
-        
-        v$nodeparents[gene , v$nodehosts == ID] <-
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[gene, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model)
-      }
-    } else {
-      v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-
-        rep(
-          v$nodetimes[1, ID + 2 * p$obs - 1] + 
-            .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[1, ID + 2 * p$obs - 1], 
-                             p$wh.model, p$wh.slope),
-          each = d$ngenes)
-      
-      v$nodeparents[, v$nodehosts == ID] <-
-        rep(
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[1, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model),
-          each = d$ngenes)
-    }
+    v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-   # change the times of the coalescence nodes in ID...
+      v$nodetimes[, ID + 2 * p$obs - 1] +                      # ...to the infection time +
+      .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c", drop = FALSE] - v$nodetimes[1, ID + 2 * p$obs - 1],
+                       p$wh.model, p$wh.slope, d$ngenes, v$hostreassortment[ID])               # ...sampled coalescence times
+    
+    v$nodeparents[, v$nodehosts == ID] <-     #change the parent nodes of all nodes in hostID...
+      .sampletopology(which(v$nodehosts == ID), v$nodetimes[, v$nodehosts == ID, drop = FALSE], v$nodetypes[v$nodehosts == ID], 
+                      ID + 2 * p$obs - 1, 
+                      p$wh.model, v$hostreassortment[ID])
+    #...to a correct topology, randomized where possible
   }
     
   ### update proposal environment
@@ -368,35 +330,16 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   v$hostreassortment[c(hostID, infectee.current.ID)] <- sample(c(TRUE, FALSE), size = 2, replace = TRUE, 
                                                                prob = c(p$reass.prob, 1 - p$reass.prob))
   for (ID in c(hostID, infectee.current.ID)) {
-    if(v$hostreassortment[ID]) {
-      for(gene in 1:d$ngenes) {
-        v$nodetimes[gene, v$nodehosts == ID & v$nodetypes == "c"] <-
-          v$nodetimes[gene, ID + 2 * p$obs - 1] + 
-          .samplecoaltimes(v$nodetimes[gene, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[gene, ID + 2 * p$obs - 1], 
-                           p$wh.model, p$wh.slope)
-        
-        v$nodeparents[gene , v$nodehosts == ID] <-
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[gene, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model)
-      }
-    } else {
-      v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-
-        rep(
-          v$nodetimes[1, ID + 2 * p$obs - 1] + 
-            .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[1, ID + 2 * p$obs - 1], 
-                             p$wh.model, p$wh.slope),
-          each = d$ngenes)
-      
-      v$nodeparents[, v$nodehosts == ID] <-
-        rep(
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[1, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model),
-          each = d$ngenes)
-    }
+    v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-   # change the times of the coalescence nodes in ID...
+      v$nodetimes[, ID + 2 * p$obs - 1] +                      # ...to the infection time +
+      .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c", drop = FALSE] - v$nodetimes[1, ID + 2 * p$obs - 1],
+                       p$wh.model, p$wh.slope, d$ngenes, v$hostreassortment[ID])               # ...sampled coalescence times
+    
+    v$nodeparents[, v$nodehosts == ID] <-     #change the parent nodes of all nodes in hostID...
+      .sampletopology(which(v$nodehosts == ID), v$nodetimes[, v$nodehosts == ID, drop = FALSE], v$nodetypes[v$nodehosts == ID], 
+                      ID + 2 * p$obs - 1, 
+                      p$wh.model, v$hostreassortment[ID])
+    #...to a correct topology, randomized where possible
   }
     
    ### update proposal environment
@@ -474,35 +417,16 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   v$hostreassortment[c(hostID, infector.current.ID)] <- sample(c(TRUE, FALSE), size = 2, replace = TRUE, 
                                                                prob = c(p$reass.prob, 1 - p$reass.prob))
   for (ID in c(hostID, infector.current.ID)) {
-    if(v$hostreassortment[ID]) {
-      for(gene in 1:d$ngenes) {
-        v$nodetimes[gene, v$nodehosts == ID & v$nodetypes == "c"] <-
-          v$nodetimes[gene, ID + 2 * p$obs - 1] + 
-          .samplecoaltimes(v$nodetimes[gene, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[gene, ID + 2 * p$obs - 1], 
-                           p$wh.model, p$wh.slope)
-        
-        v$nodeparents[gene , v$nodehosts == ID] <-
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[gene, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model)
-      }
-    } else {
-      v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-
-        rep(
-          v$nodetimes[1, ID + 2 * p$obs - 1] + 
-            .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[1, ID + 2 * p$obs - 1], 
-                             p$wh.model, p$wh.slope),
-          each = d$ngenes)
-      
-      v$nodeparents[, v$nodehosts == ID] <-
-        rep(
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[1, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model),
-          each = d$ngenes)
-    }
+    v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-   # change the times of the coalescence nodes in ID...
+      v$nodetimes[, ID + 2 * p$obs - 1] +                      # ...to the infection time +
+      .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c", drop = FALSE] - v$nodetimes[1, ID + 2 * p$obs - 1],
+                       p$wh.model, p$wh.slope, d$ngenes, v$hostreassortment[ID])               # ...sampled coalescence times
+    
+    v$nodeparents[, v$nodehosts == ID] <-     #change the parent nodes of all nodes in hostID...
+      .sampletopology(which(v$nodehosts == ID), v$nodetimes[, v$nodehosts == ID, drop = FALSE], v$nodetypes[v$nodehosts == ID], 
+                      ID + 2 * p$obs - 1, 
+                      p$wh.model, v$hostreassortment[ID])
+    #...to a correct topology, randomized where possible
   }
   
   
@@ -577,35 +501,16 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
   v$hostreassortment[c(hostID, infector.current.ID, infector.proposed.ID)] <- sample(c(TRUE, FALSE), size = 3, replace = TRUE, 
                                                                                      prob = c(p$reass.prob, 1 - p$reass.prob))
   for (ID in c(hostID, infector.current.ID, infector.proposed.ID)) {
-    if(v$hostreassortment[ID]) {
-      for(gene in 1:d$ngenes) {
-        v$nodetimes[gene, v$nodehosts == ID & v$nodetypes == "c"] <-
-          v$nodetimes[gene, ID + 2 * p$obs - 1] + 
-          .samplecoaltimes(v$nodetimes[gene, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[gene, ID + 2 * p$obs - 1], 
-                           p$wh.model, p$wh.slope)
-        
-        v$nodeparents[gene , v$nodehosts == ID] <-
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[gene, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model)
-      }
-    } else {
-      v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-
-        rep(
-          v$nodetimes[1, ID + 2 * p$obs - 1] + 
-            .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c"] - v$nodetimes[1, ID + 2 * p$obs - 1], 
-                             p$wh.model, p$wh.slope),
-          each = d$ngenes)
-      
-      v$nodeparents[, v$nodehosts == ID] <-
-        rep(
-          .sampletopology(which(v$nodehosts == ID), 
-                          v$nodetimes[1, v$nodehosts == ID], 
-                          v$nodetypes[v$nodehosts == ID], 
-                          ID + 2 * p$obs - 1, p$wh.model),
-          each = d$ngenes)
-    }
+    v$nodetimes[, v$nodehosts == ID & v$nodetypes == "c"] <-   # change the times of the coalescence nodes in ID...
+      v$nodetimes[, ID + 2 * p$obs - 1] +                      # ...to the infection time +
+      .samplecoaltimes(v$nodetimes[1, v$nodehosts == ID & v$nodetypes != "c", drop = FALSE] - v$nodetimes[1, ID + 2 * p$obs - 1],
+                       p$wh.model, p$wh.slope, d$ngenes, v$hostreassortment[ID])               # ...sampled coalescence times
+    
+    v$nodeparents[, v$nodehosts == ID] <-     #change the parent nodes of all nodes in hostID...
+      .sampletopology(which(v$nodehosts == ID), v$nodetimes[, v$nodehosts == ID, drop = FALSE], v$nodetypes[v$nodehosts == ID], 
+                      ID + 2 * p$obs - 1, 
+                      p$wh.model, v$hostreassortment[ID])
+    #...to a correct topology, randomized where possible
   }
   
   
