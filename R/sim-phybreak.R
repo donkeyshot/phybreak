@@ -266,29 +266,17 @@ sim.phybreak <- function(obsize = 50, popsize = NA,
       
       ## sample the times of the coalescence nodes
       for(i in 1:obs) {
-        if (reassortmentvector[i]){
-          for(j in 1:ngenes) {
-            nodetimes[j, nodehosts == i & nodetypes == "c"] <-   # change the times of the coalescence nodes in host i...
-              nodetimes[j, i + 2*obs - 1] +                      # ...to the infection time +
-              .samplecoaltimes(nodetimes[j, nodehosts == i & nodetypes != "c"] - nodetimes[j, i + 2*obs - 1],
-                               wh.model, wh.slope)               # ...sampled coalescence times
-            
-            nodeparents[j, nodehosts == i] <-     #change the parent nodes of all nodes in host i...
-              .sampletopology(which(nodehosts == i), nodetimes[j, nodehosts == i], nodetypes[nodehosts == i], i + 2*obs - 1, wh.model)
-            #...to a correct topology, randomized where possible
-          } 
-        } else { 
-          coalt <-  nodetimes[1, i + 2*obs - 1] + 
-            .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c"] - nodetimes[1, i + 2*obs - 1],
-                             wh.model, wh.slope)  
-          nodetimes[, nodehosts == i & nodetypes == "c"] <- matrix(rep(coalt,ngenes),nrow = ngenes, byrow = TRUE)
-          
-          nodep <-  matrix(rep(.sampletopology(which(nodehosts == i), nodetimes[1, nodehosts == i],
-                                               nodetypes[nodehosts == i], i + 2*obs - 1, wh.model), ngenes),
-                           byrow = TRUE, nrow = ngenes)
-          nodeparents[, nodehosts == i] <- nodep
-        }
+        nodetimes[, nodehosts == i & nodetypes == "c"] <-   # change the times of the coalescence nodes in host i...
+          nodetimes[, i + 2*obs - 1] +                      # ...to the infection time +
+          .samplecoaltimes(nodetimes[1, nodehosts == i & nodetypes != "c", drop = FALSE] - nodetimes[1, i + 2*obs - 1],
+                           wh.model, wh.slope, ngenes, reassortmentvector[i])               # ...sampled coalescence times
+        
+        nodeparents[, nodehosts == i] <-     #change the parent nodes of all nodes in host i...
+          .sampletopology(which(nodehosts == i), nodetimes[, nodehosts == i, drop = FALSE], nodetypes[nodehosts == i], i + 2*obs - 1, 
+                          wh.model, reassortmentvector[i])
+        #...to a correct topology, randomized where possible
       }
+      
       return(
         within(sim.object, {
           nodetypes <- nodetypes
