@@ -3,6 +3,7 @@
 ## Minor Changes
 
 * Customize plot labels in plotTrans
+* Fix offset of infection times in transtree and plotTrans
 
 ## BUG FIXES
 
