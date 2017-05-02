@@ -145,6 +145,8 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     }
     if(inherits(phybreak.object$d$reference.date, "Date")) {
       time.out <- as.Date(time.out, origin = phybreak.object$d$reference.date)
+    } else {
+      time.out <- time.out + phybreak.object$d$reference.date
     }
     time.out <- as.data.frame(split(time.out, 1:length(cnames)))
     colnames(time.out) <- cnames
