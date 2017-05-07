@@ -116,15 +116,16 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
   ### order the input host by host, hosts ordered by first sampling time ###
   ##########################################################################
   allhosts <- unique(host.names)
-  allfirsttimes <- sapply(allhosts, function(x) min(sample.times[host.names == x]))
-  outputorderhosts <- order(allfirsttimes)
-  orderedhosts <- allhosts[outputorderhosts]
-  outputordersamples <- order(!(sample.times %in% allfirsttimes), match(host.names, orderedhosts), sample.times)
+  allfirsttimes <- rep(FALSE, length(sample.times))
+  sapply(allhosts, function(x) allfirsttimes[which(min(sample.times[host.names == x]) == sample.times)[1]] <<- TRUE)
+  outputorderhosts <- order(sample.times[allfirsttimes])
+  orderedhosts <- host.names[allfirsttimes][outputorderhosts]
+  outputordersamples <- order(!allfirsttimes, match(host.names, orderedhosts), sample.times)
   sequences <- sequences[outputordersamples, ]
   sample.times <- sample.times[outputordersamples]
   sample.names <- sample.names[outputordersamples]
   host.names <- host.names[outputordersamples]
-  
+
   #################################################
   ### place essential information in outputlist ###
   #################################################
@@ -157,7 +158,7 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
       sim.infection.times <- sim.infection.times[outputorderhosts]
       names(sim.infection.times) <- orderedhosts
     }
-    if(!all(sim.infection.times < allfirsttimes)) {
+    if(!all(sim.infection.times < sample.times[1:length(allhosts)])) {
       stop("all infection times should be before the sampling times")
     }
     res <- c(res, list(sim.infection.times = sim.infection.times))
