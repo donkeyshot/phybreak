@@ -99,7 +99,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   hostnames <- paste0("host.", 1:obsize)
   samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples], ".", nthsample(res))
   names(res$sequences) <- samplenames
-
+  
   ### make a phylo tree
   treesout <- vector('list',1)
   treesout[[1]] <- phybreak2phylo(vars = res, samplenames = samplenames, simmap = FALSE)
@@ -245,7 +245,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
       nodeparents <- rep(0,2*Nsamples - 1 + obs)  #initialize nodes: will containsparent node in phylotree
       nodetimes <- nodeparents   #initialize nodes: will contain time of node
       nodehosts <- nodeparents   #initialize nodes: will contain host carrying the node
-      nodetypes <- c(rep("s", Nsamples), rep("c", Nsamples - 1),
+      nodetypes <- c(rep("s", obs), rep("x", Nsamples - obs), rep("c", Nsamples - 1),
                      rep("t", obs))  #initialize nodes: will contain node type (sampling, coalescent, transmission)
       
       nodetimes[1:Nsamples] <- c(sampletimes, addsampletimes)   #sampling nodes at sample times
@@ -345,7 +345,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
 nthsample <- function(sim.object) {
   with(sim.object, {
     nth <- rep(0, Nsamples)
-    sapply(1:obs, function(x) suppressWarnings(nth[which(nodehosts[nodetypes == "s"] == x)] <<- 0:Nsamples))
+    sapply(1:obs, function(x) suppressWarnings(nth[which(nodehosts[nodetypes %in% c("s", "x")] == x)] <<- 0:Nsamples))
     return(nth)
   })
 }

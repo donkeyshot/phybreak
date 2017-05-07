@@ -47,11 +47,11 @@
     WHmodel,
     #coalescence at transmission
     {
-      cnodes <- nIDs[ntypes=="c"]
-      cnodeparents <- c(rootnode,head(cnodes,-1))
+      cnodes <- nIDs[ntypes == "c"]
+      cnodeparents <- c(rootnode, head(cnodes, -1))
       leafparents <- c(cnodes,tail(cnodes,1))
       leafparents <- leafparents[rank(ntimes[ntypes != "c"],ties.method="first")]
-      res <- c(head(leafparents,sum(ntypes=="s")),
+      res <- c(head(leafparents,sum(ntypes %in% c("s", "x"))),
                cnodeparents,
                tail(leafparents,sum(ntypes=="t")))
       return(res)
@@ -59,7 +59,7 @@
     #coalescence at infection
     {
       cnodes <- sort(nIDs[ntypes=="c"],decreasing = TRUE)
-      res <- c(rep(NA,sum(ntypes=="s")),
+      res <- c(rep(NA,sum(ntypes %in% c("s", "x"))),
                rootnode,tail(-nIDs[ntypes=="c"],-1),
                rep(NA,sum(ntypes=="t")))
       for(i in cnodes) {
@@ -69,8 +69,8 @@
       return(res)
     }
   )
-  IDs <- nIDs[order(ntimes,ntypes)]
-  tys <- ntypes[order(ntimes,ntypes)]
+  IDs <- nIDs[order(ntimes, ntypes)]
+  tys <- ntypes[order(ntimes, ntypes)]
   if(tys[1] != "c") {
     print(c(nIDs, ntimes, ntypes, rootnode))
     stop("host topology does not start with coalescence node")

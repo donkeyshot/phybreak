@@ -35,7 +35,7 @@
   h <- phybreak.obj$h
   v <- phybreak.obj$v
   p <- phybreak.obj$p
-  SNP <- t(matrix(unlist(d$sequences), ncol = p$obs))
+  SNP <- t(matrix(unlist(d$sequences), ncol = d$nsamples))
   SNPfr <- attr(d$sequences, "weight")
   
   
@@ -62,27 +62,26 @@
   
   
   ### initialize all dimensions of likarray
-  likarray <- array(1, dim = c(4, length(snpfrreduced), 2 * p$obs - 1))
+  likarray <- array(1, dim = c(4, length(snpfrreduced), 2 * d$nsamples - 1))
   ### initialize likarray with observations on sampling nodes: 0 or 1
-  likarray[cbind(1, rep(1:length(snpfrreduced), p$obs), rep(1:p$obs, 
+  likarray[cbind(1, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
                                                             each = length(snpfrreduced)))] <- 1 * t(snpreduced == 1 | snpreduced == 5)
-  likarray[cbind(2, rep(1:length(snpfrreduced), p$obs), rep(1:p$obs, 
+  likarray[cbind(2, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
                                                             each = length(snpfrreduced)))] <- 1 * t(snpreduced == 2 | snpreduced == 5)
-  likarray[cbind(3, rep(1:length(snpfrreduced), p$obs), rep(1:p$obs, 
+  likarray[cbind(3, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
                                                             each = length(snpfrreduced)))] <- 1 * t(snpreduced == 3 | snpreduced == 5)
-  likarray[cbind(4, rep(1:length(snpfrreduced), p$obs), rep(1:p$obs, 
+  likarray[cbind(4, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
                                                             each = length(snpfrreduced)))] <- 1 * t(snpreduced == 4 | snpreduced == 5)
   
   
   ### complete likarray and calculate log-likelihood of sequences
-  .likseqenv(le, (p$obs + 1):(2 * p$obs - 1), 1:p$obs)
+  .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
   
   
   
   ### calculate the other log-likelihoods
-  logLiksam <- .lik.sampletimes(p$shape.sample, p$mean.sample, v$nodetimes, v$nodetypes)
-  logLikgen <- .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, 
-                             v$nodetypes)
+  logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$shape.sample, p$mean.sample, v$nodetimes)
+  logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts)
   logLikcoal <- .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, 
                                v$nodetypes)
   
@@ -127,6 +126,7 @@
 .propose.pbe <- function(f) {
   ### Making variables and parameters available within the function
   le <- environment()
+  d <- .pbe0$d
   v <- .pbe1$v
   p <- .pbe1$p
   
@@ -135,14 +135,14 @@
     chnodes <- which((v$nodeparents != .pbe0$v$nodeparents) | (v$nodetimes != 
                                                                  .pbe0$v$nodetimes))
     chnodes <- unique(unlist(sapply(chnodes, .ptr, pars = v$nodeparents)))
-    chnodes <- chnodes[chnodes > p$obs & chnodes < 2 * p$obs]
+    chnodes <- chnodes[chnodes > d$nsamples & chnodes < 2 * d$nsamples]
     # identify nodetips
-    nodetips <- c(match(chnodes, v$nodeparents), 3 * p$obs - match(chnodes, rev(v$nodeparents)))
-    nodetips[nodetips >= 2 * p$obs] <- match(nodetips[nodetips >= 2 * p$obs], v$nodeparents)
+    nodetips <- c(match(chnodes, v$nodeparents), 2 * d$nsamples + p$obs - match(chnodes, rev(v$nodeparents)))
+    nodetips[nodetips >= 2 * d$nsamples] <- match(nodetips[nodetips >= 2 * d$nsamples], v$nodeparents)
     nodetips <- nodetips[is.na(match(nodetips, chnodes))]
   } else if (f == "mu") {
-    chnodes <- (p$obs + 1):(2 * p$obs - 1)
-    nodetips <- 1:p$obs
+    chnodes <- (d$nsamples + 1):(2 * d$nsamples - 1)
+    nodetips <- 1:d$nsamples
   } else {
     chnodes <- NULL
   }
@@ -154,12 +154,12 @@
   
   
   if (f == "phylotrans" || f == "trans" || f == "mG") {
-    logLikgen <- .lik.gentimes(p$obs, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts, v$nodetypes)
+    logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts)
     .copy2pbe1("logLikgen", le)
   }
   
   if (f == "phylotrans" || f == "trans" || f == "mS") {
-    logLiksam <- .lik.sampletimes(p$shape.sample, p$mean.sample, v$nodetimes, v$nodetypes)
+    logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$shape.sample, p$mean.sample, v$nodetimes)
     .copy2pbe1("logLiksam", le)
   }
   

@@ -32,11 +32,14 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
     if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
   
     ### create room in s to add the new posterior samples
-    s.post <- list(nodetimes = with(phybreak.object, cbind(s$nodetimes, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodehosts = with(phybreak.object, 
-        cbind(s$nodehosts, matrix(NA, nrow = 2 * p$obs - 1, ncol = nsample))), nodeparents = with(phybreak.object, cbind(s$nodeparents, 
-        matrix(NA, nrow = 3 * p$obs - 1, ncol = nsample))), mu = c(phybreak.object$s$mu, rep(NA, nsample)), mG = c(phybreak.object$s$mG, 
-        rep(NA, nsample)), mS = c(phybreak.object$s$mS, rep(NA, nsample)), slope = c(phybreak.object$s$slope, rep(NA, nsample)), 
-        logLik = c(phybreak.object$s$logLik, rep(NA, nsample)))
+    s.post <- list(nodetimes = with(phybreak.object, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples + p$obs - 1, ncol = nsample))), 
+                   nodehosts = with(phybreak.object, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples + p$obs - 1, ncol = nsample))), 
+                   nodeparents = with(phybreak.object, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples + p$obs - 1, ncol = nsample))), 
+                   mu = c(phybreak.object$s$mu, rep(NA, nsample)), 
+                   mG = c(phybreak.object$s$mG, rep(NA, nsample)), 
+                   mS = c(phybreak.object$s$mS, rep(NA, nsample)), 
+                   slope = c(phybreak.object$s$slope, rep(NA, nsample)), 
+                   logLik = c(phybreak.object$s$logLik, rep(NA, nsample)))
     
     .build.pbe(phybreak.object)
     
@@ -46,7 +49,7 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
       
       if(Sys.time() - curtime > 10) {
         cat(paste0("sample ", sa, ": logLik = ", 
-                   round(.pbe0$logLikgen + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
+                   round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
                    "; mu = ", signif(.pbe0$p$mu, 3), 
                    "; mean.gen = ", signif(.pbe0$p$mean.gen, 3),
                    "; mean.sample = ", signif(.pbe0$p$mean.sample, 3),
@@ -72,8 +75,8 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
                 .update.wh()
             .update.mu()
         }
-        s.post$nodetimes[, sa] <- tail(.pbe0$v$nodetimes, -phybreak.object$p$obs)
-        s.post$nodehosts[, sa] <- tail(.pbe0$v$nodehosts, -phybreak.object$p$obs)
+        s.post$nodetimes[, sa] <- .pbe0$v$nodetimes[.pbe0$v$nodetypes %in% c("c", "t")]
+        s.post$nodehosts[, sa] <- .pbe0$v$nodehosts[.pbe0$v$nodetypes %in% c("c", "t")]
         s.post$nodeparents[, sa] <- .pbe0$v$nodeparents
         s.post$mu[sa] <- .pbe0$p$mu
         s.post$mG[sa] <- .pbe0$p$mean.gen

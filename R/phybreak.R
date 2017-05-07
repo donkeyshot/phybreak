@@ -169,7 +169,7 @@ phybreak <- function(dataset, times = NULL,
     )
 
   #Sample size
-  dataslot$Nsamples <- length(dataslot$names)
+  dataslot$nsamples <- length(dataslot$names)
   
   ##############################
   ### third slot: parameters ###
@@ -214,7 +214,7 @@ phybreak <- function(dataset, times = NULL,
   #################################
   helperslot <- list(si.mu = if(dataslot$nSNPs == 0) 0 else 2.38*sqrt(trigamma(dataslot$nSNPs)),
                      si.wh = 2.38*sqrt(trigamma(parameterslot$obs - 1)),
-                     dist = distmatrix_phybreak(dataslot$sequences),
+                     dist = distmatrix_phybreak(subset(dataslot$sequences, subset = 1:parameterslot$obs)),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
                      est.wh = est.wh.slope,

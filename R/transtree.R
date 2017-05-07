@@ -81,6 +81,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     
     ### initialization
     samplesize <- min(samplesize, chainlength)
+    nsamples <- phybreak.object$d$nsamples
     obs <- phybreak.object$p$obs
     res <- c()
     
@@ -97,8 +98,8 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
             return(get.phylo(phybreak.object, samplenr = res, simmap = TRUE))
     }
     if (method[1] == "mtcc") {
-        res <- .mtcctree(phybreak.object$s$nodehosts[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize], phybreak.object$s$nodetimes[obs:(2 * 
-            obs - 1), (1:samplesize) + chainlength - samplesize], c(obs, samplesize))
+        res <- .mtcctree(phybreak.object$s$nodehosts[nsamples:(nsamples + obs - 1), (1:samplesize) + chainlength - samplesize], 
+                         phybreak.object$s$nodetimes[nsamples:(nsamples + obs - 1), (1:samplesize) + chainlength - samplesize], c(obs, samplesize))
         if (phylo.class) 
             return(get.phylo(phybreak.object, samplenr = tail(res, 1) + chainlength - samplesize, simmap = TRUE))
         res <- matrix(head(res, -1), ncol = 5)
@@ -113,10 +114,10 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     
     ### build output infectors
     if (infector.name) {
-        infectors.out <- matrix(c("index", phybreak.object$d$names)[1 + res[, 1]], ncol = 1, dimnames = list(phybreak.object$d$names, 
+        infectors.out <- matrix(c("index", phybreak.object$d$hostnames)[1 + res[, 1]], ncol = 1, dimnames = list(phybreak.object$d$hostnames[1:obs], 
             "infector"))
     } else {
-        infectors.out <- matrix(res[, 1], ncol = 1, dimnames = list(phybreak.object$d$names, "infector"))
+        infectors.out <- matrix(res[, 1], ncol = 1, dimnames = list(phybreak.object$d$hostnames[1:obs], "infector"))
     }
     # support
     if (support[1] == "count") {
@@ -126,8 +127,8 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     }
     # times
     if (infection.times[1] == "infector") {
-        posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
-        posttimes[res[, 1] != phybreak.object$s$nodehosts[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]] <- NA
+        posttimes <- phybreak.object$s$nodetimes[nsamples:(nsamples + obs - 1), (1:samplesize) + chainlength - samplesize]
+        posttimes[res[, 1] != phybreak.object$s$nodehosts[nsamples:(nsamples + obs - 1), (1:samplesize) + chainlength - samplesize]] <- NA
         time.out <- apply(posttimes, 1, quantile, probs = time.quantiles, na.rm = TRUE)
         cnames <- paste0("inf.times.Q", 100 * time.quantiles)
     } else if (infection.times[1] == "infector.sd") {
@@ -139,7 +140,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
             cnames <- paste0("inf.times.", c("mean", "sd"))
         }
     } else {
-        posttimes <- phybreak.object$s$nodetimes[obs:(2 * obs - 1), (1:samplesize) + chainlength - samplesize]
+        posttimes <- phybreak.object$s$nodetimes[nsamples:(nsamples + obs - 1), (1:samplesize) + chainlength - samplesize]
         time.out <- apply(posttimes, 1, quantile, probs = time.quantiles)
         cnames <- paste0("inf.times.Q", 100 * time.quantiles)
     }
@@ -159,18 +160,19 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
 .transtreecount <- function(phybreak.object, samplesize, includetimes) {
     ### initialize some constants
     chainlength <- length(phybreak.object$s$mu)
+    nsamples <- phybreak.object$d$nsamples
     obsize <- phybreak.object$p$obs
     samplerange <- (chainlength - samplesize + 1):chainlength
     
     ### get result
-    res <- t(matrix(with(phybreak.object, apply(s$nodehosts[obsize:(2 * obsize - 1), samplerange], 1, .postinfector, support = TRUE)), 
+    res <- t(matrix(with(phybreak.object, apply(s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange], 1, .postinfector, support = TRUE)), 
         nrow = 2))
     
     ### get time summaries
     if (includetimes) {
-        timesums <- with(phybreak.object, rowSums(s$nodetimes[obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
+        timesums <- with(phybreak.object, rowSums(s$nodetimes[nsamples:(nsamples + obsize - 1), samplerange] * (s$nodehosts[nsamples:(nsamples + 
             obsize - 1), samplerange] == res[, 1])))
-        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[obsize:(2 * obsize - 1), samplerange]^2) * (s$nodehosts[obsize:(2 * 
+        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[nsamples:(nsamples + obsize - 1), samplerange]^2) * (s$nodehosts[nsamples:(nsamples + 
             obsize - 1), samplerange] == res[, 1])))
         res <- cbind(res, timesums/res[, 2])
         res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
@@ -187,19 +189,20 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
 .transtreeedmonds <- function(phybreak.object, samplesize, includetimes) {
     ### initialize some constants
     chainlength <- length(phybreak.object$s$mu)
+    nsamples <- phybreak.object$d$nsamples
     obsize <- phybreak.object$p$obs
     samplerange <- (chainlength - samplesize + 1):chainlength
     
     ### obtaining the result in steps
     
     # matrix with support for each infector (row) per host (column), with 0 as maximum, and a column for the index
-    supportmatrix <- cbind(c(0, rep(-1, obsize)), apply(1 + phybreak.object$s$nodehosts[obsize:(2 * obsize - 1), samplerange], 
+    supportmatrix <- cbind(c(0, rep(-1, obsize)), apply(1 + phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange], 
         1, tabulate, nbins = obsize + 1))
     supportmatrix <- supportmatrix - rep(apply(supportmatrix, 2, max), each = obsize + 1)
     
     # vector with hosts, ordered by support to be index, and vector with these supports
-    candidateindex <- order(apply(phybreak.object$s$nodehosts[obsize:(2 * obsize - 1), samplerange] == 0, 1, sum), decreasing = TRUE)
-    indexsupports <- apply(phybreak.object$s$nodehosts[obsize:(2 * obsize - 1), samplerange] == 0, 1, sum)[candidateindex]
+    candidateindex <- order(apply(phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange] == 0, 1, sum), decreasing = TRUE)
+    indexsupports <- apply(phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange] == 0, 1, sum)[candidateindex]
     
     ## index host candidate by candidate, make a tree with edmonds's algorithm after each tree, test for each remaining candidate
     ## if their support-to-be-index is smaller than the support for their infector in the last tree.  If so, stop making new
@@ -218,7 +221,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
         # make the tree
         thistree <- .edmondsiterative(suppmat, samplesize, obsize)[-1] - 1
         alltrees <- c(alltrees, thistree)
-        thissupport <- rowSums(phybreak.object$s$nodehosts[obsize:(2 * obsize - 1), samplerange] == thistree)
+        thissupport <- rowSums(phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange] == thistree)
         allsupports <- c(allsupports, thissupport)
         
         # test if any unused candidate index has higher index support than infector support in last tree
@@ -240,9 +243,9 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     
     ### get time summaries
     if (includetimes) {
-        timesums <- with(phybreak.object, rowSums(s$nodetimes[obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
+        timesums <- with(phybreak.object, rowSums(s$nodetimes[nsamples:(nsamples + obsize - 1), samplerange] * (s$nodehosts[nsamples:(nsamples + 
             obsize - 1), samplerange] == res[, 1])))
-        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[obsize:(2 * obsize - 1), samplerange]^2) * (s$nodehosts[obsize:(2 * 
+        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[nsamples:(nsamples + obsize - 1), samplerange]^2) * (s$nodehosts[nsamples:(nsamples + 
             obsize - 1), samplerange] == res[, 1])))
         res <- cbind(res, timesums/res[, 2])
         res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
@@ -258,9 +261,10 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
 .mpcinfector <- function(phybreak.object, samplesize, phylo.class = FALSE, includetimes = FALSE) {
     ### initialize some constants
     chainlength <- length(phybreak.object$s$mu)
+    nsamples <- phybreak.object$d$nsamples
     obsize <- phybreak.object$p$obs
     samplerange <- (chainlength - samplesize + 1):chainlength
-    posteriorsamples <- phybreak.object$s$nodehosts[obsize:(2 * obsize - 1), samplerange]
+    posteriorsamples <- phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange]
     
     ### obtaining the result in steps
     
@@ -279,13 +283,13 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     res <- matrix(c(posteriorsamples[, besttree], allsupports[, besttree]), ncol = 2)
     
     if (includetimes) {
-        timesums <- with(phybreak.object, rowSums(s$nodetimes[obsize:(2 * obsize - 1), samplerange] * (s$nodehosts[obsize:(2 * 
+        timesums <- with(phybreak.object, rowSums(s$nodetimes[nsamples:(nsamples + obsize - 1), samplerange] * (s$nodehosts[nsamples:(nsamples + 
             obsize - 1), samplerange] == res[, 1])))
-        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[obsize:(2 * obsize - 1), samplerange]^2) * (posteriorsamples == 
+        timesumsqs <- with(phybreak.object, rowSums((s$nodetimes[nsamples:(nsamples + obsize - 1), samplerange]^2) * (posteriorsamples == 
             res[, 1])))
         res <- cbind(res, timesums/res[, 2])
         res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
-        res <- cbind(res, phybreak.object$s$nodetimes[obsize:(2 * obsize - 1), besttree + samplerange[1] - 1])
+        res <- cbind(res, phybreak.object$s$nodetimes[nsamples:(nsamples + obsize - 1), besttree + samplerange[1] - 1])
     }
     
     

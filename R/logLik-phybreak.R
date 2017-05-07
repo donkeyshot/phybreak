@@ -39,15 +39,15 @@
 logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, ...) {
     res <- 0
     if (genetic) {
-        res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$Nsamples), 
+        res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$nsamples), 
                                           attr(d$sequences, "weight"), 
-                                          v$nodeparents, v$nodetimes, p$mu, d$Nsamples))
+                                          v$nodeparents, v$nodetimes, p$mu, d$nsamples))
     }
     if (generation) {
-        res <- res + with(object, .lik.gentimes(p$obs, d$Nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts))
+        res <- res + with(object, .lik.gentimes(p$obs, d$nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts))
     }
     if (sampling) {
-        res <- res + with(object, .lik.sampletimes(p$obs, d$Nsamples, p$shape.sample, p$mean.sample, v$nodetimes))
+        res <- res + with(object, .lik.sampletimes(p$obs, d$nsamples, p$shape.sample, p$mean.sample, v$nodetimes))
     }
     if (withinhost) {
         res <- res + with(object, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes))
@@ -63,17 +63,17 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 
 
 ### calculate the log-likelihood of sampling intervals 
-.lik.gentimes <- function(obs, Nsamples, shapeG, meanG, nodetimes, nodehosts) {
-  nt <- nodetimes[2 * Nsamples - 1 + 1:obs]
-  nh <- nodehosts[2 * Nsamples - 1 + 1:obs]
+.lik.gentimes <- function(obs, nsamples, shapeG, meanG, nodetimes, nodehosts) {
+  nt <- nodetimes[2 * nsamples - 1 + 1:obs]
+  nh <- nodehosts[2 * nsamples - 1 + 1:obs]
     sum(dgamma(nt[nh > 0] - 
                  nt[nh[nh > 0]], 
                shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
 ### calculate the log-likelihood of generation intervals 
-.lik.sampletimes <- function(obs, Nsamples, shapeS, meanS, nodetimes) {
-    sum(dgamma(nodetimes[1:obs] - nodetimes[2 * Nsamples - 1 + 1:obs], shape = shapeS, scale = meanS/shapeS, log = TRUE))
+.lik.sampletimes <- function(obs, nsamples, shapeS, meanS, nodetimes) {
+    sum(dgamma(nodetimes[1:obs] - nodetimes[2 * nsamples - 1 + 1:obs], shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
 ### calculate the log-likelihood of coalescent intervals 
