@@ -49,21 +49,21 @@ test_that("data are correctly sorted by sampling time", {
 
 test_that("host.names are correctly linked to samples", {
   testdatamatrix <- matrix(c(rep("a", 11), rep("c", 3), rep("g", 6)), nrow = 4)
-  testdataphyDat <- phangorn::as.phyDat(testdatamatrix)
-  row.names(testdatamatrix) <- LETTERS[testtimesnumeric]
   testtimesnumeric <- c(1, 2, 3, 4)
+  row.names(testdatamatrix) <- LETTERS[testtimesnumeric]
+  testdataphyDat <- phangorn::as.phyDat(testdatamatrix)
   testhostnames <- letters[c(1, 2, 3, 1)]
   
   expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric, 
-                                 host.names = testhostnames)$sequences, testdataphyDat[c(1, 4, 2, 3)])
+                                 host.names = testhostnames)$sequences, testdataphyDat)
   expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric, 
-                                 host.names = testhostnames)$sample.times, testtimesnumeric[c(1, 4, 2, 3)])
+                                 host.names = testhostnames)$sample.times, testtimesnumeric)
   expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric, 
-                                 host.names = testhostnames)$sample.hosts, testhostnames[c(1, 4, 2, 3)])
+                                 host.names = testhostnames)$sample.hosts, testhostnames)
   testhostnames <- letters[c(1, 2, 3, 1)]
   names(testhostnames) <- LETTERS[testtimesnumeric]
   expect_equal(phybreakdata(testdatamatrix, testtimesnumeric, 
-                                 host.names = testhostnames[c(1, 3, 2, 4)])$sample.hosts, testhostnames[c(1, 4, 2, 3)])
+                                 host.names = testhostnames[c(1, 3, 2, 4)])$sample.hosts, testhostnames)
 })
 
 test_that("infection times are handled correctly", {
@@ -107,7 +107,7 @@ test_that("infectors are handled correctly", {
                             sim.infectors = testinfectorsnumeric)$sample.times, testtimesnumeric)
   expect_equal(phybreakdata(testdatamatrix, testtimesnumeric, 
                             sim.infectors = testinfectorsnumeric)$sim.infectors, 
-               testinfectorsnumeric[names(testtimesnumeric)])
+               testinfectorsnamed[names(testtimesnumeric)])
   expect_equal(phybreakdata(testdatamatrix, testtimesnumeric, 
                             sim.infectors = testinfectorsnamed)$sim.infectors, 
                testinfectorsnamed[names(testtimesnumeric)])
