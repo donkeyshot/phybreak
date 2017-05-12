@@ -10,9 +10,9 @@
 #' Create a phybreakdata-object from raw data.
 #' 
 #' phybreakdata takes as data sequences and sampling times and makes a \code{phybreakdata} object.
-#' Each sample is assumed to be associated with a separate host. The number of sequences
+#' If no host names are provided, each sample is assumed to be associated with a separate host. The number of sequences
 #' should be equal to the length of the sampling time vector, and the position identifies the host (unless named
-#' vectors are provided). Host names can be provided separately;
+#' vectors are provided). Sample names can be provided separately;
 #' otherwise it will be tried to extract them from the sequences or sampling times.
 #' It is also possible to include (otherwise unobserved) simulated data: sim.infection times, sim.infectors, 
 #' and a (phylogenetic) sim.tree. This is done automatically when using \code{\link{sim.phybreak}}. 
@@ -21,7 +21,9 @@
 #'  each row a host, each column a nucleotide). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
 #'  or \code{'t'}, will be turned into \code{'n'}. 
 #' @param sample.times A vector of sampling times (\code{numerical} or \code{Date}).
-#' @param host.names A vector with host names.
+#' @param sample.names A vector with sample names.
+#' @param host.names A vector with host names. The vector identifies the host for each sample, so should be of the same
+#'  length as \code{sample.times}. 
 #' @param sim.infection.times A vector with infection times (\code{numerical} or \code{Date}).
 #' @param sim.infectors A vector with infectors, either by name or by position (use 0 for the index case).
 #' @param sim.tree A tree of class \code{'phylo'}, with tip names identifying the hosts.
@@ -29,6 +31,7 @@
 #'   \describe{
 #'     \item{sequences}{a \code{'phyDat'}-object with the sequence data.}
 #'     \item{sample.times}{a named \code{vector} with the sample times.}
+#'     \item{sample.hosts}{a named \code{vector} with the hosts from whom the samples have been taken.}
 #'     \item{sim.infection.times}{a named \code{vector} with the (simulated) infection times (if provided).}
 #'     \item{sim.infectors}{a named \code{vector} with the (simulated) infectors (if provided).}
 #'     \item{sim.tree}{a \code{'phylo'}-object with the (simulated) phylogenetic tree (if provided).}
@@ -43,8 +46,8 @@
 #'                           dimnames = list(LETTERS[1:5], NULL))
 #' dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 #' @export
-phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infection.times = NULL,
-                         sim.infectors = NULL, sim.tree = NULL) {
+phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.names = sample.names, 
+                         sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL) {
   
   ##########################################################
   ### testing the input: first the essential information ###
@@ -67,45 +70,62 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
   if(nrow(sequences) != length(sample.times)) {
     stop("numbers of sequences and sample.times don't match")
   }
-  if(!is.null(host.names)) {
-    if(length(host.names) != length(sample.times)) {
-      stop("length of host.names does not match number of sequences")
-    }
-    if(is.null(names(sample.times))) {
-      names(sample.times) <- host.names
-    } else if (all(names(sample.times) %in% host.names)) {
-      sample.times <- sample.times[host.names]
+  if(is.null(sample.names)) {
+    if(!is.null(row.names(sequences))) {
+      sample.names <- row.names(sequences)
+    } else if(!is.null(names(sample.times))) {
+      sample.names <- names(sample.times)
+    } else if(!is.null(host.names) && length(sample.times) == length(unique(host.names))) {
     } else {
-      warning("names in sample.times don't match host.names and are therefore overwritten")
-      names(sample.times) <- host.names
+      sample.names <- paste0("sample.", 1:length(sample.times))
     }
-    if(is.null(row.names(sequences))) {
-      row.names(sequences) <- host.names
-    } else if (all(row.names(sequences) %in% host.names)) {
-      sequences <- sequences[host.names, ]
-    } else {
-      warning("names in sequences don't match host.names and are therefore overwritten")
-      row.names(sequences) <- host.names
-    }
-  } else if(!is.null(row.names(sequences))) {
-    host.names <- row.names(sequences)
-    if(is.null(names(sample.times))) {
-      names(sample.times) <- host.names
-    } else if (all(names(sample.times) %in% host.names)) {
-      sample.times <- sample.times[host.names]
-    } else {
-      warning("names in sample.times don't match sequence names and are therefore overwritten")
-      names(sample.times) <- host.names
-    }
-  } else if(!is.null(names(sample.times))) {
-    host.names <- names(sample.times)
-    row.names(sequences) <- host.names
-  } else {
-    host.names <- paste0("host.", 1:length(sample.times))
-    row.names(sequences) <- host.names
-    names(sample.times) <- host.names
   }
-  
+  if(length(sample.names) != length(sample.times)) {
+    stop("length of sample.names does not match number of sequences")
+  }
+  if(is.null(row.names(sequences))) {
+    row.names(sequences) <- sample.names
+  } else if (all(row.names(sequences) %in% sample.names)) {
+    sequences <- sequences[sample.names, ]
+  } else {
+    warning("names in sequences don't match sample.names and are therefore overwritten")
+    row.names(sequences) <- sample.names
+  }
+  if(is.null(names(sample.times))) {
+    names(sample.times) <- sample.names
+  } else if (all(names(sample.times) %in% sample.names)) {
+    sample.times <- sample.times[sample.names]
+  } else {
+    warning("names in sample.times don't match sample.names and are therefore overwritten")
+    names(sample.times) <- sample.names
+  }
+  if(is.null(host.names)) host.names <- sample.names
+  if(length(host.names) != length(sample.names)) {
+    stop("length of host.names does not match number of sequences")
+  }
+  if(is.null(names(host.names))) {
+    names(host.names) <- sample.names
+  } else if(all(names(host.names) %in% sample.names)) {
+    host.names <- host.names[sample.names]
+  } else {
+    warning("names in host.names don't match sample.names and are therefore overwritten")
+    names(host.names) <- sample.names
+  }
+
+  ##########################################################################
+  ### order the input host by host, hosts ordered by first sampling time ###
+  ##########################################################################
+  allhosts <- unique(host.names)
+  allfirsttimes <- rep(FALSE, length(sample.times))
+  sapply(allhosts, function(x) allfirsttimes[which(min(sample.times[host.names == x]) == sample.times)[1]] <<- TRUE)
+  outputorderhosts <- order(sample.times[allfirsttimes])
+  orderedhosts <- host.names[allfirsttimes][outputorderhosts]
+  outputordersamples <- order(!allfirsttimes, match(host.names, orderedhosts), sample.times)
+  sequences <- sequences[outputordersamples, ]
+  sample.times <- sample.times[outputordersamples]
+  sample.names <- sample.names[outputordersamples]
+  host.names <- host.names[outputordersamples]
+
   #################################################
   ### place essential information in outputlist ###
   #################################################
@@ -115,7 +135,8 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
   
   res <- list(
     sequences = sequences,
-    sample.times = sample.times
+    sample.times = sample.times,
+    sample.hosts = host.names
   )
   ######################################################################
   ### testing and adding the input: then the rest of the information ###
@@ -124,19 +145,21 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
     if(class(sim.infection.times) != class(sample.times)) {
       stop("sim.infection.times should be of same class as sample.times")
     }
+    if(length(orderedhosts) != length(sim.infection.times)) {
+      stop("length of sim.infection.times does not match number of hosts")
+    }
     if(is.null(names(sim.infection.times))) {
-      names(sim.infection.times) <- host.names
-    } else if (all(names(sim.infection.times) %in% host.names)) {
-      sim.infection.times <- sim.infection.times[host.names]
+      sim.infection.times <- sim.infection.times[outputorderhosts]
+      names(sim.infection.times) <- orderedhosts
+    } else if (all(names(sim.infection.times) %in% orderedhosts)) {
+      sim.infection.times <- sim.infection.times[orderedhosts]
     } else {
       warning("names in sim.infection.times don't match host.names and are therefore overwritten")
-      names(sim.infection.times) <- host.names
+      sim.infection.times <- sim.infection.times[outputorderhosts]
+      names(sim.infection.times) <- orderedhosts
     }
-    if(!all(sim.infection.times < sample.times)) {
+    if(!all(sim.infection.times < sample.times[1:length(allhosts)])) {
       stop("all infection times should be before the sampling times")
-    }
-    if(length(host.names) != length(sim.infection.times)) {
-      stop("length of sim.infection.times does not match number of hosts")
     }
     res <- c(res, list(sim.infection.times = sim.infection.times))
   }
@@ -144,35 +167,45 @@ phybreakdata <- function(sequences, sample.times, host.names = NULL, sim.infecti
     if(!inherits(sim.infectors, c("character", "numeric", "integer"))) {
       stop("sim.infectors should be numeric (referring to position of infector) or character (referring to host names)")
     }
-    if(inherits(sim.infectors, c("numeric", "integer")) && !all(sim.infectors %in% 0:length(host.names))) {
+    if(inherits(sim.infectors, c("numeric", "integer")) && !all(sim.infectors %in% 0:length(orderedhosts))) {
       stop("sim.infectors should be integers between 0 and number of hosts")
     }
-    if(inherits(sim.infectors, c("character")) && !all(sim.infectors %in% c(0, "index", host.names))) {
+    if(inherits(sim.infectors, c("character")) && !all(sim.infectors %in% c(0, "index", orderedhosts))) {
       stop("not all sim.infectors are proper host names")
     }
     if(inherits(sim.infectors, c("character")) && any(sim.infectors == "0")) {
       sim.infectors[sim.infectors == "0"] <- "index"
     }
-    if(length(sim.infectors) != length(sample.times)) {
+    if(length(sim.infectors) != length(orderedhosts)) {
       stop("length of sim.infectors does not match number of hosts")
     }
     if(is.null(names(sim.infectors))) {
-      names(sim.infectors) <- host.names
-    } else if (all(names(sim.infectors) %in% host.names)) {
-      sim.infectors <- sim.infectors[host.names]
+      sim.infectors <- sim.infectors[outputorderhosts]
+      names(sim.infectors) <- orderedhosts
+    } else if (all(names(sim.infectors) %in% orderedhosts)) {
+      sim.infectors <- sim.infectors[orderedhosts]
     } else {
       warning("names in sim.infectors don't match host.names and are therefore overwritten")
-      names(sim.infectors) <- host.names
+      sim.infectors <- sim.infectors[outputorderhosts]
+      names(sim.infectors) <- orderedhosts
     }
+    if(inherits(sim.infectors, c("numeric", "integer"))) {
+      sim.infectors <- c("index", orderedhosts)[sim.infectors + 1]
+    }
+    names(sim.infectors) <- orderedhosts
     res <- c(res, list(sim.infectors = sim.infectors))
   }
   if(!is.null(sim.tree)) {
     if(!inherits(sim.tree, "phylo")) {
       stop("sim.tree should be of class phylo")
     }
-    if(!all(sim.tree$tip.label %in% host.names)) {
-      stop("names in sim.tree don't match host names")
+    if(!all(sim.tree$tip.label %in% sample.names)) {
+      stop("names in sim.tree don't match sample names")
     }
+    currenttipsinedge <- match(1:length(sample.times), sim.tree$edge[,2])
+    tipreorder <- match(sim.tree$tip.label, sample.names)
+    sim.tree$edge[currenttipsinedge, 2] <- tipreorder
+    sim.tree$tip.label <- sample.names
     res <- c(res, list(sim.tree = sim.tree))
   }
   

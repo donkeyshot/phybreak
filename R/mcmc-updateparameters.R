@@ -39,6 +39,7 @@
 
     ### making variables and parameters available within the function
     le <- environment()
+    d <- .pbe0$d
     h <- .pbe0$h
     p <- .pbe1$p
     v <- .pbe1$v
@@ -67,6 +68,7 @@
 
     ### making variables and parameters available within the function
     le <- environment()
+    d <- .pbe0$d
     h <- .pbe0$h
     p <- .pbe1$p
     v <- .pbe1$v

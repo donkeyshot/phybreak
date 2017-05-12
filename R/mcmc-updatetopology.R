@@ -5,6 +5,7 @@
   
   ### making variables and parameters available within the function
   le <- environment()
+  d <- .pbe0$d
   p <- .pbe1$p
   v <- .pbe1$v
   
@@ -13,7 +14,7 @@
     .sampletopology(which(v$nodehosts == hostID), 
                     v$nodetimes[v$nodehosts == hostID], 
                     v$nodetypes[v$nodehosts == hostID], 
-                    hostID + 2 * p$obs - 1, p$wh.model)
+                    hostID + 2 * d$nsamples - 1, p$wh.model)
   
   ### update proposal environment
   .copy2pbe1("v", le)

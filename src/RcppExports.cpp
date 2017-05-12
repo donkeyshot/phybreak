@@ -6,8 +6,8 @@
 using namespace Rcpp;
 
 // likseq
-double likseq(IntegerVector SNPs, IntegerVector SNPfreqs, IntegerVector nodeparents, NumericVector nodetimes, double mutrate, int obs);
-RcppExport SEXP phybreak_likseq(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP nodeparentsSEXP, SEXP nodetimesSEXP, SEXP mutrateSEXP, SEXP obsSEXP) {
+double likseq(IntegerVector SNPs, IntegerVector SNPfreqs, IntegerVector nodeparents, NumericVector nodetimes, double mutrate, int Nsamples);
+RcppExport SEXP phybreak_likseq(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP nodeparentsSEXP, SEXP nodetimesSEXP, SEXP mutrateSEXP, SEXP NsamplesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -16,8 +16,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerVector >::type nodeparents(nodeparentsSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type nodetimes(nodetimesSEXP);
     Rcpp::traits::input_parameter< double >::type mutrate(mutrateSEXP);
-    Rcpp::traits::input_parameter< int >::type obs(obsSEXP);
-    rcpp_result_gen = Rcpp::wrap(likseq(SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, obs));
+    Rcpp::traits::input_parameter< int >::type Nsamples(NsamplesSEXP);
+    rcpp_result_gen = Rcpp::wrap(likseq(SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, Nsamples));
     return rcpp_result_gen;
 END_RCPP
 }

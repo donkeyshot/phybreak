@@ -4,7 +4,7 @@
 \alias{sample.phybreak}
 \title{Sampling from a phybreak MCMC-chain.}
 \usage{
-sample.phybreak(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
+sample.phybreak(phybreak.object, nsample, thin = 1, keepphylo = NULL,
   phylotopology_only = 0)
 }
 \arguments{
@@ -15,7 +15,11 @@ sample.phybreak(phybreak.object, nsample, thin = 1, keepphylo = 0.2,
 \item{thin}{The thinning to use (values after every \code{thin}'th iteration will be included in the posterior). 
 Each iteration does one update of all parameters and tree updates with each host as focal host once.}
 
-\item{keepphylo}{The proportion of transmission tree updates keeping the phylotree intact.}
+\item{keepphylo}{The proportion of tree updates keeping the phylotree intact. If there is more than one
+sample per host, keepphylo should be 0. If set to NULL (default), this is done automatically, otherwise it is set to 0.2.}
+
+\item{phylotopology_only}{The proportion of tree updates in which only the within-host minitree topology is sampled, and 
+the transmission tree as well as coalescence times are kept unchanged.}
 }
 \value{
 The \code{phybreak}-object used to call the function, including (additional) samples from the posterior.

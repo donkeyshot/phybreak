@@ -33,6 +33,38 @@ test_that("phybreakdata accepts Date and numeric classes", {
   expect_equivalent(phybreakdata(testdatamatrix, testtimesDate)$sample.times, testtimesDate)
 })
 
+test_that("data are correctly sorted by sampling time", {
+  testdatamatrix <- matrix(c(rep("a", 11), rep("c", 3), rep("g", 6)), nrow = 4)
+  testdataphyDat <- phangorn::as.phyDat(testdatamatrix)
+  testtimesnumeric <- c(1, 2, 3, 4)
+
+  expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric[c(1,3,2,4)])$sample.times, testtimesnumeric)
+  expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric[c(1,3,2,4)])$sequences, testdataphyDat[c(1,3,2,4)])
+  
+  row.names(testdatamatrix) <- LETTERS[testtimesnumeric]
+  names(testtimesnumeric) <- LETTERS[testtimesnumeric]
+  expect_equal(phybreakdata(testdatamatrix, testtimesnumeric[c(1,3,2,4)])$sample.times, testtimesnumeric)
+  expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric[c(1,3,2,4)])$sequences, testdataphyDat)
+})
+
+test_that("host.names are correctly linked to samples", {
+  testdatamatrix <- matrix(c(rep("a", 11), rep("c", 3), rep("g", 6)), nrow = 4)
+  testtimesnumeric <- c(1, 2, 3, 4)
+  row.names(testdatamatrix) <- LETTERS[testtimesnumeric]
+  testdataphyDat <- phangorn::as.phyDat(testdatamatrix)
+  testhostnames <- letters[c(1, 2, 3, 1)]
+  
+  expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric, 
+                                 host.names = testhostnames)$sequences, testdataphyDat)
+  expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric, 
+                                 host.names = testhostnames)$sample.times, testtimesnumeric)
+  expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric, 
+                                 host.names = testhostnames)$sample.hosts, testhostnames)
+  testhostnames <- letters[c(1, 2, 3, 1)]
+  names(testhostnames) <- LETTERS[testtimesnumeric]
+  expect_equal(phybreakdata(testdatamatrix, testtimesnumeric, 
+                                 host.names = testhostnames[c(1, 3, 2, 4)])$sample.hosts, testhostnames)
+})
 
 test_that("infection times are handled correctly", {
   testdatamatrix <- matrix(c(rep("a", 11), rep("c", 3), rep("g", 6)), nrow = 4)
@@ -48,6 +80,12 @@ test_that("infection times are handled correctly", {
   expect_equal(phybreakdata(testdatamatrix, testtimesnumeric, 
                             sim.infection.times = testinftimesnumeric)$sim.infection.times, 
                testinftimesnumeric[names(testtimesnumeric)])
+  
+  testhostnames <- letters[c(1, 2, 3, 1)]
+  names(testinftimesnumeric) <- letters[1 + testinftimesnumeric]
+  expect_equivalent(phybreakdata(testdatamatrix, testtimesnumeric, sim.infection.times = testinftimesnumeric[1:3],  
+                                 host.names = testhostnames)$sim.infection.times,
+                    testinftimesnumeric[c(2, 1, 3)])
 })
 
 
@@ -69,7 +107,7 @@ test_that("infectors are handled correctly", {
                             sim.infectors = testinfectorsnumeric)$sample.times, testtimesnumeric)
   expect_equal(phybreakdata(testdatamatrix, testtimesnumeric, 
                             sim.infectors = testinfectorsnumeric)$sim.infectors, 
-               testinfectorsnumeric[names(testtimesnumeric)])
+               testinfectorsnamed[names(testtimesnumeric)])
   expect_equal(phybreakdata(testdatamatrix, testtimesnumeric, 
                             sim.infectors = testinfectorsnamed)$sim.infectors, 
                testinfectorsnamed[names(testtimesnumeric)])
@@ -77,3 +115,6 @@ test_that("infectors are handled correctly", {
                             sim.infectors = testinfectorsnamed0)$sim.infectors, 
                testinfectorsnamed[names(testtimesnumeric)])
 })
+
+
+

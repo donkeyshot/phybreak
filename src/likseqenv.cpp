@@ -15,6 +15,7 @@ using namespace Rcpp;
 // [[Rcpp::export(name=".likseqenv")]]
 double likseqenv(Environment pbenv, 
                  IntegerVector nodestochange, IntegerVector tips) {
+  List data = pbenv["d"];
   List vars = pbenv["v"];
   List pars = pbenv["p"];
   NumericVector likarray = pbenv["likarray"];
@@ -23,6 +24,7 @@ double likseqenv(Environment pbenv,
   NumericVector nodetimes = vars["nodetimes"];
   double mu = pars["mu"];
   int obs = pars["obs"];
+  int nsamples = data["nsamples"];
   int nSNPs = SNPfreqs.size();
   NumericVector nlens(nodetimes.size());
   NumericVector SNPsums(nSNPs);
@@ -66,16 +68,16 @@ double likseqenv(Environment pbenv,
     nextnode = nodeparents[curnode] - 1;
     edgelen = nlens[curnode];
     while(routefree[curnode] && nextnode != -1) {
-      if(nextnode < 2*obs - 1) {
+      if(nextnode < 2 * nsamples - 1) {
         for(int j = 0; j < nSNPs; ++j) {
-          totprob = likarray[curnode*nSNPs*4 + j*4];
+          totprob = likarray[curnode * nSNPs * 4 + j * 4];
           for(int k = 1; k < 4; ++k) {
-            totprob += likarray[curnode*nSNPs*4 + j*4 + k];
+            totprob += likarray[curnode * nSNPs * 4 + j * 4 + k];
           }
           for(int k = 0; k < 4; ++k) {
             likarray[(nextnode * nSNPs + j) * 4 + k] *=
-              0.25*totprob + (likarray[(curnode * nSNPs + j) * 4 + k] -
-              0.25*totprob)*exp(-mu*edgelen);
+              0.25 * totprob + (likarray[(curnode * nSNPs + j) * 4 + k] -
+              0.25 * totprob) * exp(-mu * edgelen);
           }
         }
         curnode = nextnode;
@@ -90,9 +92,9 @@ double likseqenv(Environment pbenv,
   }
   
   for(int j = 0; j < nSNPs; ++j) {
-    SNPsums[j] = 0.25*likarray[(rootnode * nSNPs + j) * 4];
+    SNPsums[j] = 0.25 * likarray[(rootnode * nSNPs + j) * 4];
     for(int k = 1; k < 4; ++k) {
-      SNPsums[j] += 0.25*likarray[(rootnode * nSNPs + j) * 4 + k];
+      SNPsums[j] += 0.25 * likarray[(rootnode * nSNPs + j) * 4 + k];
     }
     SNPsums[j] = log(SNPsums[j]) * SNPfreqs[j];
   }

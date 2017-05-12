@@ -4,10 +4,10 @@
 \alias{sim.phybreak}
 \title{Outbreak simulation.}
 \usage{
-sim.phybreak(obsize = 50, popsize = NA, R0 = 1.5, shape.gen = 10,
-  mean.gen = 1, shape.sample = 10, mean.sample = 1, wh.model = 3,
-  wh.slope = 1, mu = 1e-04, sequence.length = 10000,
-  output.class = c("phybreakdata", "obkData"))
+sim.phybreak(obsize = 50, popsize = NA, samplesperhost = 1, R0 = 1.5,
+  shape.gen = 10, mean.gen = 1, shape.sample = 10, mean.sample = 1,
+  additionalsampledelay = 0, wh.model = 3, wh.slope = 1, mu = 1e-04,
+  sequence.length = 10000, output.class = c("phybreakdata", "obkData"))
 }
 \arguments{
 \item{obsize}{The outbreak size (number of cases) to obtain. If \code{obsize = NA}, \code{popsize} should be provided.}
@@ -15,6 +15,8 @@ sim.phybreak(obsize = 50, popsize = NA, R0 = 1.5, shape.gen = 10,
 \item{popsize}{The population size in which to simulate. If it is not defined (default), 
 an optimal population size will be chosen based on R0 and obsize. Be aware that choosing a \code{popsize} and
 an \code{obsize} can severely increase the simulation time, depending on \code{R0}.}
+
+\item{samplesperhost}{Number of samples to be taken per host, either a vector or a single number.}
 
 \item{R0}{The basic reproduction ratio used for simulation. The offspring distribution is Poisson.}
 
@@ -24,7 +26,10 @@ an \code{obsize} can severely increase the simulation time, depending on \code{R
 
 \item{shape.sample}{The shape parameter of the gamma-distributed sampling interval.}
 
-\item{mean.sample}{The mean sampling interval.}
+\item{mean.sample}{The mean sampling interval (for the first sample of each host).}
+
+\item{additionalsampledelay}{Sampling intervals since first sampling times of each host. Values in this vector will be 
+used first for all additional samples of host 1, then of host 2, etc.}
 
 \item{wh.model}{The model for within-host pathogen dynamics (effective pathogen population size = 
 N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:

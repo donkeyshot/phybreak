@@ -35,9 +35,9 @@ get.tree <- function(phybreak.object, samplenr = 0) {
     )
   }
   
-  res <- phybreak2trans(vars, phybreak.object$d$names, phybreak.object$d$reference.date)
-  infectors <- c("index", phybreak.object$d$names)[1 + tail(phybreak.object$v$nodehosts, phybreak.object$p$obs)]
-  inftimes <- tail(phybreak.object$v$nodetimes, phybreak.object$p$obs)
+  res <- phybreak2trans(vars, phybreak.object$d$hostnames, phybreak.object$d$reference.date)
+  infectors <- c("index", phybreak.object$d$names)[1 + phybreak.object$v$nodehosts[phybreak.object$v$nodetypes == "t"]]
+  inftimes <- phybreak.object$v$nodetimes[phybreak.object$v$nodetypes == "t"]
   res <- with(res, 
               data.frame(infectors = sim.infectors, inf.times = sim.infection.times, row.names = names(sim.infectors)))
   return(res)
@@ -119,8 +119,10 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
     tokeep <- tail(tokeep, nkeep)
     
     ### extracting all variables and parameters, and naming them
-    res <- with(phybreak.object, cbind(t(s$nodetimes[p$obs:(2 * p$obs - 1), tokeep]), t(s$nodehosts[p$obs:(2 * p$obs - 1), tokeep])))
-    parnames <- c(paste0("tinf.", phybreak.object$d$names), paste0("infector.", phybreak.object$d$names))
+    res <- with(phybreak.object, cbind(t(s$nodetimes[d$nsamples:(d$nsamples + p$obs - 1), tokeep]), 
+                                       t(s$nodehosts[d$nsamples:(d$nsamples + p$obs - 1), tokeep])))
+    parnames <- with(phybreak.object,
+                     c(paste0("tinf.", d$hostnames[1:p$obs]), paste0("infector.", d$hostnames[1:p$obs])))
     if (phybreak.object$h$est.wh) {
         res <- cbind(phybreak.object$s$slope[tokeep], res)
         parnames <- c("slope", parnames)
@@ -195,9 +197,9 @@ get.phylo <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
   } else {
     vars <- with(phybreak.object, 
                  list(
-                   nodetimes = c(v$nodetimes[v$nodetypes == "s"], s$nodetimes[, samplenr]),
+                   nodetimes = c(v$nodetimes[v$nodetypes %in% c("s", "x")], s$nodetimes[, samplenr]),
                    nodeparents = s$nodeparents[, samplenr],
-                   nodehosts = c(v$nodehosts[v$nodetypes == "s"], s$nodehosts[, samplenr]),
+                   nodehosts = c(v$nodehosts[v$nodetypes %in% c("s", "x")], s$nodehosts[, samplenr]),
                    nodetypes = v$nodetypes
                  ))
     return(phybreak2phylo(vars, phybreak.object$d$names, simmap))
