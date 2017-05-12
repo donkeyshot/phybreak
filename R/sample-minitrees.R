@@ -100,7 +100,7 @@
   switch(
     WHmodel,
     #coalescence at transmission
-    return(newtiptime),
+    return(min(newtiptime, max(ntimes))),
     #coalescence at infection
     return(0),
     {
@@ -155,6 +155,7 @@
 .sampleextraupnode <- function(nIDs, nparents, ntimes, newnodetime) {
   candidatenodes <- nIDs[ntimes > newnodetime & 
                            c(-Inf,ntimes)[1 + match(nparents, nIDs, nomatch = 0)] < newnodetime]
+  if(length(candidatenodes) == 0) candidatenodes <- nIDs[ntimes == max(ntimes)]
   return(sample(rep(candidatenodes, 2), 1))
 }
 
