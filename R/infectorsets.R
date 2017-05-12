@@ -56,7 +56,7 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
       which.hosts <- 1:obs
     } else if (!all(which.hosts %in% phybreak.object$d$names)) {
       stop("'which.hosts' contains non-existing host names'")
-    } else which.hosts <- match(which.hosts, phybreak.object$d$names)
+    } else which.hosts <- match(which.hosts, phybreak.object$d$hostnames)
     if (percentile < 0 | percentile > 1) {
       stop("'percentile' should be given as number between 0 and 1")
     }
@@ -102,7 +102,7 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
                 ]]/denominator)))
         }
     }
-    names(res) <- phybreak.object$d$names[which.hosts]
+    names(res) <- phybreak.object$d$hostnames[which.hosts]
     
     ### return the result
     return(res)
