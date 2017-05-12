@@ -11,7 +11,10 @@
 #' @param nsample The number of samples to take.
 #' @param thin The thinning to use (values after every \code{thin}'th iteration will be included in the posterior). 
 #'   Each iteration does one update of all parameters and tree updates with each host as focal host once.
-#' @param keepphylo The proportion of transmission tree updates keeping the phylotree intact.
+#' @param keepphylo The proportion of tree updates keeping the phylotree intact. If there is more than one
+#'   sample per host, keepphylo should be 0. If set to NULL (default), this is done automatically, otherwise it is set to 0.2.
+#' @param phylotopology_only The proportion of tree updates in which only the within-host minitree topology is sampled, and 
+#'   the transmission tree as well as coalescence times are kept unchanged.
 #' @return The \code{phybreak}-object used to call the function, including (additional) samples from the posterior.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
@@ -23,10 +26,19 @@
 #' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
-sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = 0.2, phylotopology_only = 0) {
+sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL, phylotopology_only = 0) {
     ### tests
     if(nsample < 1) stop("nsample should be positive")
     if(thin < 1) stop("thin should be positive")
+    if(is.null(keepphylo)) {
+      if(any(duplicated(phybreak.object$d$hostnames))) {
+        keepphylo <- 0
+        cat("keepphylo = 0")
+      } else {
+        keepphylo <- 0.2
+        cat("keepphylo = 0.2")
+      }
+    }
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
     if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
     if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")

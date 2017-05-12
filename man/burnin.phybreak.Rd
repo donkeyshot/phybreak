@@ -4,7 +4,7 @@
 \alias{burnin.phybreak}
 \title{MCMC updating of a phybreak-object.}
 \usage{
-burnin.phybreak(phybreak.object, ncycles, keepphylo = 0.2,
+burnin.phybreak(phybreak.object, ncycles, keepphylo = NULL,
   phylotopology_only = 0)
 }
 \arguments{
@@ -13,7 +13,11 @@ burnin.phybreak(phybreak.object, ncycles, keepphylo = 0.2,
 \item{ncycles}{Number of iterations to be carried out. Each iteration does one update of all parameters and
 tree updates with each host as focal host once.}
 
-\item{keepphylo}{The proportion of transmission tree updates keeping the phylotree intact.}
+\item{keepphylo}{The proportion of tree updates keeping the phylotree intact. If there is more than one
+sample per host, keepphylo should be 0. If set to NULL (default), this is done automatically, otherwise it is set to 0.2.}
+
+\item{phylotopology_only}{The proportion of tree updates in which only the within-host minitree topology is sampled, and 
+the transmission tree as well as coalescence times are kept unchanged.}
 }
 \value{
 The \code{phybreak}-object provided as input, with variables and parameters changed due to the updating.
