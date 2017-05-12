@@ -120,8 +120,9 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
     
     ### extracting all variables and parameters, and naming them
     res <- with(phybreak.object, cbind(t(s$nodetimes[d$nsamples:(d$nsamples + p$obs - 1), tokeep]), 
-                                       t(s$nodehosts[p$nsamples:(d$nsamples + p$obs - 1), tokeep])))
-    parnames <- c(paste0("tinf.", phybreak.object$d$names), paste0("infector.", phybreak.object$d$names))
+                                       t(s$nodehosts[d$nsamples:(d$nsamples + p$obs - 1), tokeep])))
+    parnames <- with(phybreak.object,
+                     c(paste0("tinf.", d$hostnames[1:p$obs]), paste0("infector.", d$hostnames[1:p$obs])))
     if (phybreak.object$h$est.wh) {
         res <- cbind(phybreak.object$s$slope[tokeep], res)
         parnames <- c("slope", parnames)
