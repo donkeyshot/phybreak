@@ -20,7 +20,7 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
     tinf.prop <- v$nodetimes[hostID] - 
       rgamma(1, shape = tinf.prop.shape.mult * p$shape.sample, scale = p$mean.sample/(tinf.prop.shape.mult * p$shape.sample))
     .copy2pbe1("tinf.prop", le)
-    
+
     ### going down the decision tree
     if (v$nodehosts[v$nodetypes == "t"][hostID] == 0) {
       # Y (hostID is index case)
@@ -300,15 +300,15 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
     # identify the current first infectee of hostID
     iees.nodeIDs <- which(v$nodehosts == hostID & v$nodetypes == "t")
     infectee.current.ID <- iees.nodeIDs[v$nodetimes[iees.nodeIDs] == min(v$nodetimes[iees.nodeIDs])] - 2 * d$nsamples + 1
-    
+
     # identify the other infectees of hostID and those of infectee.current.ID
     infecteenodes.primary <- iees.nodeIDs[iees.nodeIDs != (infectee.current.ID + 2 * d$nsamples - 1)]
     infecteenodes.secondary <- which(v$nodehosts == infectee.current.ID & v$nodetypes == "t")
-    
+
     # remember current infector and infection time of hostID
     infector.current.ID <- v$nodehosts[v$nodetypes == "t"][hostID]
     inftime.current.hostID <- v$nodetimes[v$nodetypes == "t"][hostID]
-    
+
     # bookkeeping: change infection times
     v$nodetimes[v$nodetypes == "t"][hostID] <- v$nodetimes[v$nodetypes == "t"][infectee.current.ID]
     v$nodetimes[v$nodetypes == "t"][infectee.current.ID] <- inftime.current.hostID
@@ -321,16 +321,17 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is shape.sample
       v$nodehosts[infecteenodes.primary] <- infectee.current.ID
       v$nodehosts[infecteenodes.secondary] <- hostID
     }
-    
+
     # prepare for phylotree proposals by moving coalescent nodes between hostID and infectee.current.ID
     if (exchange) {
-      coalnodes.current.ID <- v$nodehosts == hostID & v$nodetypes == "c"
-      v$nodehosts[v$nodehosts == infectee.current.ID & v$nodetypes == "c"] <- hostID
-      v$nodehosts[coalnodes.current.ID] <- infectee.current.ID
+      coalnodes.bothhosts <- which((v$nodehosts %in% c(hostID, infectee.current.ID)) & v$nodetypes == "c")
+      nrcoalnodes.infecteeID <- sum(v$nodehosts == infectee.current.ID & v$nodetypes != "c") - 1
+      v$nodehosts[head(coalnodes.bothhosts, nrcoalnodes.infecteeID)] <- infectee.current.ID
+      v$nodehosts[tail(coalnodes.bothhosts, -nrcoalnodes.infecteeID)] <- hostID
     } else {
       v$nodehosts[v$nodehosts == hostID & v$nodetypes == "c"][1] <- infectee.current.ID
     }
-    
+
     # propose phylotrees for hostID and the new infector
     for (ID in c(hostID, infectee.current.ID)) {
       v$nodetimes[v$nodehosts == ID & v$nodetypes == "c"] <- v$nodetimes[v$nodetypes == "t"][ID] +
