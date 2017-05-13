@@ -54,10 +54,9 @@ sampleSNPdata <- matrix(c("a","a","a","a","a",
                           dimnames = list(LETTERS[1:5], NULL))
 dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 }
-\author{
-Don Klinkenberg \email{don@xs4all.nl}
-}
 \references{
 \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
 }
-
+\author{
+Don Klinkenberg \email{don@xs4all.nl}
+}

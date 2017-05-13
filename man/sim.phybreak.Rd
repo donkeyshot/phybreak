@@ -69,10 +69,9 @@ Simulate outbreaks of class \code{'phybreakdata'}, with the outbreak model of \p
 \examples{
 simulation <- sim.phybreak()
 }
-\author{
-Don Klinkenberg \email{don@xs4all.nl}
-}
 \references{
 \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
 }
-
+\author{
+Don Klinkenberg \email{don@xs4all.nl}
+}

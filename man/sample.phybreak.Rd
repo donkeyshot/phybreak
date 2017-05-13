@@ -36,10 +36,9 @@ MCMCstate <- phybreak(data = simulation)
 MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 }
-\author{
-Don Klinkenberg \email{don@xs4all.nl}
-}
 \references{
 \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
 }
-
+\author{
+Don Klinkenberg \email{don@xs4all.nl}
+}
