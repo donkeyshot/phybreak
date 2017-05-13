@@ -1,7 +1,7 @@
 Package: phybreak
 Type: Package
 Title: Analysis of Outbreaks with Sequence Data
-Version: 0.1.1.9005
+Version: 0.1.1.9006
 Date: 2017-05-02
 Authors@R: person("Don", "Klinkenberg", 
     email = "don@xs4all.nl", role = c("aut", "cre"))
@@ -27,4 +27,4 @@ Suggests:
     OutbreakTools,
     testthat
 LinkingTo: Rcpp
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

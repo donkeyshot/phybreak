@@ -1,3 +1,9 @@
+# phybreak 0.1.1.9006
+
+## Major Changes
+
+* Use more samples per host, with changes in data input, the phybreak object structure, and plotting
+
 # phybreak 0.1.1.9005
 
 ## Minor Changes
