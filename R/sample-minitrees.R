@@ -109,7 +109,7 @@
       transcurtime <- log(newtiptime)/slope
       
       # random cumulative coalescence rate
-      rcumcoalrate <- rexp(1)
+      rcumcoalrate <- stats::rexp(1)
       
       # start with number of edges at current time and time of next node (backwards next)
       curnedge <- sum(transntimes - transcurtime >= 0 & ntypes != "c") - sum(transntimes - transcurtime >= 0 & ntypes == "c")
@@ -129,27 +129,7 @@
       
       return(returntime)
     }
-    
   )
-  
-  
-  
-    transntimes <- log(ntimes)/slope
-  transcurtime <- log(newtiptime)/slope
-  rcumcoalrate <- rexp(1)
-  
-  curnedge <- sum(transntimes - transcurtime >= 0 & ntypes != "c") - sum(transntimes - transcurtime >= 0 & ntypes == "c")
-  transnexttime <- max(c(-Inf, transntimes[transntimes < transcurtime]))
-  while(curnedge * (transcurtime - transnexttime) < rcumcoalrate) {
-    rcumcoalrate <- rcumcoalrate - curnedge * (transcurtime - transnexttime)
-    transcurtime <- transnexttime
-    curnedge <- sum(transntimes - transcurtime >= 0 & ntypes != "c") - sum(transntimes - transcurtime >= 0 & ntypes == "c")
-    transnexttime <- max(c(-Inf, transntimes[transntimes < transcurtime]))
-  }
-  transreturntime <- transcurtime - rcumcoalrate / curnedge
-  
-  returntime <- exp(slope * transreturntime)
-  return(returntime)
 }
 
 .sampleextraupnode <- function(nIDs, nparents, ntimes, newnodetime) {
