@@ -1,5 +1,133 @@
 ### functions to simulate mini-trees ###
 
+sample_coaltimes <- function(tiptimes, parameters) {
+  ### tests
+  if(min(tiptimes) < 0) stop("sample_coaltimes with negative tip times")
+
+  ### function body
+  if(length(tiptimes) < 2) return(c())
+  
+  switch(
+    parameters$wh.model,
+    #coalescence at transmission
+    single = head(sort(tiptimes), -1),
+    #coalescence at infection
+    infinite = 0*tiptimes[-1],
+    #linear increase
+    linear = {
+      # transform times so that fixed rate 1 can be used
+      ttrans <- sort(log(tiptimes)/(parameters$wh.slope), decreasing = TRUE)
+      tnodetrans <- .sctwh3(ttrans)
+      
+      res <- sort(exp(parameters$wh.slope * tnodetrans))
+      # make sure that all branches will have positive length
+      res <- apply(cbind(res,
+                         min(10^-5,tiptimes/length(tiptimes))*(1:length(res))), 1, max)
+      
+      return(res)
+    },
+    #exponential increase
+    exponential = {
+      # transform times so that fixed rate 1 can be used
+      ttrans <- sort(-exp(-parameters$wh.exponent * tiptimes)/(parameters$wh.exponent * parameters$wh.level), 
+                     decreasing = TRUE)
+      tnodetrans <- .sctwh3(ttrans)
+      
+      res <- sort(-log(-parameters$wh.exponent * parameters$wh.level * tnodetrans)/(parameters$wh.exponent))
+
+      return(res)
+    },
+    #constant level
+    constant = {
+      # transform times so that fixed rate 1 can be used
+      ttrans <- sort(tiptimes/parameters$wh.level, decreasing = TRUE)
+      tnodetrans <- .sctwh3(ttrans)
+      
+      res <- sort(parameters$wh.level * tnodetrans)
+      
+      return(res)
+    }
+  )
+}
+
+sample_topology <- function(nodeIDs, nodetimes, nodetypes, infectornodes) {
+  res <- rep(-1, length(nodeIDs))
+  tochoose <- infectornodes
+  for(i in 1:length(nodeIDs)) {
+    res[i] <- tochoose[1]
+    if(nodetypes[i] == "c") {
+      tochoose <- sample(c(tochoose[-1], nodeIDs[i], nodeIDs[i]))
+    } else {
+      tochoose <- tochoose[-1]
+    }
+  }
+  return(res)
+}
+
+sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, parameters) {
+  ### add 0s to prevent problems with empty vectors
+  oldtiptimes <- c(0, oldtiptimes)
+  oldcoaltimes <- c(0, oldcoaltimes)
+  
+  ### function body
+  switch(
+    parameters$wh.model,
+    #coalescence at transmission
+    single = return(min(newtiptime, max(oldtiptimes))),
+    #coalescence at infection
+    infinite = return(0),
+    linear = {
+      # transform times so that fixed rate 1 can be used
+      transtiptimes <- log(oldtiptimes)/parameters$wh.slope
+      transcoaltimes <- log(oldcoaltimes)/parameters$wh.slope
+      transcurtime <- log(newtiptime)/parameters$wh.slope
+    },
+    exponential = {
+      transtiptimes <- -exp(-parameters$wh.exponent * oldtiptimes)/(parameters$wh.exponent * parameters$wh.level)
+      transcoaltimes <- -exp(-parameters$wh.exponent * oldcoaltimes)/(parameters$wh.exponent * parameters$wh.level)
+      transcurtime <- -exp(-parameters$wh.exponent * newtiptime)/(parameters$wh.exponent * parameters$wh.level)
+    },
+    constant = {
+      transtiptimes <- oldtiptimes/parameters$wh.level
+      transcoaltimes <- oldcoaltimes/parameters$wh.level
+      transcurtime <- newtiptime/parameters$wh.level
+    }
+  )
+
+  # start with number of edges at current time and time of next node (backwards next)
+  curnedge <- sum(transtiptimes >= transcurtime) - sum(transcoaltimes >= transcurtime)
+  transnexttime <- max(c(-Inf, transtiptimes[transtiptimes < transcurtime],  
+                         transcoaltimes[transcoaltimes < transcurtime]))
+  
+  # traverse minitree node by node, subtracting coalescence rate untile cumulative rate reaches 0
+  frailty <- stats::rexp(1)
+  while(curnedge * (transcurtime - transnexttime) < frailty) {
+    transcurtime <- transnexttime
+    curnedge <- sum(transtiptimes >= transcurtime) - sum(transcoaltimes >= transcurtime)
+    transnexttime <- max(c(-Inf, transtiptimes[transtiptimes < transcurtime],  
+                           transcoaltimes[transcoaltimes < transcurtime]))
+    frailty <- stats::rexp(1)
+  }
+  
+  # calculate transformed node time
+  transreturntime <- transcurtime - frailty / curnedge
+  
+  # transform to real time
+  switch(
+    parameters$wh.model, single =, infinite = ,
+    linear = exp(parameters$wh.slope * transreturntime),
+    exponential = -log(-parameters$wh.exponent * parameters$wh.level * transreturntime)/(parameters$wh.exponent),
+    constant = parameters$wh.level * transreturntime
+  )
+}
+
+sample_singlechildnode <- function(nodeIDs, nodeparents, nodetimes, newnodetime) {
+  candidatenodes <- nodeIDs[nodetimes >= newnodetime & 
+                           c(-Inf, nodetimes)[1 + match(nodeparents, nodeIDs, nomatch = 0)] < newnodetime]
+  if(length(candidatenodes) == 0) candidatenodes <- nodeIDs[nodetimes == max(nodetimes)]
+  return(sample(rep(candidatenodes, 2), 1))
+}
+
 
 ### sample coalescent times in a host, given the tip times since infection,
 ### ...the wh-model and the slope (used if WHmodel = 3)
