@@ -29,12 +29,12 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = NULL, phylotop
   ### tests
   if(ncycles < 1) stop("ncycles should be positive")
   if(is.null(keepphylo)) {
-    if(any(duplicated(phybreak.object$d$hostnames))) {
+    if(any(duplicated(phybreak.object$d$hostnames)) || !(phybreak.object$p$wh.model %in% c(3, "linear")) ) {
       keepphylo <- 0
-      cat("keepphylo = 0")
+      cat("keepphylo = 0\n")
     } else {
       keepphylo <- 0.2
-      cat("keepphylo = 0.2")
+      cat("keepphylo = 0.2\n")
     }
   }
   if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
@@ -69,8 +69,12 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = NULL, phylotop
       .update.mG()
     if (phybreak.object$h$est.mS) 
       .update.mS()
-    if (phybreak.object$h$est.wh) 
-      .update.wh()
+    if (phybreak.object$h$est.wh.slope) 
+      .update.wh.slope()
+    if (phybreak.object$h$est.wh.exponent) 
+      .update.wh.exponent()
+    if (phybreak.object$h$est.wh.level) 
+      .update.wh.level()
     .update.mu()
   }
   
