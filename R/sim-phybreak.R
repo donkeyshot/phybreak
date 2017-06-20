@@ -12,24 +12,32 @@
 #'   an \code{obsize} can severely increase the simulation time, depending on \code{R0}.
 #' @param samplesperhost Number of samples to be taken per host, either a vector or a single number.
 #' @param R0 The basic reproduction ratio used for simulation. The offspring distribution is Poisson.
-#' @param shape.gen The shape parameter of the gamma-distributed generation interval.
-#' @param mean.gen The mean generation interval.
-#' @param shape.sample The shape parameter of the gamma-distributed sampling interval.
-#' @param mean.sample The mean sampling interval (for the first sample of each host).
+#' @param gen.shape The shape parameter of the gamma-distributed generation interval.
+#' @param gen.mean The mean generation interval.
+#' @param sample.shape The shape parameter of the gamma-distributed sampling interval.
+#' @param sample.mean The mean sampling interval (for the first sample of each host).
 #' @param additionalsampledelay Sampling intervals since first sampling times of each host. Values in this vector will be 
 #'   used first for all additional samples of host 1, then of host 2, etc.
 #' @param wh.model The model for within-host pathogen dynamics (effective pathogen population size = 
-#'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
+#'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Names and numbers are allowed.
+#'   Options are:
 #'   \enumerate{
-#'     \item Effective size = 0, so coalescence occurs 'just before' transmission, in the infector
-#'     \item Effective size = Inf, so coalescence occurs 'just after' infection, in the infectee
-#'     \item Effective size at time t after infection = wh.slope * t
+#'     \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (strict bottleneck)
+#'     \item "infinite": effective size = Inf, with strict bottleneck, so coalescence occurs 'just after' transmission in the infectee
+#'     \item "linear": effective size at time t after infection = \code{wh.slope * t} (strict bottleneck)
+#'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
+#'     \item "constant": effective size = wh.level (loose bottleneck)
 #'   }
-#' @param wh.slope Within-host increase of effective population size, used if \code{wh.model = 3}.
+#' @param wh.slope Initial value for the within-host slope, used if \code{wh.model = "linear"}.
+#' @param wh.exponent Initial value for the within-host exponent, used if \code{wh.model = "exponential"}
+#' @param wh.level Initial value for the within-host effective pathogen size at transmission, used if 
+#'   \code{wh.model = "exponential"} or if \code{wh.model = "constant"}
 #' @param mu Expected number of mutations per nucleotide per unit of time along each lineage. 
 #' @param sequence.length Number of available nucleotides for mutations.
 #' @param output.class Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
 #'  class \code{'obkData'}
+#' @param ... If arguments from previous versions of this function are used, they may be interpreted correctly through 
+#'   this argument, but it is better to provide the correct argument names.
 #' @return The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
 #'   sampling times (which would be the observations), and infection times, infectors, and phylogenetic tree 
 #'   of class \code{\link[ape]{phylo}}; 
@@ -49,11 +57,19 @@
 #' simulation <- sim.phybreak()
 #' @export
 sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
-                         R0 = 1.5, shape.gen = 10, mean.gen = 1, 
-                         shape.sample = 10, mean.sample = 1,
+                         R0 = 1.5, gen.shape = 10, gen.mean = 1, 
+                         sample.shape = 10, sample.mean = 1,
                          additionalsampledelay = 0,
-                         wh.model = 3, wh.slope = 1, 
-                         mu = 0.0001, sequence.length = 10000, output.class = c("phybreakdata", "obkData")) {
+                         wh.model = "linear", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
+                         mu = 0.0001, sequence.length = 10000, output.class = c("phybreakdata", "obkData"), ...) {
+  ### parameter name compatibility 
+  old_arguments <- list(...)
+  if(exists("oldarguments$shape.gen")) gen.shape <- oldarguments$shape.gen
+  if(exists("oldarguments$mean.gen")) gen.mean <- oldarguments$mean.gen
+  if(exists("oldarguments$shape.sample")) sample.shape <- oldarguments$shape.sample
+  if(exists("oldarguments$mean.sample")) sample.mean <- oldarguments$sample.mean
+
+  
   ### tests
   output.class <- match.arg(output.class)
   if(output.class == "obkData" && !("OutbreakTools" %in% .packages(TRUE))) {
@@ -77,24 +93,24 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(R0 <= 1) {
     stop("R0 should be larger than 1")
   }
-  if(any(c(shape.gen, mean.gen, shape.sample, mean.sample, wh.slope, mu) <= 0)) {
+  if(any(c(gen.shape, gen.mean, sample.shape, sample.mean, wh.slope, mu) <= 0)) {
     stop("parameter values should be positive")
   }
   
   ### simulate step by step
   if(is.na(obsize)) {
-     res <- .sim.outbreak(popsize, R0, shape.gen, mean.gen,
-                                      shape.sample, mean.sample)
+     res <- .sim.outbreak(popsize, R0, gen.shape, gen.mean,
+                                      sample.shape, sample.mean)
      obsize <- res$obs
      if(obsize == 1) return(c("Outbreak size = 1"))
   } else {
-    res <- .sim.outbreak.size(obsize, popsize, R0, shape.gen, mean.gen,
-                              shape.sample, mean.sample)
+    res <- .sim.outbreak.size(obsize, popsize, R0, gen.shape, gen.mean,
+                              sample.shape, sample.mean)
   }
   if(any(samplesperhost < 1)) stop("samplesperhost should be positive")
   if(any(additionalsampledelay < 0)) stop("additionalsampledelay cannot be negative")
   res <- .sim.additionalsamples(res, samplesperhost, additionalsampledelay)
-  res <- .sim.phylotree(res, wh.model, wh.slope)
+  res <- .sim.phylotree(res, wh.model, wh.slope, wh.exponent, wh.level, sample.mean)
   res <- .sim.sequences(res, mu, sequence.length)
   hostnames <- paste0("host.", 1:obsize)
   samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples], ".", nthsample(res))
@@ -110,21 +126,21 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
     toreturn <- with(res, new("obkData",
                     individuals = data.frame(
                       infector = c("index", hostnames)[1 + infectors],
-                      date = as.Date(infectiontimes, origin = "2000-01-01"),
+                      date = as.Date(inftimes, origin = "2000-01-01"),
                       row.names = hostnames),
                     dna = list(SNPs = ape::as.DNAbin(sequences)), 
                     dna.individualID = hostnames[c(1:obs, addsamplehosts)], 
-                    dna.date = as.Date(c(sampletimes, addsampletimes), origin = "2000-01-01"),
+                    dna.date = as.Date(c(samtimes, addsampletimes), origin = "2000-01-01"),
                     sample = samplenames,
                     trees = treesout))
   } else {
     toreturn <- with(res,
                      phybreakdata(
       sequences = sequences,
-      sample.times = c(sampletimes, addsampletimes),
+      sample.times = c(samtimes, addsampletimes),
       sample.names = samplenames,
       host.names = hostnames[c(1:obs, addsamplehosts)],
-      sim.infection.times = infectiontimes,
+      sim.infection.times = inftimes,
       sim.infectors = infectors,
       sim.tree = treesout[[1]]
     ))
@@ -190,23 +206,23 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   
   ### determine outbreaksize and sampling times
   obs <- sum(inftimes<10000)
-  samptimes <- inftimes + rgamma(Npop, aS, aS/mS)
+  samtimes <- inftimes + rgamma(Npop, aS, aS/mS)
   
   ### order hosts by sampling times, and renumber hostIDs
   ### so that the uninfected hosts can be discarded
-  orderbysamptimes <- order(samptimes)
-  sources <- sources[orderbysamptimes]
-  infectors <- match(sources,orderbysamptimes)[1:obs]
+  orderbysamtimes <- order(samtimes)
+  sources <- sources[orderbysamtimes]
+  infectors <- match(sources,orderbysamtimes)[1:obs]
   infectors[is.na(infectors)] <- 0
-  inftimes <- inftimes[orderbysamptimes]
-  samptimes <- samptimes[orderbysamptimes]
+  inftimes <- inftimes[orderbysamtimes]
+  samtimes <- samtimes[orderbysamtimes]
   
   ### return the outbreak
   return(
     list(
       obs = obs,
-      sampletimes = samptimes[1:obs],
-      infectiontimes = inftimes[1:obs],
+      samtimes = samtimes[1:obs],
+      inftimes = inftimes[1:obs],
       infectors = infectors
     )
   )
@@ -222,7 +238,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   
   # vectors with additional samplehosts and sample times
   addsamplehosts <- rep(1:sim.object$obs, addsamplesizes)
-  addsampletimes <- sim.object$sampletimes[addsamplehosts] + alldelays
+  addsampletimes <- sim.object$samtimes[addsamplehosts] + alldelays
   addsampletimes <- addsampletimes[order(addsamplehosts, addsampletimes)]
 
   return(within(sim.object, {
@@ -238,49 +254,22 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
 ### calls:
 # .samplecoaltimes
 # .sampletopology
-.sim.phylotree <- function (sim.object, wh.model, wh.slope) {
-  with(
-    sim.object,
-    {
-      nodeparents <- rep(0,2*Nsamples - 1 + obs)  #initialize nodes: will containsparent node in phylotree
-      nodetimes <- nodeparents   #initialize nodes: will contain time of node
-      nodehosts <- nodeparents   #initialize nodes: will contain host carrying the node
-      nodetypes <- c(rep("s", obs), rep("x", Nsamples - obs), rep("c", Nsamples - 1),
-                     rep("t", obs))  #initialize nodes: will contain node type (sampling, coalescent, transmission)
-      
-      nodetimes[1:Nsamples] <- c(sampletimes, addsampletimes)   #sampling nodes at sample times
-      nodetimes[1:obs + 2*Nsamples - 1] <- infectiontimes  #transmission nodes at infection times
-      nextcoalnode <- Nsamples + 1  #needed in next loop: which is the next available coalescence node
-      
-      ## distribute nodes over the hosts
-      nodehosts[1:Nsamples] <- c(1:obs, addsamplehosts)
-      nodehosts[(Nsamples + 1):(2 * Nsamples - 1)] <- sort(c(infectors, addsamplehosts))[-1]
-      nodehosts[(2 * Nsamples):(2 * Nsamples + obs - 1)] <- infectors
-
-      ## sample the times of the coalescence nodes
-      for(i in 1:obs) {
-        nodetimes[nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
-          nodetimes[i + 2*Nsamples - 1] +                      #...to the infection time +
-          .samplecoaltimes(nodetimes[nodehosts == i & nodetypes != "c"] - nodetimes[i + 2*Nsamples - 1],
-                           wh.model, wh.slope)  #...sampled coalescence times
-      }
-
-      ## sample for each node its parent node
-      for(i in 1:obs) {
-        nodeparents[nodehosts == i] <-     #change the parent nodes of all nodes in host i...
-          .sampletopology(which(nodehosts == i), nodetimes[nodehosts == i], nodetypes[nodehosts == i], i + 2*Nsamples - 1, wh.model)
-        #...to a correct topology, randomized where possible
-      }
-      return(
-        within(sim.object, {
-          nodetypes <- nodetypes
-          nodeparents <- nodeparents
-          nodehosts <- nodehosts
-          nodetimes <- nodetimes
-        }))
-      
-      
-    })
+.sim.phylotree <- function (sim.object, wh.model, wh.slope, wh.exponent, wh.level, sample.mean) {
+  simenv <- new.env()
+  list2env(list(v = sim.object, 
+                p = list(wh.model = wh.model, wh.slope = wh.slope, wh.exponent = wh.exponent,
+                         wh.level = wh.level, sample.mean = sample.mean)), simenv)
+  simenv$v$nodeparents <- c(0, (sim.object$Nsamples + 1):(2*sim.object$Nsamples - 1), 
+                            rep(-1, sim.object$Nsamples - 1))  #initialize nodes: will contain parent node in phylotree
+  simenv$v$nodetimes <- c(sim.object$samtimes, sim.object$addsamtimes, sim.object$samtimes[-1], 
+                         sim.object$addsamtimes)   #initialize nodes: will contain time of node
+  simenv$v$nodehosts <- c(1:sim.object$obs, sim.object$addsamplehosts, 
+                         2:sim.object$obs, sim.object$addsamplehosts)   #initialize nodes: will contain host carrying the node
+  simenv$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
+                         rep("c", sim.object$Nsamples - 1))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
+  invisible(sapply(1:sim.object$obs, rewire_buildminitree, phybreakenv = simenv))
+  res <- as.list.environment(simenv)$v
+  return(res)
   
 }
 
@@ -296,7 +285,7 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
     edgelengths[edgelengths < 0] <- 0  #rounding errors close to 0
     nmutations <- rpois(1, mu * sequence.length * sum(edgelengths))
     #place mutations on edges, order by time of edge (end)
-    mutedges <- sample(2 * Nsamples + obs - 1, size = nmutations, replace = TRUE, prob = edgelengths)
+    mutedges <- sample(2 * Nsamples - 1, size = nmutations, replace = TRUE, prob = edgelengths)
     mutedges <- mutedges[order(nodetimes[mutedges])]
     #sample mutations: which locus, to which nucleotide
     mutsites <- sample(sequence.length, size = nmutations, replace = TRUE)
