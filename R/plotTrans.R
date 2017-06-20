@@ -74,8 +74,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
     # class "phybreak"
     
     # test for plot.which
-    plot.which <- plot.which[which(plot.which %in% c("sample", "edmonds", "mpc", "mtcc"))[1]]
-    if(is.na(plot.which)) stop("no valid 'plot.which'")
+    plot.which <- match.arg(plot.which)
     if(plot.which == "sample" & samplenr > length(x$s$logLik)) {
       warning("requested 'samplenr' not available; current state used")
       samplenr <- 0
@@ -102,20 +101,14 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
     } else if (samplenr == 0) {
       # plot.which == "sample"
       
-      vars <- list(
-        nodetimes = x$v$nodetimes,
-        nodeparents = x$v$nodeparents,
-        nodehosts = x$v$nodehosts,
-        nodetypes = x$v$nodetypes
-      )
-      vars <- phybreak2trans(vars, x$d$hostnames, x$d$reference.date)
+      vars <- phybreak2trans(x$v, x$d$hostnames, x$d$reference.date)
       if(is.null(arrow.col)) {
         arrow.col <- "black"
       } else {
         arrow.col <- arrow.col[1]
       }
-      tg.mean <- x$p$mean.gen
-      tg.shape = x$p$shape.gen
+      tg.mean <- x$p$gen.mean
+      tg.shape = x$p$gen.shape
     } else {
       # plot.which == "sample" && samplenr > 0
       
@@ -123,7 +116,9 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         nodetimes = c(x$v$nodetimes[x$v$nodetypes == "s"], x$s$nodetimes[, samplenr]),
         nodeparents = x$s$nodeparents[, samplenr],
         nodehosts = c(x$v$nodehosts[x$v$nodetypes == "s"], x$s$nodehosts[, samplenr]),
-        nodetypes = x$v$nodetypes
+        nodetypes = x$v$nodetypes,
+        inftimes = x$s$inftimes[, samplenr],
+        infectors = x$s$infectors[, samplenr]
       )
       vars <- phybreak2trans(vars, unique(x$d$hostnames), x$d$reference.date)
       if(is.null(arrow.col)) {
@@ -132,7 +127,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         arrow.col <- arrow.col[1]
       }
       tg.mean <- x$s$mG[samplenr]
-      tg.shape = x$p$shape.gen
+      tg.shape = x$p$gen.shape
     }
   }
   maketransplot(vars, tg.mean = tg.mean, tg.shape = tg.shape, mar = mar, label.cex = label.cex, 
