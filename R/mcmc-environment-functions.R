@@ -46,7 +46,7 @@
   }
   snpreduced <- apply(SNP, 2, fn)
   snpfrreduced <- SNPfr
-  snpreduced[SNP == 16] <- 5
+  snpreduced[SNP %in% c(17, 18)] <- 16
   if (ncol(SNP) > 1) {
     for (i in (ncol(SNP) - 1):1) {
       for (j in length(snpfrreduced):(i + 1)) {
@@ -65,13 +65,13 @@
   likarray <- array(1, dim = c(4, length(snpfrreduced), 2 * d$nsamples - 1))
   ### initialize likarray with observations on sampling nodes: 0 or 1
   likarray[cbind(1, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced == 1 | snpreduced == 5)
+                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(1, 6, 7, 8, 12, 13, 14, 16))
   likarray[cbind(2, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced == 2 | snpreduced == 5)
+                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(2, 6, 9, 10, 12, 13, 15, 16))
   likarray[cbind(3, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced == 3 | snpreduced == 5)
+                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(3, 7, 9, 11, 12, 14, 15, 16))
   likarray[cbind(4, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced == 4 | snpreduced == 5)
+                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(4, 5, 8, 10, 11, 13, 14, 15, 16))
   
   
   ### complete likarray and calculate log-likelihood of sequences
@@ -80,10 +80,9 @@
   
   
   ### calculate the other log-likelihoods
-  logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$shape.sample, p$mean.sample, v$nodetimes)
-  logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts)
-  logLikcoal <- .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, 
-                               v$nodetypes)
+  logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$sample.shape, p$sample.mean, v$nodetimes)
+  logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$gen.shape, p$gen.mean, v$nodetimes, v$nodehosts)
+  logLikcoal <- .lik.coaltimes(le)
   
   ### copy everything into .pbe0
   .copy2pbe0("d", le)
@@ -115,6 +114,7 @@
   .copy2pbe1("d", .pbe0)
   .copy2pbe1("v", .pbe0)
   .copy2pbe1("p", .pbe0)
+  .copy2pbe1("h", .pbe0)
   .pbe1$likarray <- .pbe0$likarray + 0  #make a true copy, not a pointer
   .copy2pbe1("likarrayfreq", .pbe0)
   .pbe1$logLikseq <- .pbe0$logLikseq + 0 #make a true copy, not a pointer
@@ -135,10 +135,9 @@
     chnodes <- which((v$nodeparents != .pbe0$v$nodeparents) | (v$nodetimes != 
                                                                  .pbe0$v$nodetimes))
     chnodes <- unique(unlist(sapply(chnodes, .ptr, pars = v$nodeparents)))
-    chnodes <- chnodes[chnodes > d$nsamples & chnodes < 2 * d$nsamples]
+    chnodes <- chnodes[chnodes > d$nsamples]
     # identify nodetips
-    nodetips <- c(match(chnodes, v$nodeparents), 2 * d$nsamples + p$obs - match(chnodes, rev(v$nodeparents)))
-    nodetips[nodetips >= 2 * d$nsamples] <- match(nodetips[nodetips >= 2 * d$nsamples], v$nodeparents)
+    nodetips <- c(match(chnodes, v$nodeparents), 2 * d$nsamples - match(chnodes, rev(v$nodeparents)))
     nodetips <- nodetips[is.na(match(nodetips, chnodes))]
   } else if (f == "mu") {
     chnodes <- (d$nsamples + 1):(2 * d$nsamples - 1)
@@ -154,17 +153,17 @@
   
   
   if (f == "phylotrans" || f == "trans" || f == "mG") {
-    logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts)
+    logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$gen.shape, p$gen.mean, v$nodetimes, v$nodehosts)
     .copy2pbe1("logLikgen", le)
   }
   
   if (f == "phylotrans" || f == "trans" || f == "mS") {
-    logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$shape.sample, p$mean.sample, v$nodetimes)
+    logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$sample.shape, p$sample.mean, v$nodetimes)
     .copy2pbe1("logLiksam", le)
   }
   
-  if (f == "trans" || f == "slope") {
-    logLikcoal <- .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes)
+  if (f == "trans" || f == "slope" || f == "exponent" || f == "level") {
+    logLikcoal <- .lik.coaltimes(le)
     .copy2pbe1("logLikcoal", le)
   }
   
@@ -189,12 +188,12 @@
     .copy2pbe0("logLikgen", .pbe1)
   }
   
-  if(f == "trans" || f == "slope") {
+  if(f == "trans" || f == "slope" || f == "exponent" || f == "level") {
     .copy2pbe0("logLikcoal", .pbe1)
   }
   
   if(f == "phylotrans") {
-    logLikcoal <- with(.pbe1, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes))
+    logLikcoal <- .lik.coaltimes(.pbe1)
     .copy2pbe0("logLikcoal", environment())
   }
   
