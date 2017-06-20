@@ -2,9 +2,11 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   ### extract variables
   nodetimes <- vars$nodetimes
   nodeparents <- as.integer(vars$nodeparents)
-  nodehosts <- as.integer(vars$nodehosts)
+  nodehosts <- as.integer(vars$nodehosts) + 1L
   nodetypes <- vars$nodetypes
-  nhosts <- sum(nodetypes == "t")
+  inftimes <- c(-Inf, vars$inftimes)
+  infectors <- c(0, vars$infectors + 1)
+  nhosts <- length(inftimes)
   nsamples <- sum(nodetypes %in% c("s", "x"))
   if(is.null(samplenames)) samplenames <- 1:nsamples
   if(length(samplenames) != nsamples) {
@@ -13,7 +15,7 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   }
   
   ### give first coalescent node number nsamples + 1 for compatibility with phylo
-  currentrootnode <- which(nodeparents == which(nodeparents == 0))
+  currentrootnode <- which(nodeparents == 0)
   if(currentrootnode != nsamples + 1) {
     #swap hosts and times
     nodehosts[c(nsamples + 1, currentrootnode)] <- nodehosts[c(currentrootnode, nsamples + 1)]
@@ -30,35 +32,34 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   }
   
   ### topology for phylo
-  edges <- removetransnodes(nodeparents, nodetypes)
+  edges <- cbind(nodeparents, 1:(2*nsamples - 1))[-(nsamples + 1), ]
  
   edgelengths <- apply(edges, 1, function(x) nodetimes[x[2]] - nodetimes[x[1]])
   
-  rootedge <- min(nodetimes[nodetypes == "c"]) - min(nodetimes[nodetypes == "t"])
+  rootedge <- min(nodetimes) - min(inftimes)
   
   ### items for simmap (phytools)
   if(simmap) {
     
-    hostcolors <- c("red", "blue", "black")[1 + sapply(1:nhosts, whichgeneration, infectors = nodehosts[nodetypes == "t"]) %% 3]
+    hostcolors <- c("red", "blue", "black")[1 + sapply(1:nhosts, whichgeneration, infectors = infectors) %% 3]
     tipstates <- hostcolors[nodehosts[nodetypes %in% c("s", "x")]]
-    nodestates <- apply(edges, 1:2, function(x) tipstates[nodehosts[x]])
-    
+    nodestates <- apply(edges, 1:2, function(x) hostcolors[nodehosts[x]])
+
     edgemaps <- list()
-    for (i in 1:nrow(edges)) {
-      if (nodestates[i, 1] == nodestates[i, 2]) {
-        edgemaps[[i]] <- edgelengths[i]
-        names(edgemaps[[i]]) <- nodestates[i, 1]
-      } else {
-        nodes <- edges[i, ]
-        ntimes <- nodetimes[c(nodes[1], nodeparents[nodes[2]], nodes[2])]
-        edgemaps[[i]] <- ntimes[2:3] - ntimes[1:2]
-        names(edgemaps[[i]]) <- nodestates[i, ]
-      }
+    for(i in 1:nrow(edges)) {
+      starthost <- nodehosts[edges[i, 1]]
+      endhost <- nodehosts[edges[i, 2]]
+      edgehosts <- rev(c(setdiff(.ptr(infectors, endhost), .ptr(infectors, starthost)), starthost))
+      ntimesstart <- c(nodetimes[edges[i, 1]], inftimes[edgehosts[-1]])
+      ntimesend <- c(inftimes[edgehosts[-1]], nodetimes[edges[i, 2]])
+      edgemaps[[i]] <- ntimesend - ntimesstart
+      names(edgemaps[[i]]) <- hostcolors[edgehosts]
     }
     
+
     mappededge <- matrix(nrow = nrow(edges), ncol = 3)
     for (i in 1:nrow(edges)) {
-      mappededge[i, ] <- edgemaps[[i]][c("blue", "black", "red")]
+      mappededge[i, ] <- sapply(c("blue", "black", "red"), function(x) sum(edgemaps[[i]][names(edgemaps[[i]]) == x]))
     }
     mappededge[is.na(mappededge)] <- 0
     colnames(mappededge) <- c("blue", "black", "red")
@@ -120,22 +121,24 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
   nodetimes <- vars$nodetimes
   nodehosts <- vars$nodehosts
   nodetypes <- vars$nodetypes
-  nhosts <- sum(nodetypes == "t")
+  nhosts <- length(vars$infectors)
   if(is.null(hostnames)) hostnames <- paste0("host.",1:nhosts)
+  hostnames <- unique(hostnames)
   if(length(hostnames) < nhosts) {
-    warning("length of hostnames does not match number of hosts; hostnames not used")
-    hostnames <- paste0("host.",1:nhosts)
-  } else {
-    hostnames <- unique(hostnames)
+    pre_hostnames <- paste0("host.",1:nhosts)
+    pre_hostnames[1:length(hostnames)] <- hostnames
+    hostnames <- pre_hostnames
+  } else if(length(hostnames) > nhosts) {
+    hostnames <- hostnames[1:nhosts]
   }
   
   ### make new variables
   samtimes <- nodetimes[nodetypes %in% c("s", "x")] + reference.date
   names(samtimes) <- hostnames[nodehosts[nodetypes %in% c("s", "x")]]
-  inftimes <- nodetimes[nodetypes == "t"] + reference.date
-  names(inftimes) <- unique(hostnames)
-  infectors <- c("index",hostnames)[1 + nodehosts[nodetypes == "t"]]
-  names(infectors) <- unique(hostnames)
+  inftimes <- vars$inftimes + reference.date
+  names(inftimes) <- hostnames
+  infectors <- c("index", hostnames)[1 + vars$infectors]
+  names(infectors) <- hostnames
   
   ### return result
   return(list(
@@ -150,7 +153,7 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
 ### vars may contain $sample.hosts, from which host names will be taken (otherwise names of sample times or just numbers)
 ### vars may contain $sim.infection.times, $sim.infectors, and $sim.tree
 ### if resample = TRUE, then resamplepars should contain
-###     $mean.sample, $shape.sample, $mean.gen, $shape.gen, $wh.model, $wh.slope
+###     $sample.mean, $sample.shape, $gen.mean, $gen.shape, $wh.model, $wh.slope
 transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
 
   ### extract and order samples
@@ -211,8 +214,8 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   ### infection times and infectors
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
     resample <- TRUE
-    inftimes <- .rinftimes(samtimes[1:nhosts], resamplepars$mean.sample, resamplepars$shape.sample)
-    infectors <- .rinfectors(inftimes, resamplepars$mean.gen, resamplepars$shape.gen)
+    inftimes <- .rinftimes(samtimes[1:nhosts], resamplepars$sample.mean, resamplepars$sample.shape)
+    infectors <- .rinfectors(inftimes, resamplepars$gen.mean, resamplepars$gen.shape)
   } else {
     inftimes <- as.numeric(vars$sim.infection.times - refdate)
     infectors <- match(vars$sim.infectors, hostnames)
@@ -222,53 +225,37 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     }
   }
 
-
-  nodetypes <- c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1),
-                 rep("t", nhosts))  #node type (primary sampling, extra sampling, coalescent, transmission)
+  res <- list(
+    inftimes = inftimes,
+    infectors = infectors,
+    nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1)),  
+      #node type (primary sampling, extra sampling, coalescent)
+    nodetimes = c(samtimes, samtimes[-1]),
+    nodehosts = c(samhosts, samhosts[-1]),
+    nodeparents = c(0, (nsamples + 1):(2*nsamples - 1), rep(-1, nsamples - 1))
+  )
   
   if(is.null(vars$sim.tree) | resample) {
-    ##nodehosts, coalescent nodes in hosts with secondary cases or multiple samples
-    coalnodehosts <- sort(c(infectors, samhosts))
-    coalnodehosts <- coalnodehosts[duplicated(coalnodehosts)]
-    nodehosts <- c(samhosts, coalnodehosts, infectors)
-    
-    ##initialize nodetimes with sampling and infection times
-    nodetimes <- c(samtimes, rep(NA, nsamples - 1), inftimes)
-    ##sample coalescent times
-    for(i in 1:nhosts) {
-      nodetimes[nodehosts == i & nodetypes == "c"] <-   #change the times of the coalescence nodes in host i...
-        inftimes[i] +                      #...to the infection time +
-        .samplecoaltimes(nodetimes[nodehosts == i & nodetypes != "c"] - inftimes[i],
-                         resamplepars$wh.model, resamplepars$wh.slope)  #...sampled coalescent times
-    }
-    
-    ##initialize nodeparents 
-    nodeparents <- 0*nodetimes
-    ##sample nodeparents
-    for(i in 1:nhosts) {
-      nodeparents[nodehosts == i] <-     #change the parent nodes of all nodes in host i...
-        .sampletopology(which(nodehosts == i), nodetimes[nodehosts == i], 
-                        nodetypes[nodehosts == i], i + 2*nsamples - 1, resamplepars$wh.model)
-      #...to a correct topology, randomized where possible
-    }
-    
+    resenv <- new.env()
+    list2env(list(v = res, p = resamplepars), resenv)
+    invisible(sapply(1:nhosts, rewire_buildminitree, phybreakenv = resenv))
+    res <- resenv$v
+
   } else {
     phytree <- vars$sim.tree
-    nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:nsamples]),
-                   inftimes)
-    nodehosts_parents <- make_nodehostsparents(phytree$edge, samhosts[match(phytree$tip.label, samplenames)], infectors)
-    nodehosts <- nodehosts_parents[, 1]
-    nodeparents <- nodehosts_parents[, 2]
+    res$nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:nsamples]))
+    res$nodeparents <- c(0, phytree$edge[,1])[order(c(nsamples + 1, phytree$edge[, 2]))]
+    resenv <- new.env()
+    list2env(list(v = res, p = list(wh.model = "single")), resenv)
+    make_nodehosts(resenv)
+    res <- resenv$v
     }
   
   return(list(
     d = list(names = samplenames,
              hostnames = hostnames,
              reference.date = refdate),
-    v = list(nodetimes = round(nodetimes, digits = 12),
-             nodehosts = nodehosts,
-             nodeparents = nodeparents,
-             nodetypes = nodetypes)
+    v = res
   ))
 }
 
@@ -304,25 +291,6 @@ obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   
  
 
-### remove transmission nodes from nodeparents object, and return 'edge' item in phylo-object
-removetransnodes <- function(nodeparents, nodetypes) {
-  # index node
-  indext <- which(nodeparents == 0)
-
-  # all edges apart from index edge
-  edgestart <- nodeparents[nodeparents != 0 & nodeparents != indext]
-  edgeend <- (1:length(nodetypes))[nodeparents != 0 & nodeparents != indext]
-  
-  # remove edges ending in transmission node
-  # replace parent transmission nodes by their parent coalescent node
-  toremove <- nodetypes[edgeend] == "t"
-  toreplace <- nodetypes[edgestart] == "t" 
-  edgestart[toreplace] <- edgestart[toremove][match(edgestart[toreplace], edgeend[toremove])]
-  edgestart <- edgestart[!toremove]
-  edgeend <- edgeend[!toremove]
-  
-  return(matrix(c(edgestart, edgeend), ncol = 2))
-}
 
 ### to which generation does hostID belong in the transmission tree?
 whichgeneration <- function(infectors, hostID) {
@@ -369,52 +337,18 @@ whichgeneration <- function(infectors, hostID) {
   return(res)
 }
 
-###turns phylogenetic tree & infectors into nodehosts & nodeparents (wrapper function)
-make_nodehostsparents <- function(edges, samplehosts, infectors) {
-  rootnode <- which(!(1:(1 + nrow(edges))) %in% edges[, 2])
-  indextnode <- which(infectors == 0) + 2 * length(samplehosts) - 1
-  nodeparents <- c(c(indextnode, edges[, 1])[order(c(rootnode, edges[, 2]))], rep(NA, length(infectors)))
-  nodehosts <- c(samplehosts, rep(NA, length(samplehosts) - 1), infectors)
-  
-  nodehp <- cbind(nodehosts, nodeparents)
-  res <- makenodehp(nodehp, rootnode, infectors, length(samplehosts))
-  res[indextnode, 2] <- 0
-  return(res)
+
+make_nodehosts <- function(phybreakenv) {
+  for(i in 1:length(phybreakenv$v$infectors)) {
+    nodepath <- .ptr(phybreakenv$v$nodeparents, i)
+    hostpath <- c(.ptr(phybreakenv$v$infectors, phybreakenv$v$nodehosts[i]), 0)
+    hostpathtimes <- c(phybreakenv$v$inftimes[hostpath], -Inf) + 
+      switch(phybreakenv$p$wh.model,
+             single = 1e-10,
+             infinite = -1e-10,
+             0)
+    phybreakenv$v$nodehosts[nodepath] <- 
+      invisible(sapply(nodepath, function(x) hostpath[hostpathtimes < phybreakenv$v$nodetimes[x]][1]))
+  }
 }
-
-###turns phylogenetic tree & infectors into nodehosts & nodeparents (worker function)
-makenodehp <- function(nodehp, nodeID, infectors, nsamples) {
-  # identify children in phylotree
-  childnodes <- which(nodehp[, 2] == nodeID)
-  
-  # For each child's host that is unknown, call this function with child as nodeID
-  if(is.na(nodehp[childnodes[1], 1])) {
-    nodehp <- makenodehp(nodehp, childnodes[1], infectors, nsamples)
-  }
-  if(is.na(nodehp[childnodes[2], 1])) {
-    nodehp <- makenodehp(nodehp, childnodes[2], infectors, nsamples)
-  }
-
-  # Determine node's host and place transmission nodes in downstream edges
-  if(nodehp[childnodes[1], 1] == nodehp[childnodes[2], 1]) {
-    nodehp[nodeID, 1] <- nodehp[childnodes[1], 1]
-  } else {
-    if(nodehp[childnodes[1], 1] != infectors[nodehp[childnodes[2], 1]]) {
-      nodehp[nodeID, 1] <- nodehp[infectors[nodehp[childnodes[1], 1]], 1]
-      transmissionnode <- nodehp[childnodes[1], 1] + 2 * nsamples - 1
-      nodehp[transmissionnode, 2] <- nodeID
-      nodehp[childnodes[1], 2] <- transmissionnode
-    }
-    if(nodehp[childnodes[2], 1] != infectors[nodehp[childnodes[1], 1]]) {
-      nodehp[nodeID, 1] <- nodehp[infectors[nodehp[childnodes[2], 1]], 1]
-      transmissionnode <- nodehp[childnodes[2], 1] + 2 * nsamples - 1
-      nodehp[transmissionnode, 2] <- nodeID
-      nodehp[childnodes[2], 2] <- transmissionnode
-    }
-  }
-
-  # return tree with resolved node + downstream nodes
-  return(nodehp)
-}
-
 
