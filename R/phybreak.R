@@ -39,22 +39,28 @@
 #'   infection and sampling of a host.
 #' @param sample.mean Initial value for the mean sampling interval.
 #' @param wh.model The model for within-host pathogen dynamics (effective pathogen population size = 
-#'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
+#'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Names and numbers are allowed.
+#'   Options are:
 #'   \enumerate{
-#'     \item Effective size = 0, so coalescence occurs 'just before' transmission in the infector
-#'     \item Effective size = Inf, so coalescence occurs 'just after' transmission in the infectee
-#'     \item Effective size at time t after infection = \code{wh.slope * t}
+#'     \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (strict bottleneck)
+#'     \item "infinite": effective size = Inf, with strict bottleneck, so coalescence occurs 'just after' transmission in the infectee
+#'     \item "linear": effective size at time t after infection = \code{wh.slope * t} (strict bottleneck)
+#'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
+#'     \item "constant": effective size = wh.level (loose bottleneck)
 #'   }
-#' @param wh.slope Initial value for the within-host slope, used if \code{wh.model = 3}.
+#' @param wh.slope Initial value for the within-host slope, used if \code{wh.model = "linear"}.
+#' @param wh.exponent Initial value for the within-host exponent, used if \code{wh.model = "exponential"}
+#' @param wh.level Initial value for the within-host effective pathogen size at transmission, used if 
+#'   \code{wh.model = "exponential"} or if \code{wh.model = "constant"}
 #' @param est.gen.mean Whether to estimate the mean generation interval or keep it fixed. 
-#' @param prior.mean.gen.mean Mean of the (gamma) prior distribution of mean generation interval \code{mG} 
+#' @param prior.gen.mean.mean Mean of the (gamma) prior distribution of mean generation interval \code{mG} 
 #'   (only if \code{est.gen.mean = TRUE}).
-#' @param prior.mean.gen.sd Standard deviation of the (gamma) prior distribution of mean generation interval \code{mG} 
+#' @param prior.gen.mean.sd Standard deviation of the (gamma) prior distribution of mean generation interval \code{mG} 
 #'   (only if \code{est.gen.mean = TRUE}).
 #' @param est.sample.mean Whether to estimate the mean sampling interval or keep it fixed. 
-#' @param prior.mean.sample.mean Mean of the (gamma) prior distribution of mean sampling interval \code{mS} 
+#' @param prior.sample.mean.mean Mean of the (gamma) prior distribution of mean sampling interval \code{mS} 
 #'   (only if \code{est.sample.mean = TRUE}).
-#' @param prior.mean.sample.sd Standard deviation of the (gamma) prior distribution of mean sampling interval \code{mS} 
+#' @param prior.sample.mean.sd Standard deviation of the (gamma) prior distribution of mean sampling interval \code{mS} 
 #'   (only if \code{est.sample.mean = TRUE}).
 #' @param est.wh.slope Whether to estimate the within-host slope or keep it fixed. 
 #' @param prior.wh.shape Shape parameter of the (gamma) prior distribution of \code{slope} 
@@ -65,6 +71,8 @@
 #'   to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
 #'   the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 
 #'   one phylogenetic tree. Such data can be simulated with \code{\link{sim.phybreak}}.
+#' @param ... If arguments from previous versions of this function are used, they may be interpreted correctly through 
+#'   this argument, but it is better to provide the correct argument names.
 #' @return An object of class \code{phybreak} with the following elements
 #'   \describe{
 #'     \item{d}{a \code{list} with data, i.e. names, sequences, sampling times, and total number of SNPs.}
@@ -104,11 +112,24 @@
 phybreak <- function(dataset, times = NULL,
          mu = NULL, gen.shape = 3, gen.mean = 1,
          sample.shape = 3, sample.mean = 1, 
-         wh.model = 3, wh.slope = 1,
-         est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
-         est.sample.mean = TRUE, prior.mean.sample.mean = 1, prior.mean.sample.sd = Inf,
-         est.wh.slope = TRUE, prior.wh.shape = 3, prior.wh.mean = 1,
-         use.tree = FALSE) {
+         wh.model = "linear", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
+         est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
+         est.sample.mean = TRUE, prior.sample.mean.mean = 1, prior.sample.mean.sd = Inf,
+         est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
+         est.wh.exponent = TRUE, prior.wh.exponent.shape = 1, prior.wh.exponent.mean = 1,
+         est.wh.level = TRUE, prior.wh.level.shape = 1, prior.wh.level.mean = 0.1,
+         use.tree = FALSE, ...) {
+  ########################################################
+  ### parameter name compatibility with older versions ###
+  ########################################################
+  old_arguments <- list(...)
+  if(exists("oldarguments$prior.mean.gen.mean")) prior.gen.mean.mean <- oldarguments$prior.mean.gen.mean
+  if(exists("oldarguments$prior.mean.gen.sd")) prior.gen.mean.sd <- oldarguments$prior.mean.gen.sd
+  if(exists("oldarguments$prior.mean.sample.mean")) prior.sample.mean.mean <- oldarguments$prior.mean.sample.mean
+  if(exists("oldarguments$prior.mean.sample.sd")) prior.sample.mean.sd <- oldarguments$prior.mean.sample.sd
+  if(exists("oldarguments$prior.wh.shape")) prior.wh.slope.shape <- oldarguments$prior.wh.shape
+  if(exists("oldarguments$prior.wh.mean")) prior.wh.slope.mean <- oldarguments$prior.wh.mean
+  
   
   ###########################################
   ### check for correct classes and sizes ###
@@ -140,10 +161,6 @@ phybreak <- function(dataset, times = NULL,
     for(i in 1:(OutbreakTools::get.nlocus(dataset))) {
       SNP.sample <- cbind(SNP.sample, as.character(allgenes[[i]]))
     }
-    if(length(setdiff(SNP.sample, c("a","c","g","t")))) {
-      warning("all nucleotides other than actg are turned into n")
-    }
-    SNP.sample[SNP.sample != "a" & SNP.sample != "c" & SNP.sample != "g" & SNP.sample != "t"] <- "n"
     dataslot$sequences <- phangorn::as.phyDat(SNP.sample)
   } else {
     dataslot$sequences <- dataset$sequences
@@ -177,12 +194,14 @@ phybreak <- function(dataset, times = NULL,
   parameterslot <- list(
     obs = length(unique(dataslot$hostnames)),
     mu = NULL,
-    mean.sample = sample.mean,
-    mean.gen = gen.mean,
-    shape.sample = sample.shape,
-    shape.gen = gen.shape,
+    sample.mean = sample.mean,
+    gen.mean = gen.mean,
+    sample.shape = sample.shape,
+    gen.shape = gen.shape,
     wh.model = wh.model,
-    wh.slope = wh.slope
+    wh.slope = wh.slope,
+    wh.exponent = wh.exponent,
+    wh.level = wh.level
   )
   
   ##############################
@@ -213,17 +232,23 @@ phybreak <- function(dataset, times = NULL,
   ### fourth slot: helper input ###
   #################################
   helperslot <- list(si.mu = if(dataslot$nSNPs == 0) 0 else 2.38*sqrt(trigamma(dataslot$nSNPs)),
-                     si.wh = 2.38*sqrt(trigamma(parameterslot$obs - 1)),
+                     si.wh = 2.38*sqrt(trigamma(dataslot$nsamples - 1)),
                      dist = distmatrix_phybreak(subset(dataslot$sequences, subset = 1:parameterslot$obs)),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
-                     est.wh = est.wh.slope & wh.model == 3,
-                     mG.av = prior.mean.gen.mean,
-                     mG.sd = prior.mean.gen.sd,
-                     mS.av = prior.mean.sample.mean,
-                     mS.sd = prior.mean.sample.sd,
-                     wh.sh = prior.wh.shape,
-                     wh.av = prior.wh.mean)
+                     est.wh.s = est.wh.slope && wh.model %in% c(3, "linear"),
+                     est.wh.e = est.wh.exponent && wh.model %in% c(4, "exponential"),
+                     est.wh.0 = est.wh.level && wh.model %in% c(4, 5, "exponential", "constant"),
+                     mG.av = prior.gen.mean.mean,
+                     mG.sd = prior.gen.mean.sd,
+                     mS.av = prior.sample.mean.mean,
+                     mS.sd = prior.sample.mean.sd,
+                     wh.s.sh = prior.wh.slope.shape,
+                     wh.s.av = prior.wh.slope.mean,
+                     wh.e.sh = prior.wh.exponent.shape,
+                     wh.e.av = prior.wh.exponent.mean,
+                     wh.0.sh = prior.wh.level.shape,
+                     wh.0.av = prior.wh.level.mean)
   
   ###########################
   ### fifth slot: samples ###
@@ -235,7 +260,9 @@ phybreak <- function(dataset, times = NULL,
     mu = c(),
     mG = c(),
     mS = c(),
-    slope = c(),
+    wh.s = c(),
+    wh.e = c(),
+    wh.0 = c(),
     logLik = c()
   )
 
@@ -305,43 +332,53 @@ testargumentsclass_phybreak <- function(env) {
       unlist(
         lapply(
           list(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-               wh.model, wh.slope, prior.mean.gen.mean, prior.mean.gen.sd,
-               prior.mean.sample.mean, prior.mean.sample.sd,
-               prior.wh.shape, prior.wh.mean),
+               wh.slope, wh.exponent, wh.level, prior.gen.mean.mean, prior.gen.mean.sd,
+               prior.sample.mean.mean, prior.sample.mean.sd,
+               prior.wh.slope.shape, prior.wh.slope.mean,
+               prior.wh.exponent.shape, prior.wh.exponent.mean,
+               prior.wh.level.shape, prior.wh.level.mean),
           class
         )
       ) != "numeric"
     if(any(numFALSE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "wh.model", "wh.slope", "prior.mean.gen.mean", "prior.mean.gen.sd",
-                    "prior.mean.shape.mean", "prior.mean.shape.sd",
-                    "prior.wh.shape", "prior.wh.mean")[numFALSE],
+                    "wh.slope", "wh.exponent", "wh.level", "prior.gen.mean.mean", "prior.gen.mean.sd",
+                    "prior.shape.mean.mean", "prior.shape.mean.sd",
+                    "prior.wh.slope.shape", "prior.wh.slope.mean",
+                    "prior.wh.exponent.shape", "prior.wh.exponent.mean",
+                    "prior.wh.level.shape", "prior.wh.level.mean")[numFALSE],
                   " should be numeric"))
     }
     numNEGATIVE <- 
       c(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-        wh.model, wh.slope, prior.mean.gen.mean, prior.mean.gen.sd,
-        prior.mean.sample.mean, prior.mean.sample.sd,
-        prior.wh.shape, prior.wh.mean) <= 0
+        wh.slope, wh.exponent, wh.level, prior.gen.mean.mean, prior.gen.mean.sd,
+        prior.sample.mean.mean, prior.sample.mean.sd,
+        prior.wh.slope.shape, prior.wh.slope.mean,
+        prior.wh.exponent.shape, prior.wh.exponent.mean,
+        prior.wh.level.shape, prior.wh.level.mean
+  ) <= 0
     if(any(numNEGATIVE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "wh.model", "wh.slope", "prior.mean.gen.mean", "prior.mean.gen.sd",
-                    "prior.mean.shape.mean", "prior.mean.shape.sd",
-                    "prior.wh.shape", "prior.wh.mean")[numNEGATIVE],
+                    "wh.slope", "wh.exponent", "wh.level", "prior.gen.mean.mean", "prior.gen.mean.sd",
+                    "prior.shape.mean.mean", "prior.shape.mean.sd",
+                    "prior.wh.slope.shape", "prior.wh.slope.mean",
+                    "prior.wh.exponent.shape", "prior.wh.exponent.mean",
+                    "prior.wh.level.shape", "prior.wh.level.mean")[numNEGATIVE],
                   " should be positive"))
     }
     logFALSE <- 
       unlist(
         lapply(
-          list(est.gen.mean, est.sample.mean, est.wh.slope, use.tree),
+          list(est.gen.mean, est.sample.mean, est.wh.slope, est.wh.exponent, est.wh.level, use.tree),
           class
         )
       ) != "logical"
     if(any(logFALSE)) {
       stop(paste0("parameters ",
-                  c("est.gen.mean", "est.sample.mean", "est.wh.slope", "use.tree")[logFALSE],
+                  c("est.gen.mean", "est.sample.mean", "est.wh.slope", "est.wh.exponent", 
+                    "est.wh.level", "use.tree")[logFALSE],
                   " should be logical"))
     }
   })
