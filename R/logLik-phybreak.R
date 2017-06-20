@@ -44,17 +44,17 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
                                           v$nodeparents, v$nodetimes, p$mu, d$nsamples))
     }
     if (generation) {
-        res <- res + with(object, .lik.gentimes(p$obs, d$nsamples, p$shape.gen, p$mean.gen, v$nodetimes, v$nodehosts))
+        res <- res + with(object, .lik.gentimes(p$shape.gen, p$mean.gen, v$inftimes, v$infectors))
     }
     if (sampling) {
-        res <- res + with(object, .lik.sampletimes(p$obs, d$nsamples, p$shape.sample, p$mean.sample, v$nodetimes))
+        res <- res + with(object, .lik.sampletimes(p$obs, p$shape.sample, p$mean.sample, v$nodetimes, v$inftimes))
     }
     if (withinhost) {
-        res <- res + with(object, .lik.coaltimes(p$obs, p$wh.model, p$wh.slope, v$nodetimes, v$nodehosts, v$nodetypes))
+        res <- res + with(object, .lik.coaltimes(object))
     }
     attributes(res) <- list(
       nobs = object$p$obs,
-      df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh,
+      df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.slope + object$h$est.wh.exponent + object$h$est.wh.level,
       genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation
     )
     class(res) <- "logLik"
@@ -63,55 +63,68 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 
 
 ### calculate the log-likelihood of sampling intervals 
-.lik.gentimes <- function(obs, nsamples, shapeG, meanG, nodetimes, nodehosts) {
-  nt <- nodetimes[2 * nsamples - 1 + 1:obs]
-  nh <- nodehosts[2 * nsamples - 1 + 1:obs]
-    sum(dgamma(nt[nh > 0] - 
-                 nt[nh[nh > 0]], 
+.lik.gentimes <- function(shapeG, meanG, inftimes, infectors) {
+    sum(dgamma(inftimes[infectors > 0] - 
+                 inftimes[infectors[infectors > 0]], 
                shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
 ### calculate the log-likelihood of generation intervals 
-.lik.sampletimes <- function(obs, nsamples, shapeS, meanS, nodetimes) {
-    sum(dgamma(nodetimes[1:obs] - nodetimes[2 * nsamples - 1 + 1:obs], shape = shapeS, scale = meanS/shapeS, log = TRUE))
+.lik.sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
+    sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
+}
+
+
+### calculate the log-likelihood of coalescent intervals 
+.lik.coaltimes <- function(phybreakenv) {
+  return(sum(sapply(0:phybreakenv$p$obs, .lik.coaltimes.host, phybreakenv = phybreakenv)))
 }
 
 ### calculate the log-likelihood of coalescent intervals 
-.lik.coaltimes <- function(obs, wh.model, slope, nodetimes, nodehosts, nodetypes) {
-    if (wh.model == 1 || wh.model == 2) 
-        return(0)
-    
-    coalnodes <- nodetypes == "c"
-    orderednodes <- order(nodehosts, nodetimes)
-    orderedtouse <- orderednodes[c(duplicated(nodehosts[orderednodes])[-1], FALSE)]
-    # only use hosts with secondary infections
-    
-    ## make vectors with information on intervals between nodes
-    coalno <- c(FALSE, head(coalnodes[orderedtouse], -1))  #interval starts with coalescence
-    nodeho <- nodehosts[orderedtouse]  #host in which interval resides
-    coalmultipliers <- choose(2 + cumsum(2 * coalno - 1), 2)  #coalescence coefficient
-    
-    ## from t to tau (time since infection)
-    whtimes <- nodetimes - c(0, tail(nodetimes, obs))[1 + nodehosts]
-    
-    noderates <- 1/(slope * whtimes[orderedtouse])
-    # coalescence rate (per pair of lineages)
-    nodeescrates <- log(whtimes[orderedtouse])/(slope)
-    # cumulative coalescence rate since infection of host (per pair of lineages)
-    
-    
-    escratediffs <- nodeescrates - c(0, head(nodeescrates, -1))
-    escratediffs[!duplicated(nodeho)] <- nodeescrates[!duplicated(nodeho)]
-    # cumulative coalescence rate within interval (per pair of lineages)
-    
-    
-    ## First: coalescence rates at coalescence nodes
-    logcoalrates <- log(noderates[c(coalno[-1], FALSE)])
-    
-    # Second: probability to escape coalescence in all intervals
-    logescapes <- -escratediffs * coalmultipliers
-    
-    
-    return(sum(logcoalrates) + sum(logescapes))
-    
+.lik.coaltimes.host <- function(phybreakenv, hostID) {
+  if (phybreakenv$p$wh.model %in% c(1, 2)) return(0)
+  
+  if(hostID > 0) {
+    bottleneck <- length(firstnodes(phybreakenv, hostID))
+    starttime <- phybreakenv$v$inftimes[hostID]
+    inftime <- 0
+  } else {
+    bottleneck <- 1
+    starttime <- min(phybreakenv$v$inftimes) - phybreakenv$p$sample.mean
+    inftime <- min(phybreakenv$v$nodetimes) - 1 - starttime
+  }
+  
+  ### minustimes
+  minusnodes <- infectee_nodes(phybreakenv, hostID)
+  minushosts <- unlist(sapply(phybreakenv$v$nodehosts[minusnodes], secondhostinchain, 
+                       infectors = phybreakenv$v$infectors, firsthostID = hostID))
+  minustimes <- c(phybreakenv$v$inftimes[minushosts], 
+                  phybreakenv$v$nodetimes[phybreakenv$v$nodehosts == hostID & phybreakenv$v$nodetypes %in% c("s", "x")]) - starttime
+  
+  plustimes <- phybreakenv$v$nodetimes[phybreakenv$v$nodehosts == hostID & phybreakenv$v$nodetypes == "c"] - starttime
+  
+  eventslist <- c(bottleneck, rep(-1, length(minustimes)), rep(1, length(plustimes)))
+  timeslist <- c(inftime, minustimes, plustimes)
+  eventslist <- eventslist[order(timeslist)]
+  timeslist <- sort(timeslist)
+  
+  lineagecounts <- cumsum(eventslist)
+  coalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
+                      linear = 1/(phybreakenv$p$wh.slope * plustimes),
+                      exponential = 1/(phybreakenv$p$wh.level * exp(phybreakenv$p$wh.exponent * plustimes)),
+                      constant = rep(1, length(plustimes))/phybreakenv$p$wh.level)
+  logcoalrates <- log(coalrates)
+  cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
+                         linear = c(0, log(timeslist[-1]) / phybreakenv$p$wh.slope),
+                         exponential = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
+                                             exp(phybreakenv$p$wh.exponent * timeslist)),
+                         constant = timeslist/phybreakenv$p$wh.level)
+  logcoalescapes <- -(tail(cumcoalrates, -1) - head(cumcoalrates, -1)) * head(choose(lineagecounts, 2), -1)
+  
+  return(sum(logcoalrates) + sum(logcoalescapes))
+  
 }
+
+
+
+
