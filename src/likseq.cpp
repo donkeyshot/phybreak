@@ -25,31 +25,74 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
   
   for(int i = 0; i < Nsamples; ++i) {
     for(int j = 0; j < nSNPs; ++j) {
+      likarray[(i * nSNPs + j) * 4] = 0;
+      likarray[(i * nSNPs + j) * 4 + 1] = 0;
+      likarray[(i * nSNPs + j) * 4 + 2] = 0;
+      likarray[(i * nSNPs + j) * 4 + 3] = 0;
       if(SNPs[i*nSNPs + j] == 1) {
         likarray[(i * nSNPs + j) * 4] = 1;
-        likarray[(i * nSNPs + j) * 4 + 1] = 0;
-        likarray[(i * nSNPs + j) * 4 + 2] = 0;
-        likarray[(i * nSNPs + j) * 4 + 3] = 0;
+        
       } else if(SNPs[i*nSNPs + j] == 2) {
         likarray[(i * nSNPs + j) * 4 + 1] = 1;
-        likarray[(i * nSNPs + j) * 4] = 0;
-        likarray[(i * nSNPs + j) * 4 + 2] = 0;
-        likarray[(i * nSNPs + j) * 4 + 3] = 0;
+        
       } else if(SNPs[i*nSNPs + j] == 3) {
         likarray[(i * nSNPs + j) * 4 + 2] = 1;
-        likarray[(i * nSNPs + j) * 4 + 1] = 0;
-        likarray[(i * nSNPs + j) * 4] = 0;
-        likarray[(i * nSNPs + j) * 4 + 3] = 0;
+        
       } else if(SNPs[i*nSNPs + j] == 4) {
         likarray[(i * nSNPs + j) * 4 + 3] = 1;
-        likarray[(i * nSNPs + j) * 4 + 1] = 0;
-        likarray[(i * nSNPs + j) * 4] = 0;
-        likarray[(i * nSNPs + j) * 4 + 2] = 0;
-      } else {
+        
+      } else if(SNPs[i*nSNPs + j] == 5) {
         likarray[(i * nSNPs + j) * 4 + 3] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 6) {
+        likarray[(i * nSNPs + j) * 4] = 1;
+        likarray[(i * nSNPs + j) * 4 + 1] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 7) {
+        likarray[(i * nSNPs + j) * 4] = 1;
+        likarray[(i * nSNPs + j) * 4 + 2] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 8) {
+        likarray[(i * nSNPs + j) * 4] = 1;
+        likarray[(i * nSNPs + j) * 4 + 3] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 9) {
         likarray[(i * nSNPs + j) * 4 + 1] = 1;
         likarray[(i * nSNPs + j) * 4 + 2] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 10) {
+        likarray[(i * nSNPs + j) * 4 + 1] = 1;
+        likarray[(i * nSNPs + j) * 4 + 3] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 11) {
+        likarray[(i * nSNPs + j) * 4 + 2] = 1;
+        likarray[(i * nSNPs + j) * 4 + 3] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 12) {
         likarray[(i * nSNPs + j) * 4] = 1;
+        likarray[(i * nSNPs + j) * 4 + 1] = 1;
+        likarray[(i * nSNPs + j) * 4 + 2] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 13) {
+        likarray[(i * nSNPs + j) * 4] = 1;
+        likarray[(i * nSNPs + j) * 4 + 1] = 1;
+        likarray[(i * nSNPs + j) * 4 + 3] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 14) {
+        likarray[(i * nSNPs + j) * 4] = 1;
+        likarray[(i * nSNPs + j) * 4 + 2] = 1;
+        likarray[(i * nSNPs + j) * 4 + 3] = 1;
+        
+      } else if(SNPs[i*nSNPs + j] == 15) {
+        likarray[(i * nSNPs + j) * 4 + 1] = 1;
+        likarray[(i * nSNPs + j) * 4 + 2] = 1;
+        likarray[(i * nSNPs + j) * 4 + 3] = 1;
+        
+      } else {
+        likarray[(i * nSNPs + j) * 4] = 1;
+        likarray[(i * nSNPs + j) * 4 + 1] = 1;
+        likarray[(i * nSNPs + j) * 4 + 2] = 1;
+        likarray[(i * nSNPs + j) * 4 + 3] = 1;
       }
     }
   }
