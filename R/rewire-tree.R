@@ -1,25 +1,25 @@
 
-library(phybreak)
-set.seed(1)
-simul <- sim.phybreak(20)
-pbo <- phybreak(simul)
-plotPhylo(pbo)
-phytree <- get.phylo(pbo)
-varphybreak <- pbo$v
-var <- list(
-  nodetimes = varphybreak$nodetimes[1:39],
-  nodehosts = varphybreak$nodehosts[1:39],
-  nodeparents = varphybreak$nodeparents,
-  nodetypes = varphybreak$nodetypes[1:39],
-  inftimes = varphybreak$nodetimes[40:59],
-  infectors = varphybreak$nodehosts[40:59]
-  )
-var$nodeparents[var$nodeparents>39] <- (c(0,var$nodeparents)[1+var$nodeparents][var$nodeparents>39])
-var$nodeparents <- var$nodeparents[1:39]
-params <- list(wh.model = "exponential", wh.slope = 1, wh.exponent = .3, wh.level = .5, mean.sample = 1)
-
-pbenv <- new.env()
-list2env(list(v = var, p = params), pbenv)
+# library(phybreak)
+# set.seed(1)
+# simul <- sim.phybreak(20, wh.model = 2)
+# pbo <- phybreak(simul, wh.model = 2)
+# plotPhylo(pbo)
+# phytree <- get.phylo(pbo)
+# varphybreak <- pbo$v
+# var <- list(
+#   nodetimes = varphybreak$nodetimes[1:39],
+#   nodehosts = varphybreak$nodehosts[1:39],
+#   nodeparents = varphybreak$nodeparents,
+#   nodetypes = varphybreak$nodetypes[1:39],
+#   inftimes = varphybreak$nodetimes[40:59],
+#   infectors = varphybreak$nodehosts[40:59]
+#   )
+# var$nodeparents[var$nodeparents>39] <- (c(0,var$nodeparents)[1+var$nodeparents][var$nodeparents>39])
+# var$nodeparents <- var$nodeparents[1:39]
+# params <- list(wh.model = "infinite", wh.slope = 1, wh.exponent = .3, wh.level = .5, sample.mean = 1)
+# 
+# pbenv <- new.env()
+# list2env(list(v = var, p = params), pbenv)
 
 # nodechildren <- function(nodeID, var) {
 #   which(var$nodeparents == nodeID)
@@ -156,7 +156,7 @@ rewire_assigninfectiontime <- function(phybreakenv, hostID, infectiontime) {
 #     inftimecurrent <- if(hostID != 0) {
 #       variables$inftimes[hostID]
 #     } else {
-#       variables$inftimes[infecteeID] - parameters$mean.sample
+#       variables$inftimes[infecteeID] - parameters$sample.mean
 #     }
 #     tiptimes <- c(variables$inftimes[incominghosts], 
 #                        variables$nodetimes[samplenodes]) - inftimecurrent
@@ -200,7 +200,7 @@ rewire_addedge <- function(phybreakenv, parentnode) {
       phybreakenv$v$nodehosts[parentnode] <- hostID
     }
     
-    if(hostID < 1 || phybreakenv$v$inftimes[hostID] == -Inf) {
+    if(hostID == -1 || (hostID > 0 && phybreakenv$v$inftimes[hostID] == -Inf)) {
       #broken branch or unknown infection time, stop here
       newcoalescenttime <- 0
     } else {
@@ -223,7 +223,7 @@ rewire_addedge <- function(phybreakenv, parentnode) {
         phybreakenv$v$inftimes[hostID]
       } else {
         #one sampling interval back
-        phybreakenv$v$nodetimes[parentnode] - phybreakenv$p$mean.sample
+        phybreakenv$v$nodetimes[parentnode] - phybreakenv$p$sample.mean
       }
       tiptimes <- c(phybreakenv$v$inftimes[incominghosts], 
                     phybreakenv$v$nodetimes[samplenodes]) - inftimecurrent
@@ -242,8 +242,8 @@ rewire_addedge <- function(phybreakenv, parentnode) {
   if(hostID != -1) {
     newchildnode <- sample_singlechildnode(c(oldtipnodes, oldcoalescentnodes), 
                                            phybreakenv$v$nodeparents[c(oldtipnodes, oldcoalescentnodes)],
-                                           phybreakenv$v$nodetimes[c(oldtipnodes, oldcoalescentnodes)],
-                                           phybreakenv$v$nodetimes[parentnode])
+                                           c(tiptimes, coalescenttimes),
+                                           newcoalescenttime)
     phybreakenv$v$nodeparents[parentnode] <- phybreakenv$v$nodeparents[newchildnode]
     phybreakenv$v$nodeparents[newchildnode] <- parentnode
   }
