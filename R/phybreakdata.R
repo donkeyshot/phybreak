@@ -18,8 +18,8 @@
 #' and a (phylogenetic) sim.tree. This is done automatically when using \code{\link{sim.phybreak}}. 
 #' 
 #' @param sequences Sequence data of class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
-#'  each row a host, each column a nucleotide). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
-#'  or \code{'t'}, will be turned into \code{'n'}. 
+#'  each row a host, each column a nucleotide). In a matrix, nucleotides should be lower-case letters. All undefined 
+#'  nucleotides or ambiguity codes will be turned into \code{'n'}. 
 #' @param sample.times A vector of sampling times (\code{numerical} or \code{Date}).
 #' @param sample.names A vector with sample names.
 #' @param host.names A vector with host names. The vector identifies the host for each sample, so should be of the same
@@ -129,8 +129,12 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
   #################################################
   ### place essential information in outputlist ###
   #################################################
-  if(length(setdiff(sequences,c("a","c","g","t")))) warning("all nucleotides other than actg are turned into n")
-  sequences[sequences != "a" & sequences != "c" & sequences != "g" & sequences != "t"] <- "n"
+  if(length(setdiff(sequences,c("a","c","g","t","u","m","r","w",
+                                "s","y","k","v","h","d","b","n",
+                                "?","-")))) warning("all undefined nucleotide codes are turned into n")
+  sequences[!(sequences %in% c("a","c","g","t","u","m","r","w",
+                             "s","y","k","v","h","d","b","n",
+                             "?","-"))] <- "n"
   sequences <- phangorn::as.phyDat(sequences)
   
   res <- list(
