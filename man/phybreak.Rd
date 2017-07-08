@@ -5,11 +5,16 @@
 \title{Create a phybreak-object from data and prior distributions.}
 \usage{
 phybreak(dataset, times = NULL, mu = NULL, gen.shape = 3, gen.mean = 1,
-  sample.shape = 3, sample.mean = 1, wh.model = 3, wh.slope = 1,
-  est.gen.mean = TRUE, prior.mean.gen.mean = 1, prior.mean.gen.sd = Inf,
-  est.sample.mean = TRUE, prior.mean.sample.mean = 1,
-  prior.mean.sample.sd = Inf, est.wh.slope = TRUE, prior.wh.shape = 3,
-  prior.wh.mean = 1, use.tree = FALSE)
+  sample.shape = 3, sample.mean = 1, wh.model = "linear", wh.slope = 1,
+  wh.exponent = 1, wh.level = 0.1, est.gen.mean = TRUE,
+  prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
+  est.sample.mean = TRUE, prior.sample.mean.mean = 1,
+  prior.sample.mean.sd = Inf, est.wh.slope = TRUE,
+  prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
+  est.wh.exponent = TRUE, prior.wh.exponent.shape = 1,
+  prior.wh.exponent.mean = 1, est.wh.level = TRUE,
+  prior.wh.level.shape = 1, prior.wh.level.mean = 0.1, use.tree = FALSE,
+  ...)
 }
 \arguments{
 \item{dataset}{An object with sequences plus additional data.
@@ -48,43 +53,54 @@ infection and sampling of a host.}
 \item{sample.mean}{Initial value for the mean sampling interval.}
 
 \item{wh.model}{The model for within-host pathogen dynamics (effective pathogen population size = 
-N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
+N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Names and numbers are allowed.
+Options are:
 \enumerate{
-  \item Effective size = 0, so coalescence occurs 'just before' transmission in the infector
-  \item Effective size = Inf, so coalescence occurs 'just after' transmission in the infectee
-  \item Effective size at time t after infection = \code{wh.slope * t}
+  \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (strict bottleneck)
+  \item "infinite": effective size = Inf, with strict bottleneck, so coalescence occurs 'just after' transmission in the infectee
+  \item "linear": effective size at time t after infection = \code{wh.slope * t} (strict bottleneck)
+  \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
+  \item "constant": effective size = wh.level (loose bottleneck)
 }}
 
-\item{wh.slope}{Initial value for the within-host slope, used if \code{wh.model = 3}.}
+\item{wh.slope}{Initial value for the within-host slope, used if \code{wh.model = "linear"}.}
+
+\item{wh.exponent}{Initial value for the within-host exponent, used if \code{wh.model = "exponential"}}
+
+\item{wh.level}{Initial value for the within-host effective pathogen size at transmission, used if 
+\code{wh.model = "exponential"} or if \code{wh.model = "constant"}}
 
 \item{est.gen.mean}{Whether to estimate the mean generation interval or keep it fixed.}
 
-\item{prior.mean.gen.mean}{Mean of the (gamma) prior distribution of mean generation interval \code{mG} 
+\item{prior.gen.mean.mean}{Mean of the (gamma) prior distribution of mean generation interval \code{mG} 
 (only if \code{est.gen.mean = TRUE}).}
 
-\item{prior.mean.gen.sd}{Standard deviation of the (gamma) prior distribution of mean generation interval \code{mG} 
+\item{prior.gen.mean.sd}{Standard deviation of the (gamma) prior distribution of mean generation interval \code{mG} 
 (only if \code{est.gen.mean = TRUE}).}
 
 \item{est.sample.mean}{Whether to estimate the mean sampling interval or keep it fixed.}
 
-\item{prior.mean.sample.mean}{Mean of the (gamma) prior distribution of mean sampling interval \code{mS} 
+\item{prior.sample.mean.mean}{Mean of the (gamma) prior distribution of mean sampling interval \code{mS} 
 (only if \code{est.sample.mean = TRUE}).}
 
-\item{prior.mean.sample.sd}{Standard deviation of the (gamma) prior distribution of mean sampling interval \code{mS} 
+\item{prior.sample.mean.sd}{Standard deviation of the (gamma) prior distribution of mean sampling interval \code{mS} 
 (only if \code{est.sample.mean = TRUE}).}
 
 \item{est.wh.slope}{Whether to estimate the within-host slope or keep it fixed.}
+
+\item{use.tree}{Whether to use the transmission and phylogenetic tree given in data of class \code{'obkData'}, 
+to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
+the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 
+one phylogenetic tree. Such data can be simulated with \code{\link{sim.phybreak}}.}
+
+\item{...}{If arguments from previous versions of this function are used, they may be interpreted correctly through 
+this argument, but it is better to provide the correct argument names.}
 
 \item{prior.wh.shape}{Shape parameter of the (gamma) prior distribution of \code{slope} 
 (only if \code{est.wh.slope = TRUE}).}
 
 \item{prior.wh.mean}{Mean of the (gamma) prior distribution of \code{slope} 
 (only if \code{est.wh.slope = TRUE}).}
-
-\item{use.tree}{Whether to use the transmission and phylogenetic tree given in data of class \code{'obkData'}, 
-to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
-the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 
-one phylogenetic tree. Such data can be simulated with \code{\link{sim.phybreak}}.}
 }
 \value{
 An object of class \code{phybreak} with the following elements

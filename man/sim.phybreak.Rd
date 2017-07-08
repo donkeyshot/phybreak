@@ -5,9 +5,10 @@
 \title{Outbreak simulation.}
 \usage{
 sim.phybreak(obsize = 50, popsize = NA, samplesperhost = 1, R0 = 1.5,
-  shape.gen = 10, mean.gen = 1, shape.sample = 10, mean.sample = 1,
-  additionalsampledelay = 0, wh.model = 3, wh.slope = 1, mu = 1e-04,
-  sequence.length = 10000, output.class = c("phybreakdata", "obkData"))
+  gen.shape = 10, gen.mean = 1, sample.shape = 10, sample.mean = 1,
+  additionalsampledelay = 0, wh.model = "linear", wh.slope = 1,
+  wh.exponent = 1, wh.level = 0.1, mu = 1e-04, sequence.length = 10000,
+  output.class = c("phybreakdata", "obkData"), ...)
 }
 \arguments{
 \item{obsize}{The outbreak size (number of cases) to obtain. If \code{obsize = NA}, \code{popsize} should be provided.}
@@ -20,26 +21,34 @@ an \code{obsize} can severely increase the simulation time, depending on \code{R
 
 \item{R0}{The basic reproduction ratio used for simulation. The offspring distribution is Poisson.}
 
-\item{shape.gen}{The shape parameter of the gamma-distributed generation interval.}
+\item{gen.shape}{The shape parameter of the gamma-distributed generation interval.}
 
-\item{mean.gen}{The mean generation interval.}
+\item{gen.mean}{The mean generation interval.}
 
-\item{shape.sample}{The shape parameter of the gamma-distributed sampling interval.}
+\item{sample.shape}{The shape parameter of the gamma-distributed sampling interval.}
 
-\item{mean.sample}{The mean sampling interval (for the first sample of each host).}
+\item{sample.mean}{The mean sampling interval (for the first sample of each host).}
 
 \item{additionalsampledelay}{Sampling intervals since first sampling times of each host. Values in this vector will be 
 used first for all additional samples of host 1, then of host 2, etc.}
 
 \item{wh.model}{The model for within-host pathogen dynamics (effective pathogen population size = 
-N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Options are:
+N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Names and numbers are allowed.
+Options are:
 \enumerate{
-  \item Effective size = 0, so coalescence occurs 'just before' transmission, in the infector
-  \item Effective size = Inf, so coalescence occurs 'just after' infection, in the infectee
-  \item Effective size at time t after infection = wh.slope * t
+  \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (strict bottleneck)
+  \item "infinite": effective size = Inf, with strict bottleneck, so coalescence occurs 'just after' transmission in the infectee
+  \item "linear": effective size at time t after infection = \code{wh.slope * t} (strict bottleneck)
+  \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
+  \item "constant": effective size = wh.level (loose bottleneck)
 }}
 
-\item{wh.slope}{Within-host increase of effective population size, used if \code{wh.model = 3}.}
+\item{wh.slope}{Initial value for the within-host slope, used if \code{wh.model = "linear"}.}
+
+\item{wh.exponent}{Initial value for the within-host exponent, used if \code{wh.model = "exponential"}}
+
+\item{wh.level}{Initial value for the within-host effective pathogen size at transmission, used if 
+\code{wh.model = "exponential"} or if \code{wh.model = "constant"}}
 
 \item{mu}{Expected number of mutations per nucleotide per unit of time along each lineage.}
 
@@ -47,6 +56,9 @@ N*gE = actual population size * pathogen generation time), used to simulate coal
 
 \item{output.class}{Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
 class \code{'obkData'}}
+
+\item{...}{If arguments from previous versions of this function are used, they may be interpreted correctly through 
+this argument, but it is better to provide the correct argument names.}
 }
 \value{
 The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 

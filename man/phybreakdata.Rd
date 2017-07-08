@@ -10,8 +10,8 @@ phybreakdata(sequences, sample.times, sample.names = NULL,
 }
 \arguments{
 \item{sequences}{Sequence data of class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
-each row a host, each column a nucleotide). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
-or \code{'t'}, will be turned into \code{'n'}.}
+each row a host, each column a nucleotide). In a matrix, nucleotides should be lower-case letters. All undefined 
+nucleotides or ambiguity codes will be turned into \code{'n'}.}
 
 \item{sample.times}{A vector of sampling times (\code{numerical} or \code{Date}).}
 
