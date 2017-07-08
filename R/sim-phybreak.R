@@ -261,8 +261,8 @@ sim.phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
                          wh.level = wh.level, sample.mean = sample.mean)), simenv)
   simenv$v$nodeparents <- c(0, (sim.object$Nsamples + 1):(2*sim.object$Nsamples - 1), 
                             rep(-1, sim.object$Nsamples - 1))  #initialize nodes: will contain parent node in phylotree
-  simenv$v$nodetimes <- c(sim.object$samtimes, sim.object$addsamtimes, sim.object$samtimes[-1], 
-                         sim.object$addsamtimes)   #initialize nodes: will contain time of node
+  simenv$v$nodetimes <- c(sim.object$samtimes, sim.object$addsampletimes, sim.object$samtimes[-1], 
+                         sim.object$addsampletimes)   #initialize nodes: will contain time of node
   simenv$v$nodehosts <- c(1:sim.object$obs, sim.object$addsamplehosts, 
                          2:sim.object$obs, sim.object$addsamplehosts)   #initialize nodes: will contain host carrying the node
   simenv$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
