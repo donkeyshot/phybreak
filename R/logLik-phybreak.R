@@ -44,17 +44,17 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
                                           v$nodeparents, v$nodetimes, p$mu, d$nsamples))
     }
     if (generation) {
-        res <- res + with(object, .lik.gentimes(p$shape.gen, p$mean.gen, v$inftimes, v$infectors))
+        res <- res + with(object, .lik.gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors))
     }
     if (sampling) {
-        res <- res + with(object, .lik.sampletimes(p$obs, p$shape.sample, p$mean.sample, v$nodetimes, v$inftimes))
+        res <- res + with(object, .lik.sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes))
     }
     if (withinhost) {
         res <- res + with(object, .lik.coaltimes(object))
     }
     attributes(res) <- list(
       nobs = object$p$obs,
-      df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.slope + object$h$est.wh.exponent + object$h$est.wh.level,
+      df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.s + object$h$est.wh.e + object$h$est.wh.0,
       genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation
     )
     class(res) <- "logLik"

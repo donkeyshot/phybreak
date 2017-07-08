@@ -41,12 +41,25 @@
   
   ### Jukes-Cantor: reduce diversity by naming each nucleotide by its frequency order, and grouping SNPs by same pattern across
   ### hosts
+  codematrix <- t(matrix(c(1,0,0,0,0,1,1,1,0,0,0,1,1,1,0,1,1,1,
+                           0,1,0,0,0,1,0,0,1,1,0,1,1,0,1,1,1,1,
+                           0,0,1,0,0,0,1,0,1,0,1,1,0,1,1,1,1,1,
+                           0,0,0,1,1,0,0,1,0,1,1,0,1,1,1,1,1,1),
+                         ncol = 4))
   fn <- function(snpvector) {
-    match(snpvector, names(sort(table(snpvector), decreasing = TRUE)))
+    bincodes <- codematrix[,snpvector]
+    bincodes <- bincodes[order(rowSums(bincodes), decreasing = TRUE),]
+    numcodes <- colSums(bincodes * c(1,2,4,8))
+    snpcodes <- match(numcodes, colSums(codematrix * c(1,2,4,8)))
+    return(snpcodes)
   }
+  
+  # fn <- function(snpvector) {
+  #   match(snpvector, names(sort(table(snpvector), decreasing = TRUE)))
+  # }
   snpreduced <- apply(SNP, 2, fn)
+  snpreduced <- SNP
   snpfrreduced <- SNPfr
-  snpreduced[SNP %in% c(17, 18)] <- 16
   if (ncol(SNP) > 1) {
     for (i in (ncol(SNP) - 1):1) {
       for (j in length(snpfrreduced):(i + 1)) {
@@ -59,19 +72,19 @@
     }
   }
   likarrayfreq <- snpfrreduced
-  
+
   
   ### initialize all dimensions of likarray
   likarray <- array(1, dim = c(4, length(snpfrreduced), 2 * d$nsamples - 1))
   ### initialize likarray with observations on sampling nodes: 0 or 1
-  likarray[cbind(1, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(1, 6, 7, 8, 12, 13, 14, 16))
-  likarray[cbind(2, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(2, 6, 9, 10, 12, 13, 15, 16))
-  likarray[cbind(3, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(3, 7, 9, 11, 12, 14, 15, 16))
-  likarray[cbind(4, rep(1:length(snpfrreduced), d$nsamples), rep(1:d$nsamples, 
-                                                            each = length(snpfrreduced)))] <- 1 * t(snpreduced %in% c(4, 5, 8, 10, 11, 13, 14, 15, 16))
+  likarray[cbind(1, rep(1:length(snpfrreduced), each = d$nsamples), rep(1:d$nsamples, 
+                                                                 length(snpfrreduced)))] <- 1 * (snpreduced %in% c(1, 6, 7, 8, 12, 13, 14, 16))
+  likarray[cbind(2, rep(1:length(snpfrreduced), each = d$nsamples), rep(1:d$nsamples, 
+                                                                 length(snpfrreduced)))] <- 1 * (snpreduced %in% c(2, 6, 9, 10, 12, 13, 15, 16))
+  likarray[cbind(3, rep(1:length(snpfrreduced), each = d$nsamples), rep(1:d$nsamples, 
+                                                                 length(snpfrreduced)))] <- 1 * (snpreduced %in% c(3, 7, 9, 11, 12, 14, 15, 16))
+  likarray[cbind(4, rep(1:length(snpfrreduced), each = d$nsamples), rep(1:d$nsamples, 
+                                                                 length(snpfrreduced)))] <- 1 * (snpreduced %in% c(4, 5, 8, 10, 11, 13, 14, 15, 16))
   
   
   ### complete likarray and calculate log-likelihood of sequences
@@ -80,8 +93,8 @@
   
   
   ### calculate the other log-likelihoods
-  logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$sample.shape, p$sample.mean, v$nodetimes)
-  logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$gen.shape, p$gen.mean, v$nodetimes, v$nodehosts)
+  logLiksam <- .lik.sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes)
+  logLikgen <- .lik.gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors)
   logLikcoal <- .lik.coaltimes(le)
   
   ### copy everything into .pbe0
@@ -153,12 +166,12 @@
   
   
   if (f == "phylotrans" || f == "trans" || f == "mG") {
-    logLikgen <- .lik.gentimes(p$obs, d$nsamples, p$gen.shape, p$gen.mean, v$nodetimes, v$nodehosts)
+    logLikgen <- .lik.gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors)
     .copy2pbe1("logLikgen", le)
   }
   
   if (f == "phylotrans" || f == "trans" || f == "mS") {
-    logLiksam <- .lik.sampletimes(p$obs, d$nsamples, p$sample.shape, p$sample.mean, v$nodetimes)
+    logLiksam <- .lik.sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes)
     .copy2pbe1("logLiksam", le)
   }
   
