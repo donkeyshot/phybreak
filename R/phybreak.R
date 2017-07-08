@@ -254,6 +254,8 @@ phybreak <- function(dataset, times = NULL,
   ### fifth slot: samples ###
   ###########################
   sampleslot <- list(
+    inftimes = c(),
+    infectors = c(),
     nodetimes = c(),
     nodehosts = c(),
     nodeparents = c(),
