@@ -111,27 +111,24 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
       rootnode = i;
     }
   }
-  nextnode = 0;
-  while(nodeparents[nextnode] - 1 != rootnode) {
-    ++nextnode;
-  }
-  rootnode = nextnode;
+//  nextnode = 0;
+//  while(nodeparents[nextnode] - 1 != rootnode) {
+//    ++nextnode;
+//  }
+//  rootnode = nextnode;
   for(int i = 0; i < Nsamples; ++i) {
     routefree[i] = true;
   }
   for(int i = Nsamples; i < 2 * Nsamples - 1; ++i) {
     routefree[i] = false;
   }
-  for(int i = 2 * Nsamples - 1; i < routefree.size(); ++i) {
-    routefree[i] = true;
-  }
-  
+
   for(int i = 0; i < Nsamples; ++i) {
     curnode = i;
     nextnode = nodeparents[curnode] - 1;
     edgelen = nlens[curnode];
     while(routefree[curnode] && nextnode != -1) {
-      if(nextnode < 2*Nsamples - 1) {
+//      if(nextnode < 2*Nsamples - 1) {
         for(int j = 0; j < nSNPs; ++j) {
           totprob = likarray[(curnode * nSNPs + j) * 4];
           for(int k = 1; k < 4; ++k) {
@@ -146,10 +143,10 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
         curnode = nextnode;
         edgelen = nlens[curnode];
         nextnode = nodeparents[curnode] - 1;
-      } else {
-        edgelen += nlens[nextnode];
-        nextnode = nodeparents[nextnode] - 1;
-      }
+//      } else {
+//        edgelen += nlens[nextnode];
+//        nextnode = nodeparents[nextnode] - 1;
+//      }
     }
     routefree[curnode] = true;
   }

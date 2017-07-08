@@ -51,11 +51,11 @@ double likseqenv(Environment pbenv,
       rootnode = i;
     }
   }
-  nextnode = 0;
-  while(nodeparents[nextnode] - 1 != rootnode) {
-    ++nextnode;
-  }
-  rootnode = nextnode;
+//  nextnode = 0;
+//  while(nodeparents[nextnode] - 1 != rootnode) {
+//    ++nextnode;
+//  }
+//  rootnode = nextnode;
   for(int i = 0; i < routefree.size(); ++i) {
     routefree[i] = true;
   }
