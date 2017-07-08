@@ -263,11 +263,11 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
     ### remove current state
     rewire_disconnecthost(.pbe1, .pbe1$hostID)
     rewire_removeinfector(.pbe1, index.current.ID)
-    
+
     ### change to proposed state
-    rewire_assigninfector(.pbe1, infector.current.ID, .pbe1$hostID)
+    rewire_assigninfector(.pbe1, index.current.ID, .pbe1$hostID)
     rewire_reconnecthost(.pbe1, .pbe1$hostID, 0, .pbe1$tinf.prop)
-    
+
 
     ### calculate proposal ratio 
     # the reverse proposal includes proposing an infector
