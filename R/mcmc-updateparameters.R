@@ -46,7 +46,7 @@
     
     ### change to proposal state
     sumst <- sum(v$nodetimes[v$nodetypes == "s"] - v$inftimes)
-    p$mean.sample <- p$shape.sample/rgamma(1, shape = p$shape.sample * p$obs + 2 + (h$mS.av/h$mS.sd)^2, rate = sumst + (h$mS.av/p$shape.sample) * 
+    p$sample.mean <- p$sample.shape/rgamma(1, shape = p$sample.shape * p$obs + 2 + (h$mS.av/h$mS.sd)^2, rate = sumst + (h$mS.av/p$sample.shape) * 
          (1 + (h$mS.av/h$mS.sd)^2))
 
     ### update proposal environment
@@ -76,9 +76,9 @@
     ### change to proposal state
     sumgt <- sum(v$inftimes[v$infectors != 0] - 
                    v$inftimes[v$infectors])
-    p$mean.gen <- p$shape.gen/rgamma(1, 
-                                     shape = p$shape.gen * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2, 
-                                     rate = sumgt + (h$mG.av/p$shape.gen) * (1 + (h$mG.av/h$mG.sd)^2))
+    p$gen.mean <- p$gen.shape/rgamma(1, 
+                                     shape = p$gen.shape * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2, 
+                                     rate = sumgt + (h$mG.av/p$gen.shape) * (1 + (h$mG.av/h$mG.sd)^2))
     
     ### update proposal environment
     .copy2pbe1("p", le)
