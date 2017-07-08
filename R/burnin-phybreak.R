@@ -50,8 +50,8 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = NULL, phylotop
       cat(paste0("cycle ", rep, ": logLik = ", 
                    round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
                    "; mu = ", signif(.pbe0$p$mu, 3), 
-                   "; mean.gen = ", signif(.pbe0$p$mean.gen, 3),
-                   "; mean.sample = ", signif(.pbe0$p$mean.sample, 3),
+                   "; gen.mean = ", signif(.pbe0$p$gen.mean, 3),
+                   "; sample.mean = ", signif(.pbe0$p$sample.mean, 3),
                    "; parsimony = ", phangorn::parsimony(
                      phybreak2phylo(.pbe0$v), .pbe0$d$sequences),
                    " (nSNPs = ", .pbe0$d$nSNPs, ")\n"
@@ -69,11 +69,11 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = NULL, phylotop
       .update.mG()
     if (phybreak.object$h$est.mS) 
       .update.mS()
-    if (phybreak.object$h$est.wh.slope) 
+    if (phybreak.object$h$est.wh.s) 
       .update.wh.slope()
-    if (phybreak.object$h$est.wh.exponent) 
+    if (phybreak.object$h$est.wh.e) 
       .update.wh.exponent()
-    if (phybreak.object$h$est.wh.level) 
+    if (phybreak.object$h$est.wh.0) 
       .update.wh.level()
     .update.mu()
   }
