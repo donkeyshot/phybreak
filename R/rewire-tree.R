@@ -119,11 +119,10 @@ rewire_disconnecthost <- function(phybreakenv, hostID) {
 }
 
 rewire_assigninfectiontime <- function(phybreakenv, hostID, infectiontime) {
-  #check if infector has been removed, and minitree has been stripped
-  if(phybreakenv$v$nodeparents[phybreakenv$v$nodehosts == hostID] != -1 && 
-     phybreakenv$v$infectors[hostID] != -1) {
-    stop("try to assign infection time in connected host")
-  }
+  #check if minitree has been stripped
+  # if(phybreakenv$v$nodeparents[phybreakenv$v$nodehosts == hostID] != -1) {
+  #   stop("try to assign infection time in connected host")
+  # }
   phybreakenv$v$inftimes[hostID] <- infectiontime
   
   #place parentnode of only edge at infectiontime
@@ -315,7 +314,6 @@ rewire_assigninfector <- function(phybreakenv, hostID, infectorID) {
   }
   
   phybreakenv$v$nodehosts[parentnodes] <- infectorID
-  print(parentnodes)
   invisible(sapply(parentnodes, rewire_addedge, phybreakenv = phybreakenv))
 }
 
