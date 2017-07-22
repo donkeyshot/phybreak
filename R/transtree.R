@@ -200,7 +200,9 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     # matrix with support for each infector (row) per host (column), with 0 as maximum, and a column for the index
     supportmatrix <- cbind(c(0, rep(-1, obsize)), apply(1 + phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange], 
         1, tabulate, nbins = obsize + 1))
-    supportmatrix <- supportmatrix - rep(apply(supportmatrix, 2, max), each = obsize + 1)
+    maxsupportperhost <- apply(supportmatrix, 2, max)
+    supportmatrix <- supportmatrix - rep(maxsupportperhost, each = obsize + 1)
+    maxsupportperhost <- maxsupportperhost[-1]
     
     # vector with hosts, ordered by support to be index, and vector with these supports
     candidateindex <- order(apply(phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange] == 0, 1, sum), decreasing = TRUE)
@@ -213,6 +215,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     nextcandidate <- 1
     alltrees <- c()
     allsupports <- c()
+    treesupports <- c()
     # then make trees as long as bestYN == FALSE
     while (!bestYN) {
         # make copy of supportmatrix, maximally supporting the next candidate index
@@ -225,15 +228,14 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
         alltrees <- c(alltrees, thistree)
         thissupport <- rowSums(phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange] == thistree)
         allsupports <- c(allsupports, thissupport)
+        treesupports <- c(treesupports, sum(thissupport))
         
-        # test if any unused candidate index has higher index support than infector support in last tree
-        bestYN <- TRUE
-        for (i in tail(candidateindex, -nextcandidate)) {
-            if (thissupport[i] < indexsupports[candidateindex == i]) {
-                bestYN <- FALSE
-            }
-        }
+        # test if next candidate index must result in lower tree support only by its own loss in support
         nextcandidate <- nextcandidate + 1
+        highestsupportthusfar <- max(treesupports)
+        maxsupportwithnextcandidate <- sum(maxsupportperhost[-candidateindex[nextcandidate]]) + 
+          indexsupports[candidateindex[nextcandidate]]
+        if(highestsupportthusfar > maxsupportwithnextcandidate) bestYN <- TRUE
     }
     
     # find the tree with maximum support
