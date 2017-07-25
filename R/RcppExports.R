@@ -2,26 +2,26 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 .likseq <- function(SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, Nsamples) {
-    .Call('phybreak_likseq', PACKAGE = 'phybreak', SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, Nsamples)
+    .Call('_phybreak_likseq', PACKAGE = 'phybreak', SNPs, SNPfreqs, nodeparents, nodetimes, mutrate, Nsamples)
 }
 
 .likseqenv <- function(pbenv, nodestochange, tips) {
-    .Call('phybreak_likseqenv', PACKAGE = 'phybreak', pbenv, nodestochange, tips)
+    .Call('_phybreak_likseqenv', PACKAGE = 'phybreak', pbenv, nodestochange, tips)
 }
 
 .mcctree <- function(pars, tims, dims) {
-    .Call('phybreak_CCphylotree', PACKAGE = 'phybreak', pars, tims, dims)
+    .Call('_phybreak_CCphylotree', PACKAGE = 'phybreak', pars, tims, dims)
 }
 
 .mtcctree <- function(pars, tims, dims) {
-    .Call('phybreak_CCtranstree', PACKAGE = 'phybreak', pars, tims, dims)
+    .Call('_phybreak_CCtranstree', PACKAGE = 'phybreak', pars, tims, dims)
 }
 
 .ptr <- function(pars, ID) {
-    .Call('phybreak_ptr', PACKAGE = 'phybreak', pars, ID)
+    .Call('_phybreak_ptr', PACKAGE = 'phybreak', pars, ID)
 }
 
 .sctwh3 <- function(tle) {
-    .Call('phybreak_sctwh3', PACKAGE = 'phybreak', tle)
+    .Call('_phybreak_sctwh3', PACKAGE = 'phybreak', tle)
 }
 
