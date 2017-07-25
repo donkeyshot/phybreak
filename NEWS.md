@@ -1,3 +1,14 @@
+# phybreak 0.1.1.9007
+
+## Major changes
+
+* Datasets added
+* Vignette phybreak_introduction added
+
+## Minor changes
+
+* Fixed bug in transtree with Edmonds method (index case could have been incorrect)
+
 # phybreak 0.1.1.9006
 
 ## Major Changes
