@@ -4,7 +4,7 @@ author: "Don Klinkenberg"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to \code{phybreak} package}
+  %\VignetteIndexEntry{Introduction to phybreak package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -231,7 +231,7 @@ Since publication of [Klinkenberg et al. (2017)](http://dx.doi.org/10.1371/journ
 ```{r, include=FALSE}
 set.seed(0)
 ```
-```{r FMDmultiple, autodep=TRUE, cache=TRUE, cache.lazy=FALSE, include=FALSE}
+```{r ms, autodep=TRUE, cache=TRUE, cache.lazy=FALSE, include=FALSE}
 hosts_FMD2007 <- c("IP1b", "IP1b", "IP2b", "IP2c",
                       "IP3b", "IP3c", "IP4b", "IP5", "IP6b",
                       "IP7", "IP8")

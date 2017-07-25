@@ -1,3 +1,0 @@
-burnin	burnin.phybreak
-sample	sample.phybreak
-FMDmultiple	burnin.phybreak	c	dates_FMD2007	phybreak	phybreakdata	sample.phybreak	sequences_FMD2007
