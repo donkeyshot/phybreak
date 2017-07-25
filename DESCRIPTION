@@ -25,6 +25,9 @@ Suggests:
     coda,
     phytools,
     OutbreakTools,
-    testthat
+    testthat,
+    knitr,
+    rmarkdown
 LinkingTo: Rcpp
 RoxygenNote: 6.0.1
+VignetteBuilder: knitr
