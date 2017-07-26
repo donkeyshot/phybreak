@@ -129,12 +129,14 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
   #################################################
   ### place essential information in outputlist ###
   #################################################
-  if(length(setdiff(sequences,c("a","c","g","t","u","m","r","w",
-                                "s","y","k","v","h","d","b","n",
-                                "?","-")))) warning("all undefined nucleotide codes are turned into n")
-  sequences[!(sequences %in% c("a","c","g","t","u","m","r","w",
-                             "s","y","k","v","h","d","b","n",
-                             "?","-"))] <- "n"
+  # if(length(setdiff(sequences,c("a","c","g","t","u","m","r","w",
+  #                               "s","y","k","v","h","d","b","n",
+  #                               "?","-")))) warning("all undefined nucleotide codes are turned into n")
+  # sequences[!(sequences %in% c("a","c","g","t","u","m","r","w",
+  #                              "s","y","k","v","h","d","b","n",
+  #                              "?","-"))] <- "n"
+  if(length(setdiff(sequences,c("a","c","g","t","n")))) warning("all nucleotide ambiguity codes are turned into n")
+  sequences[!(sequences %in% c("a","c","g","t"))] <- "n"
   sequences <- phangorn::as.phyDat(sequences)
   
   res <- list(
