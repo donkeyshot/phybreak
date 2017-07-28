@@ -9,44 +9,9 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-<style type="text/css">
-
-<!-- body{ /* Normal  */ -->
-<!--       font-size: 12px; -->
-<!--   } -->
-<!-- td {  /* Table  */ -->
-<!--   font-size: 8px; -->
-<!-- } -->
-<!-- h1.title { -->
-<!--   font-size: 38px; -->
-<!--   color: DarkRed; -->
-<!-- } -->
-<!-- h1 { /* Header 1 */ -->
-<!--   font-size: 28px; -->
-<!--   color: DarkBlue; -->
-<!-- } -->
-<!-- h2 { /* Header 2 */ -->
-<!--     font-size: 22px; -->
-<!--   color: DarkBlue; -->
-<!-- } -->
-<!-- h3 { /* Header 3 */ -->
-<!--   font-size: 18px; -->
-<!--   font-family: "Times New Roman", Times, serif; -->
-<!--   color: DarkBlue; -->
-<!-- } -->
-code{ /* Inline code */
-    font-size: 14px;
-}
-code.r{ /* Code block */
-    font-size: 14px;
-}
-pre { /* Code block - determines code spacing between lines */
-    font-size: 14px;
-}
-</style>
 
 ```{r, echo =FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", size = "LARGE")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 **phybreak** reconstructs who infected whom during an infectious disease outbreak, based on pathogen sequences taken from the infected hosts (patients, farms, ...) and the time at which these sequences were taken. The model and MCMC sampling method are described in [Klinkenberg et al (2017)](http://dx.doi.org/10.1371/journal.pcbi.1005495). Since that publication, some features have been added, which are described at the end of this vignette.
@@ -99,8 +64,8 @@ data("FMD_2001")
 
 # extract names and dates by splitting the rownames
 namesdates_FMD2001 <- strsplit(rownames(FMD_2001), "_")               #split the rownames
-names_FMD2001 <- sapply(namesdates_FMD2001, '[', i = 1)               #first element is name
-dates_FMD2001 <- as.numeric(sapply(namesdates_FMD2001, '[', i = 2))   #second element is date
+names_FMD2001 <- sapply(namesdates_FMD2001, '[', i = 1)               #1st element is name
+dates_FMD2001 <- as.numeric(sapply(namesdates_FMD2001, '[', i = 2))   #2nd element is date
 
 # make phybreakdata object
 dataset_FMD2001 <- phybreakdata(sequences = FMD_2001,
@@ -134,15 +99,17 @@ set.seed(0)
 ```{r, fig.width=5, fig.height=5}
 phybreak_FMD2007 <- phybreak(dataset = dataset_FMD2007)
 
-plot(phybreak_FMD2007)
+plotTrans(phybreak_FMD2007)
+plotPhylo(phybreak_FMD2007)
 ```
 
 Because `phybreak` creates random initial phylogenetic and transmission trees, plots will look slightly different each time you re-run this code. The first plot shows the initial transmission tree, the second plot the phylogenetic tree, in which a change of color indicates a transmission event. The default initial sampling and generation intervals are 1, which is too short for foot-and-mouth disease. As a result, the transmission tree is initialized as a chain of subsequent infections. By changing the initial condition to a value that is more realistic, you may decrease the required time for the MCMC chain to converge (shorter burn-in). For instance, by starting with a mean of 14 days for both intervals:
 
-```{r, fig.width=5, fig.height=5}
+```{r, fig.width=5, fig.height=5, }
 phybreak_FMD2007_2 <- phybreak(dataset = dataset_FMD2007, gen.mean = 14, sample.mean = 14)
 
-plot(phybreak_FMD2007_2)
+plotTrans(phybreak_FMD2007_2)
+plotPhylo(phybreak_FMD2007_2)
 ```
 
 The created `phybreak` object is a list with 5 slots: the data (d), the variables describing the tree topology (v), the parameters (p), additional helper information for running the MCMC-chain, such as prior distributions (h), and the samples from the posterior distribution (s). 
@@ -150,7 +117,7 @@ The created `phybreak` object is a list with 5 slots: the data (d), the variable
 ## Run the MCMC-chain
 With the created `phybreak` object we can now sample from the posterior by running an MCMC-chain. There are two functions available for that, `burnin.phybreak` and `sample.phybreak`. The difference is that the former runs the chain but only returns the `phybreak` object with a changed current state (the slot with posterior samples (s) is returned unchanged), whereas the latter also samples from the chain and returns these samples.
 Because just after initialization the MCMC chain still has to converge, you can start without sampling from the chain:
-```{r burnin, cache=TRUE, cache.lazy=FALSE, autodep=TRUE}
+```{r burnin, cache=TRUE, cache.lazy=FALSE, autodep=TRUE, linewidth=80}
 phybreak_FMD2007 <- burnin.phybreak(phybreak_FMD2007, ncycles = 5000)
 ```
 
@@ -243,7 +210,7 @@ phybreak_FMD2007 <- phybreak(dataset = dataset_FMD2007)
 phybreak_FMD2007 <- burnin.phybreak(phybreak_FMD2007, ncycles = 5000)
 phybreak_FMD2007 <- sample.phybreak(phybreak_FMD2007, nsample = 25000)
 ```
-```{r, eval=FALSE}
+```r
 hosts_FMD2007 <- c("IP1b", "IP1b", "IP2b", "IP2c",
                       "IP3b", "IP3c", "IP4b", "IP5", "IP6b",
                       "IP7", "IP8")
