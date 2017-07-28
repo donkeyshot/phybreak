@@ -33,10 +33,10 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL
     if(is.null(keepphylo)) {
       if(any(duplicated(phybreak.object$d$hostnames))) {
         keepphylo <- 0
-        cat("keepphylo = 0")
+        message("keepphylo = 0")
       } else {
         keepphylo <- 0.2
-        cat("keepphylo = 0.2")
+        message("keepphylo = 0.2")
       }
     }
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
@@ -55,20 +55,21 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL
     
     .build.pbe(phybreak.object)
     
+    message(paste0("  sample      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", .pbe0$d$nSNPs, ")"))
+    
     curtime <- Sys.time()
     
     for (sa in tail(1:length(s.post$mu), nsample)) {
       
       if(Sys.time() - curtime > 10) {
-        cat(paste0("sample ", sa, ": logLik = ", 
-                   round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
-                   "; mu = ", signif(.pbe0$p$mu, 3), 
-                   "; mean.gen = ", signif(.pbe0$p$mean.gen, 3),
-                   "; mean.sample = ", signif(.pbe0$p$mean.sample, 3),
-                   "; parsimony = ", phangorn::parsimony(
-                     phybreak2phylo(.pbe0$v), .pbe0$d$sequences),
-                   " (nSNPs = ", .pbe0$d$nSNPs, ")\n"
-        ))
+        message(paste0(
+          stringr::str_pad(sa, 8),
+          stringr::str_pad(round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2), 12),
+          stringr::str_pad(signif(.pbe0$p$mu, 3), 11),
+          stringr::str_pad(signif(.pbe0$p$mean.gen, 3), 10),
+          stringr::str_pad(signif(.pbe0$p$mean.sample, 3), 10),
+          stringr::str_pad(phangorn::parsimony(
+            phybreak2phylo(.pbe0$v), .pbe0$d$sequences), 10)))
         curtime <- Sys.time()
       }
       
