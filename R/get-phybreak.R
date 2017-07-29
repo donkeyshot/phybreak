@@ -49,7 +49,8 @@ get.tree <- function(phybreak.object, samplenr = 0) {
 #' @param whichpars Which parameters to return. Either a vector with parameter names, or \code{"all"} for all parameters, or 
 #'   \code{"posterior"} for parameters for which a posterior is sampled.
 #' @export
-get.parameters <- function(phybreak.object, samplenr = 0, whichpars = "posterior") {
+get.parameters <- function(phybreak.object, samplenr = 0, 
+                           whichpars = "posterior") {
   if (!inherits(phybreak.object, "phybreak")) {
     stop("object must be of class \"phybreak\"")
   }
@@ -173,9 +174,11 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #' 
 #' tree0 <- get.phylo(MCMCstate)
 #' seqdata <- get.seqdata(MCMCstate)
-#' phangorn::pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+#' phangorn::pml(tree0, seqdata, 
+#'               rate = 0.75*get.parameters(MCMCstate)["mu"]) 
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
-#'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
+#'        sampling = FALSE, generation = FALSE) 
+#'               #should give the same result as 'pml'
 #' @export
 get.phylo <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
   ### tests

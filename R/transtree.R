@@ -14,8 +14,10 @@
 #'     infector in the posterior distribution.
 #'   \item \code{"edmonds"} starts from the most frequent infector (method \code{"count"}), multiple roots and 
 #'     cycles are removed by selecting one by one the next most frequent option that minimizes the loss in support 
-#'     (\href{https://en.wikipedia.org/wiki/Edmonds/'_algorithm}{Edmonds' algorithm}). Support is measured by the frequency of the infector in the posterior distribution.
-#'   \item{"mpc"} gives the maximum parent credibility tree as described in \href{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004613}{Hall et al (2015)}. This is the tree 
+#'     (\href{https://en.wikipedia.org/wiki/Edmonds'_algorithm}{Edmonds' algorithm}). Support is measured by the 
+#'     frequency of the infector in the posterior distribution.
+#'   \item{"mpc"} gives the maximum parent credibility tree as described in 
+#'     \href{http://dx.doi.org/10.1371/journal.pcbi.1004613}{Hall et al (2015)}. This is the tree 
 #'     in the set of posterior samples that has maximum support = product of frequencies among all posterior samples. 
 #'     Support is measured by the frequency of the infector in the posterior distribution.
 #'   \item{"mtcc"} gives the maximum transmission cluster credibility tree. This is equivalent to the maximum clade
