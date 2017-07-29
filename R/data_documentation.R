@@ -5,9 +5,10 @@
 #' 
 #' @format A matrix with 15 rows (one per farm) and 8196 column (one per nucleotide); the names contain sampling days
 #' 
-#' @references Cottam et al. (2008) Integrating genetic and epidemiological data to determine transmission pathways 
+#' @references \href{http://dx.doi.org/10.1098/rspb.2007.1442}{Cottam et al. (2008)}
+#'   Integrating genetic and epidemiological data to determine transmission pathways 
 #'   of foot-and-mouth disease virus. \emph{Proc R Soc B}, \strong{275}: 887-895. 
-#'   \url{http://dx.doi.org/10.1098/rspb.2007.1442}
+#'   
 "FMD_2001"
 
 #' Foot-and-Mouth Disease outbreak (2007)
@@ -20,8 +21,8 @@
 #'   \item{dates}{the sampling days (class \code{Date})}
 #' }
 #' 
-#' @references Cottam et al. (2008) Transmission pathways of foot-and-mouth disease virus in the United Kingdom
-#'   in 2007. \emph{PLoS Pathog}, \strong{4}(4): e1000050. \url{http://dx.doi.org/10.1371/journal.ppat.1000050}
+#' @references \href{http://dx.doi.org/10.1371/journal.ppat.1000050}{Cottam et al. (2008)} Transmission pathways 
+#'   of foot-and-mouth disease virus in the United Kingdom in 2007. \emph{PLoS Pathog}, \strong{4}(4): e1000050. 
 "FMD_2007"
 
 #' Mycobacterium tuberculosis outbreak
@@ -37,8 +38,8 @@
 #'   \item{dates_Mtb}{the sampling days (class \code{Date})}
 #' }
 #' 
-#' @references Didelot et al. (2013) Bayesian inference of infectious disease transmission from whole-genome
-#'   sequence data. \emph{Mol Biol Evol}, \strong{31}(7): 1869-1879. \url{http://dx.doi.org/10.1093/molbev/msu121}
+#' @references \href{http://dx.doi.org/10.1093/molbev/msu121}{Didelot et al. (2013)} Bayesian inference 
+#'   of infectious disease transmission from whole-genome sequence data. \emph{Mol Biol Evol}, \strong{31}(7): 1869-1879. 
 "M_tuberculosis_2013"
 
 #' Avian influenza (H7N7) epidemic
@@ -58,10 +59,11 @@
 #'   unsampled farms)}
 #' }
 #' 
-#' @references Bataille et al. (2011) Evolutionary analysis of inter-farm transmission dynamics in a highly
-#'     pathogenic avian influenza epidemic. \emph{PLoS Pathog}, \strong{7}(6): e1002094. 
-#'     \url{http://dx.doi.org/10.1371/journal.ppat.1002094}
-#'   Klinkenberg et al. (2017) Simultaneous inference of phylogenetic and transmission trees in infectious 
-#'     disease outbreaks. \emph{PLoS Comput Biol}, \strong{13}(5): e1005495. 
-#'     \url{http://dx.doi.org/10.1371/journal.pcbi.1005495}
+#' @references \href{http://dx.doi.org/10.1371/journal.ppat.1002094}{Bataille et al. (2011)} Evolutionary 
+#'   analysis of inter-farm transmission dynamics in a highly pathogenic avian influenza epidemic. 
+#'   \emph{PLoS Pathog}, \strong{7}(6): e1002094. 
+#'     
+#'   \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+#'     inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+#'     \emph{PLoS Comput Biol}, \strong{13}(5): e1005495. 
 "AvianFluH7N7_2003"

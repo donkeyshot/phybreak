@@ -16,7 +16,7 @@ FMD_2007
 DNA sequences and sampling days of FMD virus from 10 farms in the UK (11 sequences)
 }
 \references{
-Cottam et al. (2008) Transmission pathways of foot-and-mouth disease virus in the United Kingdom
-  in 2007. \emph{PLoS Pathog}, \strong{4}(4): e1000050. \url{http://dx.doi.org/10.1371/journal.ppat.1000050}
+\href{http://dx.doi.org/10.1371/journal.ppat.1000050}{Cottam et al. (2008)} Transmission pathways 
+  of foot-and-mouth disease virus in the United Kingdom in 2007. \emph{PLoS Pathog}, \strong{4}(4): e1000050.
 }
 \keyword{datasets}

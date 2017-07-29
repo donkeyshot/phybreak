@@ -23,11 +23,12 @@ DNA sequences (base order randomized) of NA, HA, and PB2 genes of samples taken 
   sequences in correct base order can be found.
 }
 \references{
-Bataille et al. (2011) Evolutionary analysis of inter-farm transmission dynamics in a highly
-    pathogenic avian influenza epidemic. \emph{PLoS Pathog}, \strong{7}(6): e1002094. 
-    \url{http://dx.doi.org/10.1371/journal.ppat.1002094}
-  Klinkenberg et al. (2017) Simultaneous inference of phylogenetic and transmission trees in infectious 
-    disease outbreaks. \emph{PLoS Comput Biol}, \strong{13}(5): e1005495. 
-    \url{http://dx.doi.org/10.1371/journal.pcbi.1005495}
+\href{http://dx.doi.org/10.1371/journal.ppat.1002094}{Bataille et al. (2011)} Evolutionary 
+  analysis of inter-farm transmission dynamics in a highly pathogenic avian influenza epidemic. 
+  \emph{PLoS Pathog}, \strong{7}(6): e1002094. 
+    
+  \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+    inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+    \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 }
 \keyword{datasets}

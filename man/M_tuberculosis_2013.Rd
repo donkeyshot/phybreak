@@ -19,7 +19,7 @@ DNA SNP patterns and sampling days of an M. tuberculosis outbreak with 33 cases 
    of 440,000, which is 10% of the actual M. tuberculosis genome.
 }
 \references{
-Didelot et al. (2013) Bayesian inference of infectious disease transmission from whole-genome
-  sequence data. \emph{Mol Biol Evol}, \strong{31}(7): 1869-1879. \url{http://dx.doi.org/10.1093/molbev/msu121}
+\href{http://dx.doi.org/10.1093/molbev/msu121}{Didelot et al. (2013)} Bayesian inference 
+  of infectious disease transmission from whole-genome sequence data. \emph{Mol Biol Evol}, \strong{31}(7): 1869-1879.
 }
 \keyword{datasets}

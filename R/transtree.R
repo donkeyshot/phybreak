@@ -14,7 +14,7 @@
 #'     infector in the posterior distribution.
 #'   \item \code{"edmonds"} starts from the most frequent infector (method \code{"count"}), multiple roots and 
 #'     cycles are removed by selecting one by one the next most frequent option that minimizes the loss in support 
-#'     (\href{https://en.wikipedia.org/wiki/Edmonds\%27_algorithm}{Edmonds' algorithm}). Support is measured by the frequency of the infector in the posterior distribution.
+#'     (\href{https://en.wikipedia.org/wiki/Edmonds/'_algorithm}{Edmonds' algorithm}). Support is measured by the frequency of the infector in the posterior distribution.
 #'   \item{"mpc"} gives the maximum parent credibility tree as described in \href{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004613}{Hall et al (2015)}. This is the tree 
 #'     in the set of posterior samples that has maximum support = product of frequencies among all posterior samples. 
 #'     Support is measured by the frequency of the infector in the posterior distribution.
@@ -42,7 +42,9 @@
 #'   infector (or cluster), and summary infection times. If \code{phylo.class = TRUE}, a class \code{"phylo"} object, a 
 #'   single tree (\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times).
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
-#' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
+#' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+#'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+#'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
 #' simulation <- sim.phybreak(obsize = 5)

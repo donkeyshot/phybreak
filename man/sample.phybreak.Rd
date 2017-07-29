@@ -37,7 +37,9 @@ MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
 MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 }
 \references{
-\href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
+\href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+  inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+  \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 }
 \author{
 Don Klinkenberg \email{don@xs4all.nl}

@@ -13,8 +13,8 @@ DNA nucleotide patterns and sampling days of FMD virus from 15 farms in the UK. 
   are not ordered as a virus sequence, but do contain the correct numbers of each nucleotide.
 }
 \references{
-Cottam et al. (2008) Integrating genetic and epidemiological data to determine transmission pathways 
-  of foot-and-mouth disease virus. \emph{Proc R Soc B}, \strong{275}: 887-895. 
-  \url{http://dx.doi.org/10.1098/rspb.2007.1442}
+\href{http://dx.doi.org/10.1098/rspb.2007.1442}{Cottam et al. (2008)}
+  Integrating genetic and epidemiological data to determine transmission pathways 
+  of foot-and-mouth disease virus. \emph{Proc R Soc B}, \strong{275}: 887-895.
 }
 \keyword{datasets}

@@ -4,7 +4,7 @@
 \alias{thin_phybreak}
 \title{Remove posterior samples from a phybreak-object.}
 \usage{
-thin_phybreak(x, thin = 1, nkeep = Inf, ...)
+thin_phybreak(x, thin = 1, nkeep = Inf)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}
@@ -13,8 +13,6 @@ thin_phybreak(x, thin = 1, nkeep = Inf, ...)
 
 \item{nkeep}{the number of most recent samples to keep. If \code{nkeep = Inf} (default), the whole chain is
 thinned and returned. Otherwise, samples from the tail are kept.}
-
-\item{...}{Some methods for this generic require additional arguments. None are used in this method.}
 }
 \value{
 The \code{phybreak}-object provided as input, but with fewer posterior samples.
@@ -33,7 +31,9 @@ MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
 MCMCstate <- thin_phybreak(MCMCstate, thin = 2)
 }
 \references{
-\href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
+\href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+  inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+  \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 }
 \author{
 Don Klinkenberg \email{don@xs4all.nl}
