@@ -8,6 +8,7 @@
 * Added transmission tree plotting function plotTrans
 * Data entry through new S3-class phybreakdata
 * Simulation with sim.phybreak results in phybreakdata-object, that can directly be plotted
+* MCMC progress shown on screen (10 sec intervals)
 
 ### Minor changes
 * Faster simulation and phybreak construction with long sequences.
