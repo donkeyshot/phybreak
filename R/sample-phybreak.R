@@ -5,17 +5,17 @@
 #' Sampling from a phybreak MCMC-chain.
 #' 
 #' Function to take (additional) samples from the posterior distribution of a phylogenetic and transmission tree 
-#'   (plus associated parameters), within a \code{phybreak}-object.
+#'   (plus associated parameters), within a \code{phybreak} object (\code{sample.phybreak} is deprecated).
 #' 
-#' @param phybreak.object An object of class \code{phybreak}.
+#' @param x An object of class \code{phybreak}.
 #' @param nsample The number of samples to take.
 #' @param thin The thinning to use (values after every \code{thin}'th iteration will be included in the posterior). 
 #'   Each iteration does one update of all parameters and tree updates with each host as focal host once.
-#' @param keepphylo The proportion of tree updates keeping the phylotree intact. If there is more than one
-#'   sample per host, keepphylo should be 0. If set to NULL (default), this is done automatically, otherwise it is set to 0.2.
-#' @param phylotopology_only The proportion of tree updates in which only the within-host minitree topology is sampled, and 
-#'   the transmission tree as well as coalescence times are kept unchanged.
-#' @return The \code{phybreak}-object used to call the function, including (additional) samples from the posterior.
+#' @param keepphylo The proportion of tree updates keeping the phylotree intact, only possible if there is one sample per host
+#'   and the \code{wh.model = "linear"}. If \code{NULL} (default), it is set to 0.2 only in that case, otherwise to 0.
+#' @param withinhost_only The proportion of tree updates in which only the within-host minitree is sampled, and 
+#'   the transmission tree and infection times are kept unchanged.
+#' @return The \code{phybreak} object used to call the function, including (additional) samples from the posterior.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
 #'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
@@ -25,15 +25,15 @@
 #' simulation <- sim.phybreak(obsize = 5)
 #' MCMCstate <- phybreak(data = simulation)
 #' 
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
-sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL, phylotopology_only = 0) {
+sample_phybreak <- function(x, nsample, thin = 1, keepphylo = NULL, withinhost_only = 0) {
     ### tests
     if(nsample < 1) stop("nsample should be positive")
     if(thin < 1) stop("thin should be positive")
     if(is.null(keepphylo)) {
-      if(any(duplicated(phybreak.object$d$hostnames)) || !(phybreak.object$p$wh.model %in% c(3, "linear")) ) {
+      if(any(duplicated(x$d$hostnames)) || !(x$p$wh.model %in% c(3, "linear")) ) {
         keepphylo <- 0
         message("keepphylo = 0")
       } else {
@@ -42,24 +42,24 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL
       }
     }
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
-    if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
-    if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
+    if(withinhost_only < 0 | withinhost_only > 1) stop("withinhost_only should be a fraction")
+    if(withinhost_only + keepphylo > 1) stop("keepphylo + withinhost_only should be a fraction")
   
     ### create room in s to add the new posterior samples
-    s.post <- list(inftimes = with(phybreak.object, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
-                   infectors = with(phybreak.object, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
-                   nodetimes = with(phybreak.object, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
-                   nodehosts = with(phybreak.object, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
-                   nodeparents = with(phybreak.object, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))), 
-                   mu = c(phybreak.object$s$mu, rep(NA, nsample)), 
-                   mG = c(phybreak.object$s$mG, rep(NA, nsample)), 
-                   mS = c(phybreak.object$s$mS, rep(NA, nsample)), 
-                   wh.s = c(phybreak.object$s$wh.s, rep(NA, nsample)), 
-                   wh.e = c(phybreak.object$s$wh.e, rep(NA, nsample)), 
-                   wh.0 = c(phybreak.object$s$wh.0, rep(NA, nsample)), 
-                   logLik = c(phybreak.object$s$logLik, rep(NA, nsample)))
+    s.post <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
+                   infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
+                   nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
+                   nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
+                   nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))), 
+                   mu = c(x$s$mu, rep(NA, nsample)), 
+                   mG = c(x$s$mG, rep(NA, nsample)), 
+                   mS = c(x$s$mS, rep(NA, nsample)), 
+                   wh.s = c(x$s$wh.s, rep(NA, nsample)), 
+                   wh.e = c(x$s$wh.e, rep(NA, nsample)), 
+                   wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
+                   logLik = c(x$s$logLik, rep(NA, nsample)))
     
-    .build.pbe(phybreak.object)
+    .build.pbe(x)
     
     message(paste0("  sample      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", .pbe0$d$nSNPs, ")"))
     
@@ -80,21 +80,21 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL
       }
       
       for (rep in 1:thin) {
-        for (i in sample(phybreak.object$p$obs)) {
-          if (runif(1) < 1 - keepphylo - phylotopology_only) 
-            .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + phylotopology_only)) {
+        for (i in sample(x$p$obs)) {
+          if (runif(1) < 1 - keepphylo - withinhost_only) 
+            .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
               .updatehost.keepphylo(i)
-            } else .updatehost.topology(i)
+            } else .updatehost.withinhost(i)
         }
-        if (phybreak.object$h$est.mG) 
+        if (x$h$est.mG) 
           .update.mG()
-        if (phybreak.object$h$est.mS) 
+        if (x$h$est.mS) 
           .update.mS()
-        if (phybreak.object$h$est.wh.s) 
+        if (x$h$est.wh.s) 
           .update.wh.slope()
-        if (phybreak.object$h$est.wh.e) 
+        if (x$h$est.wh.e) 
           .update.wh.exponent()
-        if (phybreak.object$h$est.wh.0) 
+        if (x$h$est.wh.0) 
           .update.wh.level()
         .update.mu()
       }
@@ -118,3 +118,13 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL
     return(res)
     
 }
+
+
+
+#' @rdname sample_phybreak
+#' @export
+sample.phybreak <- function(...) {
+  .Deprecated("sample_phybreak")
+  sample_phybreak(...)
+}
+

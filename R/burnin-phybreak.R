@@ -3,35 +3,36 @@
 ### phybreak functions called ### .build.pbe .updatehost .updatehost.keepphylo .update.mG .update.mS .update.wh
 ### .update.mu .destroy.pbe
 
+
 #' MCMC updating of a phybreak-object.
 #' 
-#' This function allows the MCMC chain to burn in. If used after samples have been taken (with \code{\link{sample.phybreak}}), 
-#'   these samples will be returned unchanged in the output.
+#' This function allows the MCMC chain to burn in. If used after samples have been taken (with \code{\link{sample_phybreak}}), 
+#'   these samples will be returned unchanged in the output (\code{burnin.phybreak} is deprecated).
 #' 
-#' @param phybreak.object An object of class \code{phybreak}.
+#' @param x An object of class \code{phybreak}.
 #' @param ncycles Number of iterations to be carried out. Each iteration does one update of all parameters and
 #'   tree updates with each host as focal host once.
-#' @param keepphylo The proportion of tree updates keeping the phylotree intact. If there is more than one
-#'   sample per host, keepphylo should be 0. If set to NULL (default), this is done automatically, otherwise it is set to 0.2.
-#' @param phylotopology_only The proportion of tree updates in which only the within-host minitree topology is sampled, and 
-#'   the transmission tree as well as coalescence times are kept unchanged.
-#' @return The \code{phybreak}-object provided as input, with variables and parameters changed due to the updating.
+#' @param keepphylo The proportion of tree updates keeping the phylotree intact, only possible if there is one sample per host
+#'   and the \code{wh.model = "linear"}. If \code{NULL} (default), it is set to 0.2 only in that case, otherwise to 0.
+#' @param withinhost_only The proportion of tree updates in which only the within-host minitree is sampled, and 
+#'   the transmission tree and infection times are kept unchanged.
+#' @return The \code{phybreak} object provided as input, with variables and parameters changed due to the updating.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
 #'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
-#' #First create a phybreak-object
+#' #First create a phybreak object
 #' simulation <- sim.phybreak(obsize = 5)
 #' MCMCstate <- phybreak(data = simulation)
 #' 
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 50)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 50)
 #' @export
-burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = NULL, phylotopology_only = 0) {
+burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   ### tests
   if(ncycles < 1) stop("ncycles should be positive")
   if(is.null(keepphylo)) {
-    if(any(duplicated(phybreak.object$d$hostnames)) || !(phybreak.object$p$wh.model %in% c(3, "linear")) ) {
+    if(any(duplicated(x$d$hostnames)) || !(x$p$wh.model %in% c(3, "linear")) ) {
       keepphylo <- 0
       message("keepphylo = 0")
     } else {
@@ -40,10 +41,10 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = NULL, phylotop
     }
   }
   if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
-  if(phylotopology_only < 0 | phylotopology_only > 1) stop("phylotopology_only should be a fraction")
-  if(phylotopology_only + keepphylo > 1) stop("keepphylo + phylotopology_only should be a fraction")
+  if(withinhost_only < 0 | withinhost_only > 1) stop("withinhost_only should be a fraction")
+  if(withinhost_only + keepphylo > 1) stop("keepphylo + withinhost_only should be a fraction")
   
-  .build.pbe(phybreak.object)
+  .build.pbe(x)
   
   message(paste0("   cycle      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", .pbe0$d$nSNPs, ")"))
   
@@ -63,27 +64,36 @@ burnin.phybreak <- function(phybreak.object, ncycles, keepphylo = NULL, phylotop
     }
         
 
-    for (i in sample(phybreak.object$p$obs)) {
-      if (runif(1) < 1 - keepphylo - phylotopology_only) 
-        .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + phylotopology_only)) {
+    for (i in sample(x$p$obs)) {
+      if (runif(1) < 1 - keepphylo - withinhost_only) 
+        .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
           .updatehost.keepphylo(i)
-        } else .updatehost.topology(i)
+        } else .updatehost.withinhost(i)
     }
-    if (phybreak.object$h$est.mG) 
+    if (x$h$est.mG) 
       .update.mG()
-    if (phybreak.object$h$est.mS) 
+    if (x$h$est.mS) 
       .update.mS()
-    if (phybreak.object$h$est.wh.s) 
+    if (x$h$est.wh.s) 
       .update.wh.slope()
-    if (phybreak.object$h$est.wh.e) 
+    if (x$h$est.wh.e) 
       .update.wh.exponent()
-    if (phybreak.object$h$est.wh.0) 
+    if (x$h$est.wh.0) 
       .update.wh.level()
     .update.mu()
   }
   
-  res <- .destroy.pbe(phybreak.object$s)
+  res <- .destroy.pbe(x$s)
   
   
   return(res)
 }
+
+
+#' @rdname burnin_phybreak
+#' @export
+burnin.phybreak <- function(...) {
+  .Deprecated("burnin_phybreak")
+  burnin_phybreak(...)
+}
+
