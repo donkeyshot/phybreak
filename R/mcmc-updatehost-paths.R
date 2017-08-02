@@ -77,13 +77,13 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
     .copy2pbe1("tinf.prop", le)
 
     ### identify the focal host's infector
-    hostiorID <- v$nodehosts[2 * p$obs - 1 + hostID]
+    hostiorID <- v$infectors[hostID]
     .copy2pbe1("hostiorID", le)
     
     ### going down the decision tree
     if (hostiorID == 0) {
       # Y (hostID is index)
-      if (tinf.prop < v$nodetimes[which(v$nodeparents == 2 * p$obs - 1 + hostID)]) {
+      if (tinf.prop < min(v$nodetimes)) {
         # YY (... & tinf.prop before root of phylotree)
         .updatepathG()
       } else {
@@ -105,11 +105,11 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
         .copy2pbe1("tinf2.prop", le)
         if (tinf2.prop > timemrca) {
           # NNY (... & tinf2.prop after MRCA of hostID and hostiorID)
-          hostioriorID <- v$nodehosts[2 * p$obs - 1 + hostiorID]
+          hostioriorID <- v$infectors[hostiorID]
           .copy2pbe1("hostioriorID", le)
           if (hostioriorID == 0) {
             # NNYY (... & hostiorID is index)
-            tinf.prop <- v$nodetimes[hostiorID + 2 * p$obs - 1]
+            tinf.prop <- v$inftimes[hostiorID]
             .copy2pbe1("tinf.prop", le)
             .updatepathI()
           } else {
@@ -405,14 +405,14 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
         ### change to proposal state
         
         # bookkeeping: change infection time
-        v$nodetimes[hostID + 2 * p$obs - 1] <- tinf.prop
+        v$inftimes[hostID] <- tinf.prop
         
         
         ### calculate proposal ratio
-        logproposalratio <- dgamma(.pbe0$v$nodetimes[hostID] - .pbe0$v$nodetimes[hostID + 2 * p$obs - 1], 
+        logproposalratio <- dgamma(.pbe0$v$nodetimes[hostID] - .pbe0$v$inftimes[hostID], 
                                    shape = tinf.prop.shape.mult * p$sample.shape, 
                                    scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) - 
-          dgamma(v$nodetimes[hostID] - v$nodetimes[hostID + 2 * p$obs - 1], 
+          dgamma(v$nodetimes[hostID] - v$inftimes[hostID], 
                  shape = tinf.prop.shape.mult * p$sample.shape, 
                  scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
 
@@ -448,37 +448,33 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
         ### change to proposal state
         
         # bookkeeping: change infection time
-        v$nodetimes[hostID + 2 * p$obs - 1] <- tinf.prop
+        v$inftimes[hostID] <- tinf.prop
         
-        # bookkeeping: move the transmission node in the phylotree first, remove it by connecting the upstream and downstream nodes
-        nodeUC <- v$nodeparents[2 * p$obs - 1 + hostID]
-        nodeDC <- which(v$nodeparents == 2 * p$obs - 1 + hostID)
-        v$nodeparents[nodeDC] <- nodeUC
-        # second, place it between the proposed upstream and downstream nodes
-        nodeUP <- .ptr(v$nodeparents, hostID)[v$nodetimes[.ptr(v$nodeparents, hostID)] < tinf.prop][1]
-        nodeDP <- intersect(which(v$nodeparents == nodeUP), .ptr(v$nodeparents, hostID))
-        v$nodeparents[nodeDP] <- 2 * p$obs - 1 + hostID
-        v$nodeparents[2 * p$obs - 1 + hostID] <- nodeUP
-        
-        # bookkeeping: give all infectees of hostID and hostiorID their correct infector according to the proposed transmission node
+        # bookkeeping: move nodes between hostID and hostiorID
         nodesinvolved <- which(v$nodehosts == hostID | v$nodehosts == hostiorID)
+        newrootnodeinhostID <- tail(.ptr(v$nodeparents, hostID)[v$nodetimes[.ptr(v$nodeparents, hostID)] > tinf.prop], 1)
         for (i in nodesinvolved) {
-          if (any(.ptr(v$nodeparents, i) == 2 * p$obs - 1 + hostID)) {
+          if (any(.ptr(v$nodeparents, i) == newrootnodeinhostID)) {
             v$nodehosts[i] <- hostID
           } else {
             v$nodehosts[i] <- hostiorID
           }
         }
-        v$nodehosts[2 * p$obs - 1 + hostID] <- hostiorID
-        
+       
+        # bookkeeping: give all infectees of hostID and hostiorID their correct infector
+        hostsinvolved <- progeny_hosts(v$infectors, hostiorID)
+        for(i in hostsinvolved) {
+          v$infectors[i] <- unique(v$nodehosts[.ptr(v$nodeparents, i)])[2]
+        }
+
         ### update proposal environment
         .copy2pbe1("v", le)
         
         ### calculate proposal ratio
-        logproposalratio <- dgamma(.pbe0$v$nodetimes[hostID] - .pbe0$v$nodetimes[hostID + 2 * p$obs - 1],
+        logproposalratio <- dgamma(.pbe0$v$nodetimes[hostID] - .pbe0$v$inftimes[hostID],
                                    shape = tinf.prop.shape.mult * p$sample.shape, 
                                    scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) - 
-          dgamma(v$nodetimes[hostID] - v$nodetimes[hostID + 2 * p$obs - 1], 
+          dgamma(v$nodetimes[hostID] - v$inftimes[hostID], 
                  shape = tinf.prop.shape.mult * p$sample.shape, 
                  scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
 
@@ -514,72 +510,42 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
         
         ### change to proposal state
         
-        ## first the infector: move transmission node downstream
+        # bookkeeping: change infection times
+        v$inftimes[hostID] <- tinf.prop
+        v$inftimes[hostiorID] <- tinf2.prop
         
-        # bookkeeping: change infection time
-        v$nodetimes[hostiorID + 2 * p$obs - 1] <- tinf2.prop
-        
-        # bookkeeping: move the transmission node in the phylotree first, remove it by connecting the upstream and downstream nodes
-        nodeUC <- v$nodeparents[2 * p$obs - 1 + hostiorID]
-        nodeDC <- which(v$nodeparents == 2 * p$obs - 1 + hostiorID)
-        v$nodeparents[nodeDC] <- nodeUC
-        # second, place it between the proposed upstream and downstream nodes
-        nodeUP <- .ptr(v$nodeparents, hostiorID)[v$nodetimes[.ptr(v$nodeparents, hostiorID)] < tinf2.prop][1]
-        nodeDP <- intersect(which(v$nodeparents == nodeUP), .ptr(v$nodeparents, hostiorID))
-        v$nodeparents[nodeDP] <- 2 * p$obs - 1 + hostiorID
-        v$nodeparents[2 * p$obs - 1 + hostiorID] <- nodeUP
-        
-        # bookkeeping: give all infectees of hostID and hostiorID their correct infector according to the proposed transmission node
-        nodesinvolved <- which(v$nodehosts == hostiorID | v$nodehosts == hostioriorID)
+        # bookkeeping: move nodes between hostID and hostiorID
+        nodesinvolved <- which(v$nodehosts == hostID | v$nodehosts == hostiorID)
+        newrootnodeinhostiorID <- tail(.ptr(v$nodeparents, hostiorID)[v$nodetimes[.ptr(v$nodeparents, hostiorID)] > tinf2.prop], 1)
         for (i in nodesinvolved) {
-          if (any(.ptr(v$nodeparents, i) == 2 * p$obs - 1 + hostiorID)) {
+          if (any(.ptr(v$nodeparents, i) == newrootnodeinhostiorID)) {
             v$nodehosts[i] <- hostiorID
           } else {
-            v$nodehosts[i] <- hostioriorID
-          }
-        }
-        v$nodehosts[2 * p$obs - 1 + hostiorID] <- hostioriorID
-        
-        ## then hostID itself: move transmission node upstream
-        
-        # bookkeeping: change infection time
-        v$nodetimes[hostID + 2 * p$obs - 1] <- tinf.prop
-        
-        # bookkeeping: move the transmission node in the phylotree first, remove it by connecting the upstream and downstream nodes
-        nodeUC <- v$nodeparents[2 * p$obs - 1 + hostID]
-        nodeDC <- which(v$nodeparents == 2 * p$obs - 1 + hostID)
-        v$nodeparents[nodeDC] <- nodeUC
-        # second, place it between the proposed upstream and downstream nodes
-        nodeUP <- c(.ptr(v$nodeparents, hostID)[v$nodetimes[.ptr(v$nodeparents, hostID)] < tinf.prop], 0)[1]
-        nodeDP <- intersect(which(v$nodeparents == nodeUP), .ptr(v$nodeparents, hostID))
-        v$nodeparents[nodeDP] <- 2 * p$obs - 1 + hostID
-        v$nodeparents[2 * p$obs - 1 + hostID] <- nodeUP
-        
-        # bookkeeping: give all infectees of hostID and hostiorID their correct infector according to the proposed transmission node
-        nodesinvolved <- which(v$nodehosts == hostID | v$nodehosts == hostioriorID)
-        for (i in nodesinvolved) {
-          if (any(.ptr(v$nodeparents, i) == 2 * p$obs - 1 + hostID)) {
             v$nodehosts[i] <- hostID
-          } else {
-            v$nodehosts[i] <- hostioriorID
           }
         }
-        v$nodehosts[2 * p$obs - 1 + hostID] <- hostioriorID
+        
+        # bookkeeping: give all infectees of hostID and hostiorID their correct infector
+        v$infectors[hostID] <- 0
+        hostsinvolved <- setdiff(1:p$obs, hostID)
+        for(i in hostsinvolved) {
+          v$infectors[i] <- unique(v$nodehosts[.ptr(v$nodeparents, i)])[2]
+        }
         
         ### update proposal environment
         .copy2pbe1("v", le)
         
         ### calculate proposal ratio
-        logproposalratio <- dgamma(.pbe0$v$nodetimes[.pbe1$hostID] - .pbe0$v$nodetimes[.pbe1$hostID + 2 * p$obs - 1],
+        logproposalratio <- dgamma(.pbe0$v$nodetimes[hostID] - .pbe0$v$inftimes[hostID],
                                    shape = tinf.prop.shape.mult * p$sample.shape,
                                    scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) - 
           log(1 - pgamma(v$nodetimes[hostID] - timemrca,
                          shape = tinf.prop.shape.mult * p$sample.shape, 
                          scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape))) + 
-          log(1 - pgamma(.pbe0$v$nodetimes[.pbe1$hostiorID] - timemrca, 
+          log(1 - pgamma(.pbe0$v$nodetimes[hostiorID] - timemrca, 
                          shape = tinf.prop.shape.mult * p$sample.shape, 
                          scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape))) - 
-          dgamma(v$nodetimes[hostiorID] - v$nodetimes[hostiorID + 2 * p$obs - 1], 
+          dgamma(v$nodetimes[hostiorID] - v$inftimes[hostiorID], 
                  shape = tinf.prop.shape.mult * p$sample.shape, 
                  scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
 
@@ -619,69 +585,43 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
         ## first the infector: move transmission node downstream
         
         # bookkeeping: change infection time
-        v$nodetimes[hostiorID + 2 * p$obs - 1] <- tinf2.prop
-        
-        # bookkeeping: move the transmission node in the phylotree first, remove it by connecting the upstream and downstream nodes
-        nodeUC <- v$nodeparents[2 * p$obs - 1 + hostiorID]
-        nodeDC <- which(v$nodeparents == 2 * p$obs - 1 + hostiorID)
-        v$nodeparents[nodeDC] <- nodeUC
-        # second, place it between the proposed upstream and downstream nodes
-        nodeUP <- .ptr(v$nodeparents, hostiorID)[v$nodetimes[.ptr(v$nodeparents, hostiorID)] < tinf2.prop][1]
-        nodeDP <- intersect(which(v$nodeparents == nodeUP), .ptr(v$nodeparents, hostiorID))
-        v$nodeparents[nodeDP] <- 2 * p$obs - 1 + hostiorID
-        v$nodeparents[2 * p$obs - 1 + hostiorID] <- nodeUP
-        
-        # bookkeeping: give all infectees of hostID and hostiorID their correct infector according to the proposed transmission node
-        nodesinvolved <- which(v$nodehosts == hostiorID | v$nodehosts == hostioriorID)
+        v$inftimes[hostID] <- tinf.prop
+        v$inftimes[hostiorID] <- tinf2.prop
+
+        # bookkeeping: move nodes between hostID, hostiorID and hostioriorID
+        nodesinvolved <- which(v$nodehosts == hostID | v$nodehosts == hostiorID | v$nodehosts == hostioriorID)
+        newrootnodeinhostID <- tail(.ptr(v$nodeparents, hostID)[v$nodetimes[.ptr(v$nodeparents, hostID)] > tinf.prop], 1)
+        newrootnodeinhostiorID <- tail(.ptr(v$nodeparents, hostiorID)[v$nodetimes[.ptr(v$nodeparents, hostiorID)] > tinf2.prop], 1)
         for (i in nodesinvolved) {
-          if (any(.ptr(v$nodeparents, i) == 2 * p$obs - 1 + hostiorID)) {
+          if (any(.ptr(v$nodeparents, i) == newrootnodeinhostiorID)) {
             v$nodehosts[i] <- hostiorID
-          } else {
-            v$nodehosts[i] <- hostioriorID
-          }
-        }
-        v$nodehosts[2 * p$obs - 1 + hostiorID] <- hostioriorID
-        
-        ## then hostID itself: move transmission node upstream
-        
-        # bookkeeping: change infection time
-        v$nodetimes[hostID + 2 * p$obs - 1] <- tinf.prop
-        
-        # bookkeeping: move the transmission node in the phylotree first, remove it by connecting the upstream and downstream nodes
-        nodeUC <- v$nodeparents[2 * p$obs - 1 + hostID]
-        nodeDC <- which(v$nodeparents == 2 * p$obs - 1 + hostID)
-        v$nodeparents[nodeDC] <- nodeUC
-        # second, place it between the proposed upstream and downstream nodes
-        nodeUP <- c(.ptr(v$nodeparents, hostID)[v$nodetimes[.ptr(v$nodeparents, hostID)] < tinf.prop], 0)[1]
-        nodeDP <-intersect(which(v$nodeparents == nodeUP), .ptr(v$nodeparents, hostID))
-        v$nodeparents[nodeDP] <- 2 * p$obs - 1 + hostID
-        v$nodeparents[2 * p$obs - 1 + hostID] <- nodeUP
-        
-        # bookkeeping: give all infectees of hostID and hostiorID their correct infector according to the proposed transmission node
-        nodesinvolved <- which(v$nodehosts == hostID | v$nodehosts == hostioriorID)
-        for (i in nodesinvolved) {
-          if (any(.ptr(v$nodeparents, i) == 2 * p$obs - 1 + hostID)) {
+          } else if (any(.ptr(v$nodeparents, i) == newrootnodeinhostID)) {
             v$nodehosts[i] <- hostID
           } else {
             v$nodehosts[i] <- hostioriorID
           }
         }
-        v$nodehosts[2 * p$obs - 1 + hostID] <- hostioriorID
+        
+        # bookkeeping: give all infectees of hostID and hostiorID their correct infector
+        hostsinvolved <- progeny_hosts(v$infectors, hostioriorID)
+        for(i in hostsinvolved) {
+          v$infectors[i] <- unique(v$nodehosts[.ptr(v$nodeparents, i)])[2]
+        }
         
         ### update proposal environment
         .copy2pbe1("v", le)
         
         ### calculate proposal ratio
-        logproposalratio <- dgamma(.pbe0$v$nodetimes[hostID] - .pbe0$v$nodetimes[hostID + 2 * p$obs - 1], 
+        logproposalratio <- dgamma(.pbe0$v$nodetimes[hostID] - .pbe0$v$inftimes[hostID], 
                                    shape = tinf.prop.shape.mult * p$sample.shape, 
                                    scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) - 
-          dgamma(v$nodetimes[hostID] - v$nodetimes[hostID + 2 * p$obs - 1], 
+          dgamma(v$nodetimes[hostID] - v$inftimes[hostID], 
                  shape = tinf.prop.shape.mult * p$sample.shape, 
                  scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) + 
-          dgamma(.pbe0$v$nodetimes[hostiorID] - .pbe0$v$nodetimes[hostiorID + 2 * p$obs - 1], 
+          dgamma(.pbe0$v$nodetimes[hostiorID] - .pbe0$v$inftimes[hostiorID], 
                  shape = tinf.prop.shape.mult * p$sample.shape, 
                  scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) - 
-          dgamma(v$nodetimes[hostiorID] - v$nodetimes[hostiorID + 2 * p$obs - 1], 
+          dgamma(v$nodetimes[hostiorID] - v$inftimes[hostiorID], 
                  shape = tinf.prop.shape.mult * p$sample.shape, 
                  scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
 
