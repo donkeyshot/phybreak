@@ -1,0 +1,232 @@
+---
+title: "Introduction to phybreak package"
+author: "Don Klinkenberg"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to phybreak package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r, echo =FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+**phybreak** reconstructs who infected whom during an infectious disease outbreak, based on pathogen sequences taken from the infected hosts (patients, farms, ...) and the time at which these sequences were taken. The model and MCMC sampling method are described in [Klinkenberg et al (2017)](http://dx.doi.org/10.1371/journal.pcbi.1005495). Since that publication, some features have been added, which are described at the end of this vignette.
+
+The general workflow is:
+
+  1. make a `phybreakdata` object with all data.  
+  1. make a `phybreak` object with the data, giving all settings for the analysis.  
+  1. run the MCMC-chain, first without sampling until the chain has converged, then with sampling until sufficient samples have been taken.  
+  1. analyse the output and create a consensus transmission tree.  
+  
+## Create a phybreakdata object  
+The method takes for each host a sampling day and a DNA sequence. The sequences have to be aligned, and can be provided in `DNAbin` (package **ape**}), `phyDat` (package **phangorn**), or `matrix` format (each host on a row, lower-case letters for nucleotides). The sampling times can either be `numeric` or `Date`. The following data are from an outbreak of foot-and-mouth disease (FMD) in the UK in 2007, and were published by [Cottam et al. (2008)](http://dx.doi.org/10.1371/journal.ppat.1000050):
+
+```{r}
+library(phybreak)
+
+sequences_FMD2007 <- read.GenBank(paste0("EU4483", 71:81))
+names(sequences_FMD2007) <- c("IP1b/1", "IP1b/2", "IP2b", "IP2c",
+                      "IP3b", "IP3c", "IP4b", "IP5", "IP6b",
+                      "IP7", "IP8")
+dates_FMD2007 <- as.Date(c("2007/08/03", "2007/08/04", "2007/08/06",
+                   "2007/08/07", "2007/09/12", "2007/09/15",
+                   "2007/09/13", "2007/09/17", "2007/09/21",
+                   "2007/09/24", "2007/09/29"))
+
+# these data are also included with the package
+data("FMD_2007")
+sequences_FMD2007 <- FMD_2007$sequences
+dates_FMD2007 <- FMD_2007$dates
+```
+
+These sequences are in `DNAbin` format.
+
+A `phybreakdata` object is created by calling `phybreakdata`, with the sequences and sample times as arguments.
+```{r}
+dataset_FMD2007 <- phybreakdata(sequences = sequences_FMD2007, 
+                                sample.times = dates_FMD2007)
+```
+There may be a warning saying that the sequence data contains letters other than `a`, `c`, `g`, or `t`, which are most likely ambiguity codes. Currently, **phybreak** treats all these codes as missing (as code `n`, i.e. any nucleotide).
+```{r}
+head(dataset_FMD2007)
+```
+
+The `phybreakdata` object contains three elements: sequences (in class `phyDat`), sample times and sample hosts. The last element is a vector giving the hosts from which the samples were taken. Because no separate host names were entered (through argument `host.names`), the sample names were copied into this vector. It is also possible to separately enter `sample.names`, which will override the names with the sequences or sample times data.  
+It is also possible to provide the sequence data in `matrix` format, such as these data from an FMD outbreak in 2001 [Cottam et al. (2008)](http://dx.doi.org/10.1098/rspb.2007.1442):
+```{r}
+# load the data
+data("FMD_2001")
+
+# extract names and dates by splitting the rownames
+namesdates_FMD2001 <- strsplit(rownames(FMD_2001), "_")               #split the rownames
+names_FMD2001 <- sapply(namesdates_FMD2001, '[', i = 1)               #1st element is name
+dates_FMD2001 <- as.numeric(sapply(namesdates_FMD2001, '[', i = 2))   #2nd element is date
+
+# make phybreakdata object
+dataset_FMD2001 <- phybreakdata(sequences = FMD_2001,
+                                sample.times =  dates_FMD2001,
+                                sample.names = names_FMD2001)
+```
+
+In addition to the warning about the nucleotide codes, there is now another warning telling you that the provided sample names do not match the names in the sequence and time data.
+```{r}
+head(dataset_FMD2001)
+```
+
+Note that the names in the `sample.times` element are indeed the names from `names_FMD2001`.
+
+## Create a phybreak object  
+With a `phybreakdata` object we can make a `phybreak` object, which requires specification of the model that will be used for analysis. The complete model has four submodels for which choices have to be made in creating the `phybreak` object.
+
+  1. The transmission model. This model consists of a generation interval distribution. The generation interval is the time between infection of a primary case and a secondary case by this primary case. It is assumed that this interval follows a gamma distribution with mean `gen.mean` and shape parameter `gen.shape`, for both of which values should be provided. Whereas the shape will be fixed during the analysis, the mean can be estimated (`est.gen.mean = TRUE`), for which a prior can be provided with mean `prior.mean.gen.mean` and standard deviation `prior.mean.gen.sd`.  
+  1. The sampling model. This model consists of a sampling interval distribution. The sampling interval is the time between infection and sampling of a case. This interval also follows a gamma distribution, with mean `sample.mean` and shape parameter `sample.shape`. As with the generation interval, the mean can be estimated (`est.sample.mean = TRUE`), with prior mean `prior.mean.sample.mean` and standard deviation `prior.mean.sample.sd`.
+  1. The within-host model. This model describes the size of the within-host pathogen population as a function of the time since infection of a host. This model is used for the coalescent process within hosts, i.e. how the phylogenetic minitrees in all hosts have arisen. The first choice is which model to use, through the argument `wh.model`, which can be 1, 2, or 3. In model 1, it is assumed that there is only a single lineage present within a host at any time after infection. As a consequence, coalescence takes place at the time of transmission to another host, or at sampling. In model 2, it is assumed that the within-host pathogen population is infinite, but that there is a strict bottleneck at transmission. As a consequence, all coalescent nodes are placed 'just after' infection of a host. In model 3, it is assumed that the within-host pathogen population grows linearly with slope `wh.slope`. An initial value should be provided, and it is possible to estimate this parameter (`est.wh.slope = TRUE`) with a gamma prior distribution with mean `prior.wh.mean` and shape `prior.wh.shape`.
+  1. The mutation model. A Jukes-Cantor model is assumed for mutation, with mutation rate `mu`. An initial value can be given, and `mu` is always estimated with a uniform distribution for `log(mu)`.
+
+More detail about these models is given in [Klinkenberg et al. (2017)](http://dx.doi.org/10.1371/journal.pcbi.1005495). The default settings are to estimate all estimable parameters and set the shape parameters of generation and sampling intervals at 3, creating pretty wide and therefore not very informative distributions. If you do have some information on these distributions (especially the sampling interval distribution) from other sources, that can significantly improve performance.
+
+To carry out the analysis of the FMD-2007 outbreak, as in [Klinkenberg et al. (2017)](http://dx.doi.org/10.1371/journal.pcbi.1005495), we will create a phybreak object as follows:
+
+```{r, include=FALSE}
+set.seed(0)
+```
+
+```{r, fig.width=5, fig.height=5}
+phybreak_FMD2007 <- phybreak(dataset = dataset_FMD2007)
+
+plotTrans(phybreak_FMD2007)
+plotPhylo(phybreak_FMD2007)
+```
+
+Because `phybreak` creates random initial phylogenetic and transmission trees, plots will look slightly different each time you re-run this code. The first plot shows the initial transmission tree, the second plot the phylogenetic tree, in which a change of color indicates a transmission event. The default initial sampling and generation intervals are 1, which is too short for foot-and-mouth disease. As a result, the transmission tree is initialized as a chain of subsequent infections. By changing the initial condition to a value that is more realistic, you may decrease the required time for the MCMC chain to converge (shorter burn-in). For instance, by starting with a mean of 14 days for both intervals:
+
+```{r, fig.width=5, fig.height=5, }
+phybreak_FMD2007_2 <- phybreak(dataset = dataset_FMD2007, gen.mean = 14, sample.mean = 14)
+
+plotTrans(phybreak_FMD2007_2)
+plotPhylo(phybreak_FMD2007_2)
+```
+
+The created `phybreak` object is a list with 5 slots: the data (d), the variables describing the tree topology (v), the parameters (p), additional helper information for running the MCMC-chain, such as prior distributions (h), and the samples from the posterior distribution (s). 
+
+## Run the MCMC-chain
+With the created `phybreak` object we can now sample from the posterior by running an MCMC-chain. There are two functions available for that, `burnin.phybreak` and `sample.phybreak`. The difference is that the former runs the chain but only returns the `phybreak` object with a changed current state (the slot with posterior samples (s) is returned unchanged), whereas the latter also samples from the chain and returns these samples.
+Because just after initialization the MCMC chain still has to converge, you can start without sampling from the chain:
+```{r burnin, cache=TRUE, cache.lazy=FALSE, autodep=TRUE, linewidth=80}
+phybreak_FMD2007 <- burnin.phybreak(phybreak_FMD2007, ncycles = 5000)
+```
+
+Approximately every 10 seconds, information is given about the current state of the chain, such as how many update cycles have passed, the log-likelihood, the mutation rate, the mean generation and sampling intervals, and the parsimony score of the phylogenetic tree. To start with the latter, the parsimony score is the (minimum) number of mutations that can explain (the current state of) the phylogenetic tree. In the initial phase of the chain the parsimony score will generally decrease, but it can never become lower than the number of SNPs in the dataset (shown between brackets). The printed output can be used to get a rough idea of convergence: as long as the parameters increase or decrease systematically, or the log-likelihood increases or parsimony score decreases, the chain has not converged. (Conversely, if they do seem to have stabilized, convergence is not certain and should always be checked after sampling!). As you can see from this output, because the FMD dataset is small, it seems to converge quickly even if initialized with unrealistic mean generation and sampling intervals of 1 day. 
+You can check the current state by plotting the trees or through `get.parameters`:
+```{r}
+get.parameters(phybreak_FMD2007)
+```
+
+When you do want to sample from the chain, you need to specify the number of samples and optionally a thinning interval. The default thinning interval is 1, which means that after every cycle (which updates all parameters once, and the trees once for every host in the dataset), the current state is stored. It is also possible to thin after running the chain (or not at all), but you should never use different thinning intervals with a single `phybreak` object.
+```{r sample, cache=TRUE, cache.lazy=FALSE, autodep=TRUE}
+phybreak_FMD2007 <- sample.phybreak(phybreak_FMD2007, nsample = 25000)
+```
+
+## Analyse the output
+After running `sample.outbreak`, the `phybreak` object contains samples from the MCMC-chain. We can use the functionality of the **coda** package to analyse the chain, e.g. making trace plots, calculating effective sample sizes (ESS), and calculating summary statistics of the parameters and (continuous) variables:
+```{r}
+library(coda)
+mcmc_FMD2007 <- get.mcmc(phybreak_FMD2007)
+
+effectiveSize(mcmc_FMD2007)
+```
+
+The ESSs are generally large enough (i.e. >200), with the exception of the mean sampling interval and the infection time of farm IP5, which have ESSs between 100 and 200. Note that if you run the code yourself, these numbers will be different.  Another test is to plot the chain, e.g. for the mean sampling interval:
+```{r, fig.width=7}
+plot(mcmc_FMD2007[, "mS"])
+```
+
+To increase the ESS you could take more samples by running `sample.phybreak` again; the MCMC chain will continue where it stopped. For now, we'll stick with the current chain.
+The `mcmc` object can also be used to get summary statistics of the parameters and variables:
+```{r}
+summary(mcmc_FMD2007[, c("mu", "mS", "mG", "slope")])
+```
+
+The summary statistics of the model parameters are useful (so I selected only these), but summaries of the variables are better obtained through specific `phybreak` functions. The reason is that infection times in the `mcmc` object are only relative to the first sampling day, and that infectors are categorical variables and should be considered within the context of the complete tree. From the summary you see that the median sampling interval is 9.8 days, and the median generation interval 7.4 days.
+The prime summaries from the analysis are the consensus transmission trees: who was infected by whom, obtained through `transtree`. The naive way would be to choose for each host (each farm in this case) the infector that is most sampled:
+```{r}
+transtree(phybreak_FMD2007, method = "count")
+```
+
+The column `support` gives the proportion of posterior trees which had that identified infector. The three right-most columns give the median and 95% credible interval of the infection times (days). The problem with this method, is that you may get circular relations. E.g. in this case, farm IP1b/1 and farm IP1b/2 would have infected one another, which is of course impossible (note that in fact, these were two samples from the same farm). The Edmonds' algorithm removes the cyclical relations as described in [Klinkenberg et al. (2017)](http://dx.doi.org/10.1371/journal.pcbi.1005495). That results in the following transmission tree reconstruction:
+```{r}
+transtree(phybreak_FMD2007, method = "edmonds")
+```
+
+Now IP1b/1 is identified as the index case (first case of the outbreak, infected from outside), and the support for this (0.369) is only slightly lower than the support for infection by IP1b/2 (0.372). This tree can also be plotted:
+```{r, fig.width=5}
+plotTrans(phybreak_FMD2007, plot.which = "edmonds")
+```
+
+The plot shows who was infected by whom according to the Edmonds' consensus tree, with coloured arrows indicating the support. See `help(plotTrans)` for information about the colours and about all options to adjust the plot to your taste. The grey shapes indicate the median posterior generation interval distribution. 
+The Edmonds' tree creates a correct transmission tree which maximal total support, but is not related to a matching phylogenetic tree. The maximum parent credibility (mpc) tree is that tree among the sampled trees with maximum total support. Because it is one of the (in our case 25000) sampled trees, it does come with a matching phylogenetic tree. In our example, the mpc tree is the same as the Edmonds' tree:
+```{r}
+transtree(phybreak_FMD2007, method = "mpc")
+```
+
+With the mpc tree, it is not only possible to plot the transmission tree (with `plotTrans` or `plot`), but also the phylogenetic tree:
+```{r, fig.width=5}
+plotPhylo(phybreak_FMD2007, plot.which = "mpc")
+```
+
+Other available consensus trees are the maximum clade credibility tree (`mcc`, phylogenetic tree only). That method scores trees by looking at the clades (sets of tips descending from an internal node), and scores the clades by their frequencies in all sampled posterior trees; the tree score is the product of all clade scores. Finally, as an equivalent to the mcc tree, there is the maximum transmission cluster credibility score (`mtcc`, transmission and phylogenetic trees). That method scores trees by looking at transmission clusters, defined as hosts with all 'progeny' in the transmission tree. As far as I'm aware, the 'mtcc' method had not been described in literature, and from what I've seen it tends to create many hosts without secondary infections, but it may give some insight into support for clusters of cases where it is uncertain which case was the first.
+```{r}
+transtree(phybreak_FMD2007, method = "mtcc")
+```
+Note that support for the index case is 1 by definition, because the index case plus all progeny is the complete outbreak.
+Finally, `infectorsets` gives you more sampled infectors for each host (or a subset), ordered by support. To leave out barely supported infectors you can set a threshold support for inclusion per infector and/or a cumulative support percentile for all infectors:
+```{r}
+infectorsets(phybreak_FMD2007, which.hosts = "all", percentile = 0.95, minsupport = 0)
+```
+
+## Further information
+The above text gives the main workflow for outbreak analysis of one dataset with **phybreak**. Not all functions have been discussed. See `help(get.phybreak)` for functions to extract elements from a `phybreak` object; `help(logLik.phybreak)` to obtain the log-likelihood for the different submodels; `help(plotTrans)` and `help(plotPhylo)` for more grip on the plots; `help(phylotree)` to obtain the consensus phylogenetic trees; and `help(thin.phybreak)` for thinning the MCMC chain.
+Finally, the **phybreak** package also allows simulation of outbreaks with complete datasets as output. You can use this to investigate identifiability of parameters and transmission trees for particular scenarios. See `help(sim.phybreak)` for more information.
+
+## Added features
+Since publication of [Klinkenberg et al. (2017)](http://dx.doi.org/10.1371/journal.pcbi.1005495) I have worked on extending the package. The main feature currently available is the possibility to deal with multiple samples per host. If you have such data, you need to define in `phybreakdata` for each sample from which host it was taken. In the foot-and-mouth data, two samples were actually taken from the same farm. Then, the complete analysis would go as follows:
+```{r, include=FALSE}
+set.seed(0)
+```
+```{r ms, autodep=TRUE, cache=TRUE, cache.lazy=FALSE, include=FALSE}
+hosts_FMD2007 <- c("IP1b", "IP1b", "IP2b", "IP2c",
+                      "IP3b", "IP3c", "IP4b", "IP5", "IP6b",
+                      "IP7", "IP8")
+
+dataset_FMD2007 <- phybreakdata(sequences = sequences_FMD2007, 
+                                sample.times = dates_FMD2007,
+                                host.names = hosts_FMD2007)
+phybreak_FMD2007 <- phybreak(dataset = dataset_FMD2007)
+phybreak_FMD2007 <- burnin.phybreak(phybreak_FMD2007, ncycles = 5000)
+phybreak_FMD2007 <- sample.phybreak(phybreak_FMD2007, nsample = 25000)
+```
+```r
+hosts_FMD2007 <- c("IP1b", "IP1b", "IP2b", "IP2c",
+                      "IP3b", "IP3c", "IP4b", "IP5", "IP6b",
+                      "IP7", "IP8")
+
+dataset_FMD2007 <- phybreakdata(sequences = sequences_FMD2007, 
+                                sample.times = dates_FMD2007,
+                                host.names = hosts_FMD2007)
+phybreak_FMD2007 <- phybreak(dataset = dataset_FMD2007)
+phybreak_FMD2007 <- burnin.phybreak(phybreak_FMD2007, ncycles = 5000)
+phybreak_FMD2007 <- sample.phybreak(phybreak_FMD2007, nsample = 25000)
+```
+```{r, fig.width=5}
+transtree(phybreak_FMD2007, method = "edmonds")
+plotTrans(phybreak_FMD2007, plot.which = "edmonds")
+```
+
+
+
+

@@ -17,7 +17,9 @@
 #'   the transmission tree as well as coalescence times are kept unchanged.
 #' @return The \code{phybreak}-object used to call the function, including (additional) samples from the posterior.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
-#' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
+#' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+#'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+#'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First create a phybreak-object
 #' simulation <- sim.phybreak(obsize = 5)
@@ -33,10 +35,10 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL
     if(is.null(keepphylo)) {
       if(any(duplicated(phybreak.object$d$hostnames)) || !(phybreak.object$p$wh.model %in% c(3, "linear")) ) {
         keepphylo <- 0
-        cat("keepphylo = 0\n")
+        message("keepphylo = 0")
       } else {
         keepphylo <- 0.2
-        cat("keepphylo = 0.2\n")
+        message("keepphylo = 0.2")
       }
     }
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
@@ -59,20 +61,21 @@ sample.phybreak <- function(phybreak.object, nsample, thin = 1, keepphylo = NULL
     
     .build.pbe(phybreak.object)
     
+    message(paste0("  sample      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", .pbe0$d$nSNPs, ")"))
+    
     curtime <- Sys.time()
     
     for (sa in tail(1:length(s.post$mu), nsample)) {
       
       if(Sys.time() - curtime > 10) {
-        cat(paste0("cycle ", rep, ": logLik = ", 
-                   round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2),
-                   "; mu = ", signif(.pbe0$p$mu, 3), 
-                   "; gen.mean = ", signif(.pbe0$p$gen.mean, 3),
-                   "; sample.mean = ", signif(.pbe0$p$sample.mean, 3),
-                   "; parsimony = ", phangorn::parsimony(
-                     phybreak2phylo(.pbe0$v), .pbe0$d$sequences),
-                   " (nSNPs = ", .pbe0$d$nSNPs, ")\n"
-        ))
+        message(paste0(
+          stringr::str_pad(sa, 8),
+          stringr::str_pad(round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2), 12),
+          stringr::str_pad(signif(.pbe0$p$mu, 3), 11),
+          stringr::str_pad(signif(.pbe0$p$mean.gen, 3), 10),
+          stringr::str_pad(signif(.pbe0$p$mean.sample, 3), 10),
+          stringr::str_pad(phangorn::parsimony(
+            phybreak2phylo(.pbe0$v), .pbe0$d$sequences), 10)))
         curtime <- Sys.time()
       }
       

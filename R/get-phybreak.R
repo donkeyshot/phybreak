@@ -49,7 +49,8 @@ get.tree <- function(phybreak.object, samplenr = 0) {
 #' @param whichpars Which parameters to return. Either a vector with parameter names, or \code{"all"} for all parameters, or 
 #'   \code{"posterior"} for parameters for which a posterior is sampled.
 #' @export
-get.parameters <- function(phybreak.object, samplenr = 0, whichpars = "posterior") {
+get.parameters <- function(phybreak.object, samplenr = 0, 
+                           whichpars = "posterior") {
   if (!inherits(phybreak.object, "phybreak")) {
     stop("object must be of class \"phybreak\"")
   }
@@ -152,7 +153,9 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #'   on the tree to indicate hosts. Is used by \code{\link{plotPhylo}}.
 #'   
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
-#' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
+#' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+#'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+#'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object.
 #' simulation <- sim.phybreak(obsize = 5)
@@ -171,9 +174,11 @@ get.mcmc <- function(phybreak.object, thin = 1, nkeep = Inf) {
 #' 
 #' tree0 <- get.phylo(MCMCstate)
 #' seqdata <- get.seqdata(MCMCstate)
-#' phangorn::pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+#' phangorn::pml(tree0, seqdata, 
+#'               rate = 0.75*get.parameters(MCMCstate)["mu"]) 
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
-#'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
+#'        sampling = FALSE, generation = FALSE) 
+#'               #should give the same result as 'pml'
 #' @export
 get.phylo <- function(phybreak.object, samplenr = 0, simmap = FALSE) {
   ### tests

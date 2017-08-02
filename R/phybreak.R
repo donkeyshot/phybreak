@@ -89,7 +89,9 @@
 #'       in matrices, the rows are nodes in the phylogenetic tree, the columns are the samples}
 #'   }
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
-#' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
+#' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+#'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+#'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' simulation <- sim.phybreak(obsize = 10)
 #' MCMCstate <- phybreak(data = simulation)

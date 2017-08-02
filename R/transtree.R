@@ -14,8 +14,10 @@
 #'     infector in the posterior distribution.
 #'   \item \code{"edmonds"} starts from the most frequent infector (method \code{"count"}), multiple roots and 
 #'     cycles are removed by selecting one by one the next most frequent option that minimizes the loss in support 
-#'     (\href{https://en.wikipedia.org/wiki/Edmonds\%27_algorithm}{Edmonds' algorithm}). Support is measured by the frequency of the infector in the posterior distribution.
-#'   \item{"mpc"} gives the maximum parent credibility tree as described in \href{http://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004613}{Hall et al (2015)}. This is the tree 
+#'     (\href{https://en.wikipedia.org/wiki/Edmonds'_algorithm}{Edmonds' algorithm}). Support is measured by the 
+#'     frequency of the infector in the posterior distribution.
+#'   \item{"mpc"} gives the maximum parent credibility tree as described in 
+#'     \href{http://dx.doi.org/10.1371/journal.pcbi.1004613}{Hall et al (2015)}. This is the tree 
 #'     in the set of posterior samples that has maximum support = product of frequencies among all posterior samples. 
 #'     Support is measured by the frequency of the infector in the posterior distribution.
 #'   \item{"mtcc"} gives the maximum transmission cluster credibility tree. This is equivalent to the maximum clade
@@ -42,7 +44,9 @@
 #'   infector (or cluster), and summary infection times. If \code{phylo.class = TRUE}, a class \code{"phylo"} object, a 
 #'   single tree (\code{"mpc"} or \code{"mtcc"}) from the posterior is returned (not with summary infection times).
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
-#' @references \href{http://dx.doi.org/10.1101/069195}{Klinkenberg et al, on biorXiv}.
+#' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
+#'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
+#'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
 #' simulation <- sim.phybreak(obsize = 5)
@@ -200,7 +204,9 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     # matrix with support for each infector (row) per host (column), with 0 as maximum, and a column for the index
     supportmatrix <- cbind(c(0, rep(-1, obsize)), apply(1 + phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange], 
         1, tabulate, nbins = obsize + 1))
-    supportmatrix <- supportmatrix - rep(apply(supportmatrix, 2, max), each = obsize + 1)
+    maxsupportperhost <- apply(supportmatrix, 2, max)
+    supportmatrix <- supportmatrix - rep(maxsupportperhost, each = obsize + 1)
+    maxsupportperhost <- maxsupportperhost[-1]
     
     # vector with hosts, ordered by support to be index, and vector with these supports
     candidateindex <- order(apply(phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange] == 0, 1, sum), decreasing = TRUE)
@@ -213,6 +219,7 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
     nextcandidate <- 1
     alltrees <- c()
     allsupports <- c()
+    treesupports <- c()
     # then make trees as long as bestYN == FALSE
     while (!bestYN) {
         # make copy of supportmatrix, maximally supporting the next candidate index
@@ -225,15 +232,14 @@ transtree <- function(phybreak.object, method = c("count", "edmonds", "mpc", "mt
         alltrees <- c(alltrees, thistree)
         thissupport <- rowSums(phybreak.object$s$nodehosts[nsamples:(nsamples + obsize - 1), samplerange] == thistree)
         allsupports <- c(allsupports, thissupport)
+        treesupports <- c(treesupports, sum(thissupport))
         
-        # test if any unused candidate index has higher index support than infector support in last tree
-        bestYN <- TRUE
-        for (i in tail(candidateindex, -nextcandidate)) {
-            if (thissupport[i] < indexsupports[candidateindex == i]) {
-                bestYN <- FALSE
-            }
-        }
+        # test if next candidate index must result in lower tree support only by its own loss in support
         nextcandidate <- nextcandidate + 1
+        highestsupportthusfar <- max(treesupports)
+        maxsupportwithnextcandidate <- sum(maxsupportperhost[-candidateindex[nextcandidate]]) + 
+          indexsupports[candidateindex[nextcandidate]]
+        if(highestsupportthusfar > maxsupportwithnextcandidate) bestYN <- TRUE
     }
     
     # find the tree with maximum support
