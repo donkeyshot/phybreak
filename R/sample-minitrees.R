@@ -65,6 +65,9 @@ sample_topology <- function(nodeIDs, nodetimes, nodetypes, infectornodes) {
 }
 
 sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, parameters) {
+  ### return -Inf if there is no existing tree
+  if(length(oldtiptimes) + length((oldcoaltimes)) == 0) return(-Inf)
+  
   ### add 0s to prevent problems with empty vectors
   oldtiptimes <- c(0, oldtiptimes)
   oldcoaltimes <- c(0, oldcoaltimes)

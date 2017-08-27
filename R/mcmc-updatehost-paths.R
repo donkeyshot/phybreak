@@ -137,10 +137,12 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
   ### update if hostID is index and tinf.prop is before the first secondary case called from: .updatehost calling:
   ### .samplecoaltimes .sampletopology .propose.pbe .accept.pbe
   .updatepathA <- function() {
+#    rewireEXP_deconrecon(.pbe1, .pbe1$hostID, 0, .pbe1$tinf.prop)
+    
     ### remove current state
     rewire_stripminitree(.pbe1, .pbe1$hostID)
     rewire_removeinfectiontime(.pbe1, .pbe1$hostID)
-    
+
     ### change to proposed state
     rewire_assigninfectiontime(.pbe1, .pbe1$hostID, .pbe1$tinf.prop)
     rewire_buildminitree(.pbe1, .pbe1$hostID)
@@ -172,6 +174,7 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
   ### update if hostID is index and tinf.prop is after the first secondary case, but before the second secondary case called
   ### from: .updatehost calling: .samplecoaltimes .sampletopology .propose.pbe .accept.pbe
   .updatepathB <- function() {
+    
     ### identify the current first infectee of hostID
     iees.nodeIDs <- which(.pbe1$v$infectors == .pbe1$hostID)
     infectee.current.ID <- iees.nodeIDs[.pbe1$v$inftimes[iees.nodeIDs] == min(.pbe1$v$inftimes[iees.nodeIDs])]
@@ -183,11 +186,12 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
     dens.infectorproposal[.pbe1$hostID] <- 0
     infector.proposed.ID <- sample(.pbe1$p$obs, 1, prob = dens.infectorproposal)
     
+#    rewireEXP_resignindex(.pbe1, .pbe1$hostID, infector.proposed.ID, .pbe1$tinf.prop)
         
     ### remove current state
     rewire_disconnecthost(.pbe1, .pbe1$hostID)
     rewire_removeinfector(.pbe1, infectee.current.ID)
-    
+
     ### change to proposed state
     rewire_assigninfector(.pbe1, infectee.current.ID, 0)
     rewire_reconnecthost(.pbe1, .pbe1$hostID, infector.proposed.ID, .pbe1$tinf.prop)
@@ -220,6 +224,12 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
   ### update if hostID is index and tinf.prop is after the second secondary case called from: .updatehost calling:
   ### .samplecoaltimes .sampletopology .propose.pbe .accept.pbe
   .updatepathC <- function(exchange) {
+    # if(exchange) {
+    #   rewireEXP_swapcompleteindex(.pbe1, .pbe1$hostID)
+    # } else {
+    #   rewireEXP_swapincompleteindex(.pbe1, .pbe1$hostID)
+    # }
+    
     ### swapping hostID and its first infectee
     rewire_swaphosts(.pbe1, .pbe1$hostID, exchange)
  
@@ -259,6 +269,8 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
     # identify the current index and current infector
     index.current.ID <- which(.pbe1$v$infectors == 0)
     infector.current.ID <- .pbe1$v$infectors[.pbe1$hostID]
+    
+    # rewireEXP_becomeindex(.pbe1, .pbe1$hostID, .pbe1$tinf.prop)
     
     ### remove current state
     rewire_disconnecthost(.pbe1, .pbe1$hostID)
@@ -303,6 +315,8 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
   ### called from: .updatehost calling: .samplecoaltimes .sampletopology .propose.pbe .accept.pbe
   .updatepathE <- function() {
     
+    starttime <- Sys.time()
+
     ### identify the current infector and propose the new infector
     infector.current.ID <- .pbe0$v$infectors[.pbe1$hostID]
     # propose infector for hostID
@@ -312,11 +326,13 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
     dens.infectorproposal[.pbe1$hostID] <- 0
     infector.proposed.ID <- sample(.pbe1$p$obs, 1, prob = dens.infectorproposal)
 
-    ### remove current state
-    rewire_disconnecthost(.pbe1, .pbe1$hostID)
-
-    ### change to proposed state
-    rewire_reconnecthost(.pbe1, .pbe1$hostID, infector.proposed.ID, .pbe1$tinf.prop)
+    rewireEXP_deconrecon(.pbe1, .pbe1$hostID, infector.proposed.ID, .pbe1$tinf.prop)
+    
+    # ### remove current state
+    # rewire_disconnecthost(.pbe1, .pbe1$hostID)
+    # 
+    # ### change to proposed state
+    # rewire_reconnecthost(.pbe1, .pbe1$hostID, infector.proposed.ID, .pbe1$tinf.prop)
     
 
     ### calculate proposal ratio 
@@ -347,12 +363,20 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
     if (runif(1) < exp(logaccprob)) {
       .accept.pbe("phylotrans")
     }
+    Ftime <<- Ftime + Sys.time() - starttime
   }
   
   
   ### update if hostID is not index and tinf.prop is after the first secondary case called from: .updatehost calling:
   ### .updatepathC
   .updatepathF <- function(exchange) {
+    
+    # if(exchange) {
+    #   rewireEXP_swapcomplete(.pbe1, .pbe1$hostID)
+    # } else {
+    #   rewireEXP_swapincomplete(.pbe1, .pbe1$hostID)
+    # }
+    
     ### swapping hostID and its first infector
     rewire_swaphosts(.pbe1, .pbe1$hostID, exchange)
     
@@ -381,7 +405,6 @@ tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape
     }
     
   }
-  
   
   
 }
