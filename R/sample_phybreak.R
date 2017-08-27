@@ -72,8 +72,8 @@ sample_phybreak <- function(x, nsample, thin = 1, keepphylo = NULL, withinhost_o
           stringr::str_pad(sa, 8),
           stringr::str_pad(round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2), 12),
           stringr::str_pad(signif(.pbe0$p$mu, 3), 11),
-          stringr::str_pad(signif(.pbe0$p$mean.gen, 3), 10),
-          stringr::str_pad(signif(.pbe0$p$mean.sample, 3), 10),
+          stringr::str_pad(signif(.pbe0$p$gen.mean, 3), 10),
+          stringr::str_pad(signif(.pbe0$p$sample.mean, 3), 10),
           stringr::str_pad(phangorn::parsimony(
             phybreak2phylo(.pbe0$v), .pbe0$d$sequences), 10)))
         curtime <- Sys.time()

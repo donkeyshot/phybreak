@@ -33,11 +33,33 @@ thin_phybreak <- function(x, thin = 1, nkeep = Inf) {
     if (!inherits(x, "phybreak")) 
         stop("object should be of class \"phybreak\"")
     if (nkeep == 0) {
-        return(within(x, s <- list(nodetimes = c(), nodehosts = c(), nodeparents = c(), mu = c(), mG = c(), mS = c(), 
-            slope = c(), logLik = c())))
+        return(within(x, s <- list(
+          inftimes = c(),
+          infectors = c(),
+          nodetimes = c(), 
+          nodehosts = c(), 
+          nodeparents = c(), 
+          mu = c(), 
+          mG = c(), 
+          mS = c(), 
+          wh.s = c(), 
+          wh.e = c(), 
+          wh.0 = c(), 
+          logLik = c())))
     }
     tokeep <- seq(thin, length(x$s$logLik), thin)
     tokeep <- tail(tokeep, nkeep)
-    return(within(x, s <- list(nodetimes = s$nodetimes[, tokeep], nodehosts = s$nodehosts[, tokeep], nodeparents = s$nodeparents[, 
-        tokeep], mu = s$mu[tokeep], mG = s$mG[tokeep], mS = s$mS[tokeep], slope = s$slope[tokeep], logLik = s$logLik[tokeep])))
+    return(within(x, s <- list(
+      inftimes = s$inftimes[, tokeep],
+      infectors = s$infectors[, tokeep],
+      nodetimes = s$nodetimes[, tokeep], 
+      nodehosts = s$nodehosts[, tokeep], 
+      nodeparents = s$nodeparents[, tokeep], 
+      mu = s$mu[tokeep], 
+      mG = s$mG[tokeep], 
+      mS = s$mS[tokeep], 
+      wh.s = s$wh.s[tokeep], 
+      wh.e = s$wh.s[tokeep], 
+      wh.0 = s$wh.s[tokeep], 
+      logLik = s$logLik[tokeep])))
 }

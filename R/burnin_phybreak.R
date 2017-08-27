@@ -48,6 +48,7 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   
   message(paste0("   cycle      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", .pbe0$d$nSNPs, ")"))
   
+  Ftime <<- 0
   curtime <- Sys.time()
   
   for (rep in 1:ncycles) {
@@ -56,8 +57,8 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
         stringr::str_pad(rep, 8),
         stringr::str_pad(round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2), 12),
         stringr::str_pad(signif(.pbe0$p$mu, 3), 11),
-        stringr::str_pad(signif(.pbe0$p$mean.gen, 3), 10),
-        stringr::str_pad(signif(.pbe0$p$mean.sample, 3), 10),
+        stringr::str_pad(signif(.pbe0$p$gen.mean, 3), 10),
+        stringr::str_pad(signif(.pbe0$p$sample.mean, 3), 10),
         stringr::str_pad(phangorn::parsimony(
           phybreak2phylo(.pbe0$v), .pbe0$d$sequences), 10)))
       curtime <- Sys.time()
@@ -65,6 +66,10 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
         
 
     for (i in sample(x$p$obs)) {
+      #      cat(i, " ")
+      # if(i == 2 && rep == 5) {
+      #   return(.pbe0)
+      # }
       if (runif(1) < 1 - keepphylo - withinhost_only) 
         .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
           .updatehost.keepphylo(i)
@@ -85,7 +90,7 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   
   res <- .destroy.pbe(x$s)
   
-  
+  print(Ftime)
   return(res)
 }
 
