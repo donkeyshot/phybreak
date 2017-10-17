@@ -36,7 +36,7 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
  
   edgelengths <- apply(edges, 1, function(x) nodetimes[x[2]] - nodetimes[x[1]])
   
-  rootedge <- min(nodetimes) - min(inftimes)
+  rootedge <- max(0, min(nodetimes) - min(inftimes[-1]))
   
   ### items for simmap (phytools)
   if(simmap) {
@@ -228,27 +228,31 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   res <- list(
     inftimes = inftimes,
     infectors = infectors,
-    nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1)),  
+    nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1), rep("t", nhosts)),  
       #node type (primary sampling, extra sampling, coalescent)
-    nodetimes = c(samtimes, samtimes[-1]),
-    nodehosts = c(samhosts, samhosts[-1]),
-    nodeparents = c(0, (nsamples + 1):(2*nsamples - 1), rep(-1, nsamples - 1))
+    nodetimes = c(samtimes, samtimes[-1], inftimes),
+    nodehosts = c(samhosts, rep(-1, length(samhosts) - 1), infectors),
+    nodeparents = rep(-1, 2 * nsamples + nhosts - 1)
   )
   
   if(is.null(vars$sim.tree) | resample) {
-    resenv <- new.env()
-    list2env(list(v = res, p = resamplepars), resenv)
-    invisible(sapply(1:nhosts, rewire_buildminitree, phybreakenv = resenv))
-    res <- resenv$v
+    list2env(list(v = res, p = resamplepars, d = list(nsamples = nsamples)), pbe1)
+    # pbetest <<- pbe1
+    # stop()
+    if(resamplepars$wh.model %in% c(4, 5, "exponential", "constant")) {
+      invisible(sapply(1:nhosts, rewire_pullnodes_wh_loose))
+    } else {
+      invisible(sapply(0:nhosts, rewire_pullnodes_wh_strict))
+    }
+    res <- environment2phybreak(pbe1$v)
 
   } else {
     phytree <- vars$sim.tree
     res$nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:nsamples]))
     res$nodeparents <- c(0, phytree$edge[,1])[order(c(nsamples + 1, phytree$edge[, 2]))]
-    resenv <- new.env()
-    list2env(list(v = res, p = list(wh.model = "single")), resenv)
-    make_nodehosts(resenv)
-    res <- resenv$v
+    list2env(list(v = res, p = list(wh.model = "single")), pbe1)
+    make_nodehosts(pbe1)
+    res <- pbe1$v
     }
   
   return(list(
@@ -289,8 +293,68 @@ obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
   return(transphylo2phybreak(vars = varslist, resample = resample, resamplepars = resamplepars))
 }
   
- 
 
+phybreak2environment <- function(vars) {
+  obs <- sum(vars$nodetypes == "s")
+  nsamples <- sum(vars$nodetypes %in% c("s", "x"))
+  
+  for(edge in 1:obs) {
+    curedge <- edge
+    parentnode <- vars$nodeparents[curedge]
+    endhost <- vars$nodehosts[curedge]
+    parenthost <- vars$nodehosts[parentnode]
+    while(endhost == parenthost) {
+      curedge <- parentnode
+      parentnode <- vars$nodeparents[curedge]
+      endhost <- vars$nodehosts[curedge]
+      parenthost <- max(vars$nodehosts[parentnode], 0)
+    }
+    newnode <- 2L * nsamples + edge - 1L
+    vars$nodetypes[newnode] <- "t"
+    vars$nodetimes[newnode] <- vars$inftimes[endhost]
+    vars$nodehosts[newnode] <- vars$infectors[endhost]
+    vars$nodeparents[newnode] <- parentnode
+    vars$nodeparents[curedge] <- newnode
+  }
+  
+  xthextra <- length(vars$nodetypes)
+  for(edge in (obs + 1):(2 * nsamples + obs - 1)) {
+    curedge <- edge
+    parentnode <- max(vars$nodeparents[curedge], 1)
+    if(vars$nodetypes[parentnode] == "c") {
+      endhost <- vars$nodehosts[curedge]
+      parenthost <- vars$nodehosts[parentnode]
+      while(parenthost != endhost) {
+        newnode <- xthextra <- xthextra + 1L
+        vars$nodetypes[newnode] <- "b"
+        vars$nodetimes[newnode] <- vars$inftimes[endhost]
+        vars$nodehosts[newnode] <- vars$infectors[endhost]
+        vars$nodeparents[newnode] <- parentnode
+        vars$nodeparents[curedge] <- newnode
+        curedge <- newnode
+        endhost <- vars$nodehosts[curedge]
+      }
+    }
+  }
+  
+  return(vars)
+} 
+
+environment2phybreak <- function(varsenv) {
+  varlength <- sum(varsenv$nodetypes %in% c("s", "x", "c"))
+  
+  np <- c(1, 1 + varsenv$nodeparents)
+  while(any(np[1:(varlength + 1)] > 1 + varlength)) {
+    np[np > 1 + varlength] <- np[np][np > 1 + varlength]
+  }
+  
+  varsenv$nodeparents <- (np - 1)[-1][1:varlength]
+  varsenv$nodehosts <- varsenv$nodehosts[1:varlength]
+  varsenv$nodetimes <- varsenv$nodetimes[1:varlength]
+  varsenv$nodetypes <- varsenv$nodetypes[1:varlength]
+  
+  return(varsenv)
+}
 
 ### to which generation does hostID belong in the transmission tree?
 whichgeneration <- function(infectors, hostID) {
