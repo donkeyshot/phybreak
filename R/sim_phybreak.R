@@ -66,10 +66,10 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
                          mu = 0.0001, sequence.length = 10000, output.class = c("phybreakdata", "obkData"), ...) {
   ### parameter name compatibility 
   old_arguments <- list(...)
-  if(exists("oldarguments$shape.gen")) gen.shape <- oldarguments$shape.gen
-  if(exists("oldarguments$mean.gen")) gen.mean <- oldarguments$mean.gen
-  if(exists("oldarguments$shape.sample")) sample.shape <- oldarguments$shape.sample
-  if(exists("oldarguments$mean.sample")) sample.mean <- oldarguments$sample.mean
+  if(exists("old_arguments$shape.gen")) gen.shape <- old_arguments$shape.gen
+  if(exists("old_arguments$mean.gen")) gen.mean <- old_arguments$mean.gen
+  if(exists("old_arguments$shape.sample")) sample.shape <- old_arguments$shape.sample
+  if(exists("old_arguments$mean.sample")) sample.mean <- old_arguments$sample.mean
 
   
   ### tests
@@ -86,7 +86,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
     stop("give an outbreak size (obsize) and/or a population size (popsize)")
   }
   if(all(!is.na(c(obsize, popsize)))) {
-    warning("giving both an outbreak size (obsize) and a population size (popsize) can take a very long simulation time",
+    warning("giving both an outbreak size (obsize) and a population size (popsize) can take a very large simulation time",
             immediate. = TRUE)
   }
   if(all(!is.na(c(obsize, popsize))) && obsize > popsize) {
@@ -120,7 +120,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   
   ### make a phylo tree
   treesout <- vector('list',1)
-  treesout[[1]] <- phybreak2phylo(vars = res, samplenames = samplenames, simmap = FALSE)
+  treesout[[1]] <- phybreak2phylo(vars = environment2phybreak(res), samplenames = samplenames, simmap = FALSE)
   class(treesout) <- "multiPhylo"
   
 
@@ -264,20 +264,23 @@ sim_additionalsamples <- function(sim.object, samperh, addsamdelay) {
 # .samplecoaltimes
 # .sampletopology
 sim_phylotree <- function (sim.object, wh.model, wh.slope, wh.exponent, wh.level, sample.mean) {
-  simenv <- new.env()
   list2env(list(v = sim.object, 
                 p = list(wh.model = wh.model, wh.slope = wh.slope, wh.exponent = wh.exponent,
-                         wh.level = wh.level, sample.mean = sample.mean)), simenv)
-  simenv$v$nodeparents <- c(0, (sim.object$Nsamples + 1):(2*sim.object$Nsamples - 1), 
-                            rep(-1, sim.object$Nsamples - 1))  #initialize nodes: will contain parent node in phylotree
-  simenv$v$nodetimes <- c(sim.object$samtimes, sim.object$addsampletimes, sim.object$samtimes[-1], 
-                         sim.object$addsampletimes)   #initialize nodes: will contain time of node
-  simenv$v$nodehosts <- c(1:sim.object$obs, sim.object$addsamplehosts, 
-                         2:sim.object$obs, sim.object$addsamplehosts)   #initialize nodes: will contain host carrying the node
-  simenv$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
-                         rep("c", sim.object$Nsamples - 1))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
-  invisible(sapply(1:sim.object$obs, rewire_buildminitree, phybreakenv = simenv))
-  res <- as.list.environment(simenv)$v
+                         wh.level = wh.level, sample.mean = sample.mean),
+                d = list(nsamples = sim.object$Nsamples)), pbe1)
+  pbe1$v$nodeparents <- rep(-1, 2 * sim.object$Nsamples + sim.object$obs - 1)  #initialize nodes: will contain parent node in phylotree
+  pbe1$v$nodetimes <- c(sim.object$samtimes, sim.object$addsampletimes, 
+                        rep(0, sim.object$Nsamples - 1), sim.object$inftimes)   #initialize nodes: will contain time of node
+  pbe1$v$nodehosts <- c(1:sim.object$obs, sim.object$addsamplehosts, 
+                        rep(-1, sim.object$Nsamples - 1), sim.object$infectors)   #initialize nodes: will contain host carrying the node
+  pbe1$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
+                         rep("c", sim.object$Nsamples - 1), rep("t", sim.object$obs))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
+  if(wh.model %in% c(4, 5, "exponential", "constant")) {
+    invisible(sapply(1:sim.object$obs, rewire_pullnodes_wh_loose))
+  } else {
+    invisible(sapply(0:sim.object$obs, rewire_pullnodes_wh_strict))
+  }
+  res <- as.list.environment(pbe1)$v
   return(res)
   
 }
@@ -294,7 +297,7 @@ sim_sequences <- function (sim.object, mu, sequence.length) {
     edgelengths[edgelengths < 0] <- 0  #rounding errors close to 0
     nmutations <- rpois(1, mu * sequence.length * sum(edgelengths))
     #place mutations on edges, order by time of edge (end)
-    mutedges <- sample(2 * Nsamples - 1, size = nmutations, replace = TRUE, prob = edgelengths)
+    mutedges <- sample(2 * Nsamples + obs - 1, size = nmutations, replace = TRUE, prob = edgelengths)
     mutedges <- mutedges[order(nodetimes[mutedges])]
     #sample mutations: which locus, to which nucleotide
     mutsites <- sample(sequence.length, size = nmutations, replace = TRUE)
