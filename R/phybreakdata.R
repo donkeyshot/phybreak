@@ -119,7 +119,7 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
   ##########################################################################
   allhosts <- unique(host.names)
   allfirsttimes <- rep(FALSE, length(sample.times))
-  sapply(allhosts, function(x) allfirsttimes[which(min(sample.times[host.names == x]) == sample.times)[1]] <<- TRUE)
+  sapply(allhosts, function(x) allfirsttimes[which(min(sample.times[host.names == x]) == sample.times & (host.names == x))[1]] <<- TRUE)
   outputorderhosts <- order(sample.times[allfirsttimes])
   orderedhosts <- host.names[allfirsttimes][outputorderhosts]
   outputordersamples <- order(!allfirsttimes, match(host.names, orderedhosts), sample.times)

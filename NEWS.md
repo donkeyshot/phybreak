@@ -1,3 +1,9 @@
+# phybreak 0.2.1
+
+### BUG FIXES
+* Fixed bug in matching samples to hosts in phybreakdata (#4 reported by Gerry Tonkin-Hill)
+
+
 # phybreak 0.2.0
 
 ### Major changes
