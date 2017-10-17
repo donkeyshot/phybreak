@@ -59,9 +59,9 @@ sample_phybreak <- function(x, nsample, thin = 1, keepphylo = NULL, withinhost_o
                    wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
                    logLik = c(x$s$logLik, rep(NA, nsample)))
     
-    .build.pbe(x)
+    build_pbe(x)
     
-    message(paste0("  sample      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", .pbe0$d$nSNPs, ")"))
+    message(paste0("  sample      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
     
     curtime <- Sys.time()
     
@@ -70,12 +70,12 @@ sample_phybreak <- function(x, nsample, thin = 1, keepphylo = NULL, withinhost_o
       if(Sys.time() - curtime > 10) {
         message(paste0(
           stringr::str_pad(sa, 8),
-          stringr::str_pad(round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2), 12),
-          stringr::str_pad(signif(.pbe0$p$mu, 3), 11),
-          stringr::str_pad(signif(.pbe0$p$gen.mean, 3), 10),
-          stringr::str_pad(signif(.pbe0$p$sample.mean, 3), 10),
+          stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
+          stringr::str_pad(signif(pbe0$p$mu, 3), 11),
+          stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
+          stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
           stringr::str_pad(phangorn::parsimony(
-            phybreak2phylo(.pbe0$v), .pbe0$d$sequences), 10)))
+            phybreak2phylo(environment2phybreak(pbe0$v)), pbe0$d$sequences), 10)))
         curtime <- Sys.time()
       }
       
@@ -87,32 +87,33 @@ sample_phybreak <- function(x, nsample, thin = 1, keepphylo = NULL, withinhost_o
             } else .updatehost.withinhost(i)
         }
         if (x$h$est.mG) 
-          .update.mG()
+          update_mG()
         if (x$h$est.mS) 
-          .update.mS()
+          update_mS()
         if (x$h$est.wh.s) 
-          .update.wh.slope()
+          update_wh_slope()
         if (x$h$est.wh.e) 
-          .update.wh.exponent()
+          update_wh_exponent()
         if (x$h$est.wh.0) 
-          .update.wh.level()
-        .update.mu()
+          update_wh_level()
+        update_mu()
       }
-        s.post$inftimes[, sa] <- .pbe0$v$inftimes
-        s.post$infectors[, sa] <- .pbe0$v$infectors
-        s.post$nodetimes[, sa] <- .pbe0$v$nodetimes[.pbe0$v$nodetypes == "c"]
-        s.post$nodehosts[, sa] <- .pbe0$v$nodehosts[.pbe0$v$nodetypes == "c"]
-        s.post$nodeparents[, sa] <- .pbe0$v$nodeparents
-        s.post$mu[sa] <- .pbe0$p$mu
-        s.post$mG[sa] <- .pbe0$p$gen.mean
-        s.post$mS[sa] <- .pbe0$p$sample.mean
-        s.post$wh.s[sa] <- .pbe0$p$wh.slope
-        s.post$wh.e[sa] <- .pbe0$p$wh.exponent
-        s.post$wh.0[sa] <- .pbe0$p$wh.level
-        s.post$logLik[sa] <- .pbe0$logLikseq + .pbe0$logLiksam + +.pbe0$logLikgen + .pbe0$logLikcoal
+      vars_to_log <- environment2phybreak(pbe0$v)
+        s.post$inftimes[, sa] <- vars_to_log$inftimes
+        s.post$infectors[, sa] <- vars_to_log$infectors
+        s.post$nodetimes[, sa] <- vars_to_log$nodetimes[vars_to_log$nodetypes == "c"]
+        s.post$nodehosts[, sa] <- vars_to_log$nodehosts[vars_to_log$nodetypes == "c"]
+        s.post$nodeparents[, sa] <- vars_to_log$nodeparents
+        s.post$mu[sa] <- pbe0$p$mu
+        s.post$mG[sa] <- pbe0$p$gen.mean
+        s.post$mS[sa] <- pbe0$p$sample.mean
+        s.post$wh.s[sa] <- pbe0$p$wh.slope
+        s.post$wh.e[sa] <- pbe0$p$wh.exponent
+        s.post$wh.0[sa] <- pbe0$p$wh.level
+        s.post$logLik[sa] <- pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal
     }
     
-    res <- .destroy.pbe(s.post)
+    res <- destroy_pbe(s.post)
     
     
     return(res)

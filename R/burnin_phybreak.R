@@ -1,7 +1,7 @@
 ### run mcmc chain and return the updated phylo-object ###
 
-### phybreak functions called ### .build.pbe .updatehost .updatehost.keepphylo .update.mG .update.mS .update.wh
-### .update.mu .destroy.pbe
+### phybreak functions called ### build_pbe .updatehost .updatehost.keepphylo .update.mG .update.mS .update.wh
+### .update.mu destroy_pbe
 
 
 #' MCMC updating of a phybreak-object.
@@ -44,53 +44,56 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   if(withinhost_only < 0 | withinhost_only > 1) stop("withinhost_only should be a fraction")
   if(withinhost_only + keepphylo > 1) stop("keepphylo + withinhost_only should be a fraction")
   
-  .build.pbe(x)
+  build_pbe(x)
   
-  message(paste0("   cycle      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", .pbe0$d$nSNPs, ")"))
+  message(paste0("   cycle      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
   
-  Ftime <<- 0
   curtime <- Sys.time()
+  
+  tostop <<- FALSE
   
   for (rep in 1:ncycles) {
     if(Sys.time() - curtime > 10) {
       message(paste0(
         stringr::str_pad(rep, 8),
-        stringr::str_pad(round(.pbe0$logLikseq + .pbe0$logLiksam + .pbe0$logLikgen + .pbe0$logLikcoal, 2), 12),
-        stringr::str_pad(signif(.pbe0$p$mu, 3), 11),
-        stringr::str_pad(signif(.pbe0$p$gen.mean, 3), 10),
-        stringr::str_pad(signif(.pbe0$p$sample.mean, 3), 10),
+        stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
+        stringr::str_pad(signif(pbe0$p$mu, 3), 11),
+        stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
+        stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
         stringr::str_pad(phangorn::parsimony(
-          phybreak2phylo(.pbe0$v), .pbe0$d$sequences), 10)))
+          phybreak2phylo(environment2phybreak(pbe0$v)), pbe0$d$sequences), 10)))
       curtime <- Sys.time()
     }
         
+    # cat("\nrep:", rep)
+
 
     for (i in sample(x$p$obs)) {
-      #      cat(i, " ")
-      # if(i == 2 && rep == 5) {
-      #   return(.pbe0)
+           # cat(i, " ")
+      # if(i == 6 && rep == 15) {
+      #   tostop <<- TRUE
       # }
+      if(tostop) Sys.sleep(1)
       if (runif(1) < 1 - keepphylo - withinhost_only) 
         .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
           .updatehost.keepphylo(i)
         } else .updatehost.withinhost(i)
     }
-    if (x$h$est.mG) 
-      .update.mG()
-    if (x$h$est.mS) 
-      .update.mS()
-    if (x$h$est.wh.s) 
-      .update.wh.slope()
-    if (x$h$est.wh.e) 
-      .update.wh.exponent()
-    if (x$h$est.wh.0) 
-      .update.wh.level()
-    .update.mu()
+    if (x$h$est.mG)
+      update_mG()
+    if (x$h$est.mS)
+      update_mS()
+    if (x$h$est.wh.s)
+      update_wh_slope()
+    if (x$h$est.wh.e)
+      update_wh_exponent()
+    if (x$h$est.wh.0)
+      update_wh_level()
+    update_mu()
   }
   
-  res <- .destroy.pbe(x$s)
+  res <- destroy_pbe(x$s)
   
-  print(Ftime)
   return(res)
 }
 
