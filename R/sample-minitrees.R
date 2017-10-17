@@ -1,8 +1,8 @@
 ### functions to simulate mini-trees ###
 
-sample_coaltimes <- function(tiptimes, parameters) {
+sample_coaltimes <- function(tiptimes, inftime, parameters) {
   ### tests
-  if(min(tiptimes) < 0) stop("sample_coaltimes with negative tip times")
+  if(min(tiptimes) < inftime) stop("sample_coaltimes with negative tip times")
 
   ### function body
   if(length(tiptimes) < 2) return(c())
@@ -12,16 +12,16 @@ sample_coaltimes <- function(tiptimes, parameters) {
     #coalescence at transmission
     single = head(sort(tiptimes), -1),
     #coalescence at infection
-    infinite = 0*tiptimes[-1],
+    infinite = inftime + 0*tiptimes[-1],
     #linear increase
     linear = {
       # transform times so that fixed rate 1 can be used
-      ttrans <- sort(log(tiptimes)/(parameters$wh.slope), decreasing = TRUE)
+      ttrans <- sort(log(tiptimes - inftime)/(parameters$wh.slope), decreasing = TRUE)
       tnodetrans <- .sctwh3(ttrans)
       
       res <- sort(exp(parameters$wh.slope * tnodetrans))
       # make sure that all branches will have positive length
-      res <- apply(cbind(res,
+      res <- inftime + apply(cbind(res,
                          min(10^-5,tiptimes/length(tiptimes))*(1:length(res))), 1, max)
       
       return(res)
@@ -29,21 +29,21 @@ sample_coaltimes <- function(tiptimes, parameters) {
     #exponential increase
     exponential = {
       # transform times so that fixed rate 1 can be used
-      ttrans <- sort(-exp(-parameters$wh.exponent * tiptimes)/(parameters$wh.exponent * parameters$wh.level), 
+      ttrans <- sort(-exp(-parameters$wh.exponent * (tiptimes - inftime))/(parameters$wh.exponent * parameters$wh.level), 
                      decreasing = TRUE)
       tnodetrans <- .sctwh3(ttrans)
       
-      res <- sort(-log(-parameters$wh.exponent * parameters$wh.level * tnodetrans)/(parameters$wh.exponent))
+      res <- inftime + sort(-log(-parameters$wh.exponent * parameters$wh.level * tnodetrans)/(parameters$wh.exponent))
 
       return(res)
     },
     #constant level
     constant = {
       # transform times so that fixed rate 1 can be used
-      ttrans <- sort(tiptimes/parameters$wh.level, decreasing = TRUE)
+      ttrans <- sort((tiptimes - inftime)/parameters$wh.level, decreasing = TRUE)
       tnodetrans <- .sctwh3(ttrans)
       
-      res <- sort(parameters$wh.level * tnodetrans)
+      res <- inftime + sort(parameters$wh.level * tnodetrans)
       
       return(res)
     }
@@ -64,13 +64,13 @@ sample_topology <- function(nodeIDs, nodetimes, nodetypes, infectornodes) {
   return(res)
 }
 
-sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, parameters) {
+sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime, parameters) {
   ### return -Inf if there is no existing tree
   if(length(oldtiptimes) + length((oldcoaltimes)) == 0) return(-Inf)
   
   ### add 0s to prevent problems with empty vectors
-  oldtiptimes <- c(0, oldtiptimes)
-  oldcoaltimes <- c(0, oldcoaltimes)
+  oldtiptimes <- c(inftime, oldtiptimes)
+  oldcoaltimes <- c(inftime, oldcoaltimes)
   
   ### function body
   switch(
@@ -78,22 +78,22 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, paramet
     #coalescence at transmission
     single = return(min(newtiptime, max(oldtiptimes))),
     #coalescence at infection
-    infinite = return(0),
+    infinite = return(inftime),
     linear = {
       # transform times so that fixed rate 1 can be used
-      transtiptimes <- log(oldtiptimes)/parameters$wh.slope
-      transcoaltimes <- log(oldcoaltimes)/parameters$wh.slope
-      transcurtime <- log(newtiptime)/parameters$wh.slope
+      transtiptimes <- log(oldtiptimes - inftime)/parameters$wh.slope
+      transcoaltimes <- log(oldcoaltimes - inftime)/parameters$wh.slope
+      transcurtime <- log(newtiptime - inftime)/parameters$wh.slope
     },
     exponential = {
-      transtiptimes <- -exp(-parameters$wh.exponent * oldtiptimes)/(parameters$wh.exponent * parameters$wh.level)
-      transcoaltimes <- -exp(-parameters$wh.exponent * oldcoaltimes)/(parameters$wh.exponent * parameters$wh.level)
-      transcurtime <- -exp(-parameters$wh.exponent * newtiptime)/(parameters$wh.exponent * parameters$wh.level)
+      transtiptimes <- -exp(-parameters$wh.exponent * (oldtiptimes - inftime))/(parameters$wh.exponent * parameters$wh.level)
+      transcoaltimes <- -exp(-parameters$wh.exponent * (oldcoaltimes - inftime))/(parameters$wh.exponent * parameters$wh.level)
+      transcurtime <- -exp(-parameters$wh.exponent * (newtiptime - inftime))/(parameters$wh.exponent * parameters$wh.level)
     },
     constant = {
-      transtiptimes <- oldtiptimes/parameters$wh.level
-      transcoaltimes <- oldcoaltimes/parameters$wh.level
-      transcurtime <- newtiptime/parameters$wh.level
+      transtiptimes <- (oldtiptimes - inftime)/parameters$wh.level
+      transcoaltimes <- (oldcoaltimes - inftime)/parameters$wh.level
+      transcurtime <- (newtiptime - inftime)/parameters$wh.level
     }
   )
 
@@ -102,7 +102,7 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, paramet
   transnexttime <- max(c(-Inf, transtiptimes[transtiptimes < transcurtime],  
                          transcoaltimes[transcoaltimes < transcurtime]))
   
-  # traverse minitree node by node, subtracting coalescence rate untile cumulative rate reaches 0
+  # traverse minitree node by node, subtracting coalescence rate until cumulative rate reaches 0
   frailty <- stats::rexp(1)
   while(curnedge * (transcurtime - transnexttime) < frailty) {
     transcurtime <- transnexttime
@@ -118,9 +118,9 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, paramet
   # transform to real time
   switch(
     parameters$wh.model, single =, infinite = ,
-    linear = exp(parameters$wh.slope * transreturntime),
-    exponential = -log(-parameters$wh.exponent * parameters$wh.level * transreturntime)/(parameters$wh.exponent),
-    constant = parameters$wh.level * transreturntime
+    linear = inftime + exp(parameters$wh.slope * transreturntime),
+    exponential = inftime - log(-parameters$wh.exponent * parameters$wh.level * transreturntime)/(parameters$wh.exponent),
+    constant = inftime + parameters$wh.level * transreturntime
   )
 }
 
