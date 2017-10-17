@@ -39,55 +39,59 @@
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
 logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, ...) {
-    res <- 0
-    if (genetic) {
-        res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$nsamples), 
-                                          attr(d$sequences, "weight"), 
-                                          v$nodeparents, v$nodetimes, p$mu, d$nsamples))
-    }
-    if (generation) {
-        res <- res + with(object, .lik.gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors))
-    }
-    if (sampling) {
-        res <- res + with(object, .lik.sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes))
-    }
-    if (withinhost) {
-        res <- res + with(object, .lik.coaltimes(object))
-    }
-    attributes(res) <- list(
-      nobs = object$p$obs,
-      df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.s + object$h$est.wh.e + object$h$est.wh.0,
-      genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation
-    )
-    class(res) <- "logLik"
-    return(res)
+  res <- 0
+  if (genetic) {
+    res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$nsamples), 
+                                      attr(d$sequences, "weight"), 
+                                      v$nodeparents, v$nodetimes, p$mu, d$nsamples))
+  }
+  if (generation) {
+    res <- res + with(object, lik_gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors))
+  }
+  if (sampling) {
+    res <- res + with(object, lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes))
+  }
+  if (withinhost) {
+    objectenv <- object
+    objectenv$v <- phybreak2environment(objectenv$v)
+    res <- res + with(object, lik_coaltimes(objectenv))
+  }
+  attributes(res) <- list(
+    nobs = object$p$obs,
+    df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.s + object$h$est.wh.e + object$h$est.wh.0,
+    genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation
+  )
+  class(res) <- "logLik"
+  return(res)
 }
 
 
 ### calculate the log-likelihood of sampling intervals 
-.lik.gentimes <- function(shapeG, meanG, inftimes, infectors) {
-    sum(dgamma(inftimes[infectors > 0] - 
-                 inftimes[infectors[infectors > 0]], 
-               shape = shapeG, scale = meanG/shapeG, log = TRUE))
+lik_gentimes <- function(shapeG, meanG, inftimes, infectors) {
+  sum(dgamma(inftimes[infectors > 0] - 
+               inftimes[infectors[infectors > 0]], 
+             shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
 ### calculate the log-likelihood of generation intervals 
-.lik.sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
-    sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
+lik_sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
+  sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
 
 ### calculate the log-likelihood of coalescent intervals 
-.lik.coaltimes <- function(phybreakenv) {
-  return(sum(sapply(0:phybreakenv$p$obs, .lik.coaltimes.host, phybreakenv = phybreakenv)))
+lik_coaltimes <- function(phybreakenv) {
+  return(sum(sapply(0:phybreakenv$p$obs, lik_coaltimes_host, phybreakenv = phybreakenv)))
 }
 
 ### calculate the log-likelihood of coalescent intervals 
-.lik.coaltimes.host <- function(phybreakenv, hostID) {
-  if (phybreakenv$p$wh.model %in% c(1, 2)) return(0)
+lik_coaltimes_host <- function(phybreakenv, hostID) {
+  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) return(0)
   
   if(hostID > 0) {
-    bottleneck <- length(firstnodes(phybreakenv, hostID))
+    bnodes_from_infector <- which(phybreakenv$v$nodehosts == phybreakenv$v$infectors[hostID] & phybreakenv$v$nodetypes == "b")
+    bnodes_in_infectees <- which(phybreakenv$v$nodeparents %in% bnodes_from_infector)
+    bottleneck <- 1 + length(phybreakenv$v$nodehosts[bnodes_in_infectees] == hostID)
     starttime <- phybreakenv$v$inftimes[hostID]
     inftime <- 0
   } else {
@@ -97,11 +101,7 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   }
   
   ### minustimes
-  minusnodes <- infectee_nodes(phybreakenv, hostID)
-  minushosts <- unlist(sapply(phybreakenv$v$nodehosts[minusnodes], secondhostinchain, 
-                       infectors = phybreakenv$v$infectors, firsthostID = hostID))
-  minustimes <- c(phybreakenv$v$inftimes[minushosts], 
-                  phybreakenv$v$nodetimes[phybreakenv$v$nodehosts == hostID & phybreakenv$v$nodetypes %in% c("s", "x")]) - starttime
+  minustimes <- phybreakenv$v$nodetimes[phybreakenv$v$nodehosts == hostID & phybreakenv$v$nodetypes %in% c("s", "x", "t", "b")] - starttime
   
   plustimes <- phybreakenv$v$nodetimes[phybreakenv$v$nodehosts == hostID & phybreakenv$v$nodetypes == "c"] - starttime
   
