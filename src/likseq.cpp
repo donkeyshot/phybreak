@@ -111,11 +111,11 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
       rootnode = i;
     }
   }
-//  nextnode = 0;
-//  while(nodeparents[nextnode] - 1 != rootnode) {
-//    ++nextnode;
-//  }
-//  rootnode = nextnode;
+ // nextnode = 0;
+ // while(nodeparents[nextnode] - 1 != rootnode) {
+ //   ++nextnode;
+ // }
+ // rootnode = nextnode;
   for(int i = 0; i < Nsamples; ++i) {
     routefree[i] = true;
   }

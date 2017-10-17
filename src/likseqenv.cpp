@@ -45,17 +45,19 @@ double likseqenv(Environment pbenv,
   }
   
   for(int i = 0; i < nlens.size(); ++i) {
-    if(nodeparents[i] > 0) {
+    if(nodeparents[i] != 0) {
       nlens[i] = nodetimes[i] - nodetimes[nodeparents[i]-1];
     } else {
       rootnode = i;
     }
   }
-//  nextnode = 0;
-//  while(nodeparents[nextnode] - 1 != rootnode) {
-//    ++nextnode;
-//  }
-//  rootnode = nextnode;
+  if(rootnode >= 2 * nsamples - 1) {
+    nextnode = 0;
+    while(nodeparents[nextnode] - 1 != rootnode) {
+      ++nextnode;
+    }
+    rootnode = nextnode;
+  }
   for(int i = 0; i < routefree.size(); ++i) {
     routefree[i] = true;
   }
@@ -91,6 +93,7 @@ double likseqenv(Environment pbenv,
     routefree[curnode] = true;
   }
   
+  
   for(int j = 0; j < nSNPs; ++j) {
     SNPsums[j] = 0.25 * likarray[(rootnode * nSNPs + j) * 4];
     for(int k = 1; k < 4; ++k) {
@@ -98,12 +101,13 @@ double likseqenv(Environment pbenv,
     }
     SNPsums[j] = log(SNPsums[j]) * SNPfreqs[j];
   }
-  
+
   result = SNPsums[0];
   for(int j = 1; j < nSNPs; ++j) {
     result += SNPsums[j];
   }
   
+  pbenv["rootnode"] = rootnode;
   pbenv["likarray"] = likarray;
   pbenv["logLikseq"] = result;
   
