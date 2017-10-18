@@ -128,11 +128,11 @@ unless a complete tree is given in the data and should be used (\code{use.tree =
 It is also possible to provide only sequences as data, and sampling times separately.
 }
 \examples{
-simulation <- sim.phybreak(obsize = 10)
-MCMCstate <- phybreak(data = simulation)
+simulation <- sim_phybreak(obsize = 10)
+MCMCstate <- phybreak(dataset = simulation)
 
-simulation <- sim.phybreak(obsize = 10)
-MCMCstate <- phybreak(data = simulation, use.tree = TRUE)
+simulation <- sim_phybreak(obsize = 10)
+MCMCstate <- phybreak(dataset = simulation, use.tree = TRUE)
 
 
 sampletimedata <- c(0,2,2,4,4)
@@ -143,7 +143,7 @@ dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata
 MCMCstate <- phybreak(data = dataset)
 
 ### also possible without 'phybreakdata' as intermediate, 
-### but not with additional data (future implementation)
+### but only with single samples per host and not with additional data (future implementation)
 MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 }
 \references{

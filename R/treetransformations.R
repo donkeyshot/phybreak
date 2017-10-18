@@ -149,11 +149,6 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
 }
 
 
-### vars should contain $sample.times
-### vars may contain $sample.hosts, from which host names will be taken (otherwise names of sample times or just numbers)
-### vars may contain $sim.infection.times, $sim.infectors, and $sim.tree
-### if resample = TRUE, then resamplepars should contain
-###     $sample.mean, $sample.shape, $gen.mean, $gen.shape, $wh.model, $wh.slope
 transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
 
   ### extract and order samples

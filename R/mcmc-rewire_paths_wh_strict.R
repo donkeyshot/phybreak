@@ -1,6 +1,3 @@
-
-
-
 rewire_pathA_wh_strict <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
@@ -40,7 +37,6 @@ rewire_pathA_wh_strict <- function() {
   pbe1$v$nodeparents[edgeend] <- edgestart
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 }
-
 
 rewire_pathB_wh_strict <- function() {
   ### Identify new index
@@ -115,7 +111,6 @@ rewire_pathB_wh_strict <- function() {
   # rewire_pullnodes(pbe1$infector.proposed.ID)
 
 }
-
 
 rewire_pathCF1_wh_strict <- function() {
   ### Identify new infector and old infector
@@ -212,7 +207,6 @@ rewire_pathCF1_wh_strict <- function() {
   rewire_pullnodes_wh_strict(oldinfector)
 }
 
-
 rewire_pathD_wh_strict <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
@@ -271,7 +265,6 @@ rewire_pathD_wh_strict <- function() {
 
 }
 
-
 rewire_pathE_wh_strict <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
@@ -324,13 +317,6 @@ rewire_pathE_wh_strict <- function() {
   ### phylotree in infector
   rewire_pullnodes_wh_strict(pbe1$v$infectors[pbe1$hostID])
 }
-
-
-
-
-
-# newindex <- newinfector
-# set.seed(1)
 
 rewire_pathCF2_wh_strict <- function() {
   ### Identify new infector and old infector
@@ -470,15 +456,45 @@ rewire_pathCF2_wh_strict <- function() {
   #   }
   # }
 }
-# currentID <- pbe1$v$infectors[pbe1$hostID]
-# loosenodes <- c(transnode, bnodes)
-# free_cnodes <- coalnodes_toinfector
-# currentID <- pbe1$hostID
-# loosenodes <- c(pbe1$hostID, sampleedges_x)
-# free_cnodes <- coalnodes
-# currentID <- newinfector
-# loosenodes <- c(newinfector, sampleedges_nix)
-# free_cnodes <- coalnodes_ni
+
+rewire_pathK_wh_strict <- function() {
+  ### First, dismantle minitree
+  # edges entering hostID, with endtimes
+  edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes %in% c("s", "x", "t"))
+  edgeintimes <- pbe1$v$nodetimes[edgesin]
+  
+  # transmission node of hostID
+  transnode <- 2*pbe1$d$nsamples - 1 + pbe1$hostID
+  
+  # all coalescent nodes in new infector and hostID
+  coalnodes <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes == "c")
+  
+  # dismantle topology, move transmission node
+  pbe1$v$nodehosts[coalnodes] <- -1
+  pbe1$v$nodeparents[c(edgesin, coalnodes)] <- -1
+  
+  ### Second, rebuild minitree
+  # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
+  newcoaltimes <- sample_coaltimes(edgeintimes, pbe1$v$inftimes[pbe1$hostID], pbe1$p)
+
+  # order all edges (transmission, sample, coalescent) by endtime in hostID
+  nodeorder <- order(c(edgeintimes, newcoaltimes), c(rep("x", length(edgeintimes)), 
+                                                     rep("c", length(newcoaltimes))))
+  edgeend <- c(edgesin, coalnodes)[nodeorder]
+  edgeendtimes <- c(edgeintimes, newcoaltimes)[nodeorder]
+  
+  # sample topology of minitree within hostID
+  edgestart <- sample_topology(edgeend, 
+                               edgeendtimes, 
+                               c(rep("x", length(edgeintimes)), 
+                                 rep("c", length(newcoaltimes)))[nodeorder],
+                               transnode)
+
+  # change minitree in hostID
+  pbe1$v$nodehosts[edgeend] <- pbe1$hostID
+  pbe1$v$nodeparents[edgeend] <- edgestart
+  pbe1$v$nodetimes[edgeend] <- edgeendtimes
+}
 
 rewire_pullnodes_wh_strict <- function(currentID) {
   loosenodes <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodeparents == -1)
@@ -539,24 +555,3 @@ rewire_pullnodes_wh_strict <- function(currentID) {
     }
   }
 }
-# currentID <- pbe1$v$infectors[currentID]
-# loosenodes <- bnodes
-# free_cnodes <- free_cnodestoinfector
-
-# childnode <- transnode
-# take_cnode_sample <- function(childnode) {
-#   parentnode <- pbe1$v$nodeparents[childnode]
-#   while(pbe1$v$nodetypes[parentnode] %in% c("t", "b")) {
-#     pbe1$v$nodeparents[childnode] <- -1
-#     childnode <- parentnode
-#     parentnode <- pbe1$v$nodeparents[parentnode]
-#     pbe1$v$nodetypes[childnode] <- "0"
-#   }
-#   second_childnode <- setdiff(which(pbe1$v$nodeparents == parentnode), childnode)
-#   pbe1$v$nodeparents[second_childnode] <- pbe1$v$nodeparents[parentnode]
-#   pbe1$v$nodeparents[childnode] <- -1
-#   pbe1$v$nodeparents[parentnode] <- -1
-#   pbe1$v$nodehosts[parentnode] <- -1
-#   return(parentnode)
-# }
-

@@ -2,7 +2,7 @@
 % Please edit documentation in R/plotTrans.R
 \name{plotTrans}
 \alias{plotTrans}
-\title{Plotting a phybreak object transmission tree.}
+\title{Plotting a phybreak or phybreakdata transmission tree.}
 \usage{
 plotTrans(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"),
   samplenr = 0, mar = 0.1 + c(4, 0, 0, 0), label.cex = NULL,
@@ -12,7 +12,8 @@ plotTrans(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"),
   line.lty = 3, xlab = "Time", axis.cex = 1, title.cex = 1, ...)
 }
 \arguments{
-\item{x}{An object of class \code{phybreak}.}
+\item{x}{An object of class \code{phybreak} or \code{phybreakdata}. A \code{\link{phybreakdata}}-object should
+contain the slots \code{sim.infectors} and \code{sim.infection.times}.}
 
 \item{plot.which}{Either \code{"sample"} to plot the current state or a selected posterior sample, 
 \code{"mpc"} or \code{"mtcc"} to plot a consensus transmission tree (see \code{\link{transtree}}) or \code{"mcc"}
@@ -59,7 +60,7 @@ in bins of 0.2 width, from low to high support. Any vector of colours will be di
 \item{...}{Further graphical parameters (see details).}
 }
 \description{
-Plots a \code{phybreak}-object as transmission tree. The default 
+Plots a \code{phybreak}-object or \code{phybreakdata}-object as transmission tree. The default 
   is to plot the current state, but any posterior sample can be chosen, as well as various 
   consensus trees; in that case, coloured arrows indicate posterior support.
 }
@@ -76,12 +77,20 @@ Plots a \code{phybreak}-object as transmission tree. The default
 
 \examples{
 #First build a phybreak-object containing samples.
-simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+simulation <- sim_phybreak(obsize = 5)
+MCMCstate <- phybreak(data = simulation)
+MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 
-plot(MCMCstate, plot.which = "mpc")
+plotTrans(MCMCstate, plot.which = "mpc")
+
+#Plotting from data only (empty sequences needed):
+outbreak <- phybreakdata(sequences = matrix("a", nrow = 5, ncol = 1),
+  sample.names = LETTERS[1:5],
+  sample.times = c(0, 2, 2, 4, 4),
+  sim.infectors = c("B", "index", "B", "A", "A"), 
+  sim.infection.times = c(-2, -3, -1, 1, 2)))
+plotTrans(outbreak)
 }
 \references{
 \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 

@@ -1,7 +1,3 @@
-### simulation of outbreaks in obkData format, according to the phybreak-model ###
-
-
-
 #' Outbreak simulation.
 #' 
 #' Simulate outbreaks of class \code{phybreakdata}, with the outbreak model of \pkg{phybreak} (\code{sim.phybreak} is deprecated).
@@ -98,6 +94,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(any(c(gen.shape, gen.mean, sample.shape, sample.mean, wh.slope, mu) <= 0)) {
     stop("parameter values should be positive")
   }
+  wh.model <- choose_whmodel(wh.model)
   
   ### simulate step by step
   if(is.na(obsize)) {
@@ -160,10 +157,6 @@ sim.phybreak <- function(...) {
 
 ### simulate an outbreak of a particular size by repeating
 ### simulations until obsize is obtained
-### called by:
-# sim.phybreak
-### calls:
-# sim_outbreak
 sim_outbreak_size <- function(obsize, Npop, R0, aG, mG, aS, mS) {
   if(is.na(Npop)) {
     Npop <- obsize
@@ -180,9 +173,6 @@ sim_outbreak_size <- function(obsize, Npop, R0, aG, mG, aS, mS) {
 }
 
 ### simulate an outbreak
-### called by:
-# sim.phybreak
-# sim_outbreak_size
 sim_outbreak <- function(Npop, R0, aG, mG, aS, mS) {
   ### initialize
   inftimes <- c(0, rep(10000, Npop-1))
@@ -258,11 +248,6 @@ sim_additionalsamples <- function(sim.object, samperh, addsamdelay) {
 }
 
 ### simulate a phylogenetic tree given a transmission tree
-### called by:
-# sim.phybreak
-### calls:
-# .samplecoaltimes
-# .sampletopology
 sim_phylotree <- function (sim.object, wh.model, wh.slope, wh.exponent, wh.level, sample.mean) {
   list2env(list(v = sim.object, 
                 p = list(wh.model = wh.model, wh.slope = wh.slope, wh.exponent = wh.exponent,
@@ -287,8 +272,6 @@ sim_phylotree <- function (sim.object, wh.model, wh.slope, wh.exponent, wh.level
 
 
 ### simulate sequences given a phylogenetic tree
-### called by:
-# sim.phybreak
 sim_sequences <- function (sim.object, mu, sequence.length) {
   with(sim.object,{
     ### simulate the mutations on the phylotree

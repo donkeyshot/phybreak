@@ -1,9 +1,3 @@
-### plot functions for phybreak-object ###
-
-### makes use of plot function in 'simmap', colouring the branches by host in which they reside, but no unique colour per host.
-### calls: transtree get.phylo
-
-
 #' Plotting a phybreak object.
 #' 
 #' Plots a \code{phybreak}-object twice: (1) as transmission tree and (2) as phylogenetic tree, using the default graphical parameters
@@ -24,17 +18,16 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' plot(MCMCstate, plot.which = "mpc")
 #' @export
 plot.phybreak <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc", "mcc"), samplenr = 0, ...) {
 
-  plot.which <- plot.which[which(plot.which %in% c("sample", "edmonds", "mpc", "mtcc", "mcc"))[1]]
-  if(is.na(plot.which)) stop("no valid 'plot.which'")
+  plot.which <- match.arg(plot.which)
   if(plot.which == "sample" & samplenr > length(x$s$logLik)) {
     warning("requested 'samplenr' not available; current state used")
     samplenr <- 0

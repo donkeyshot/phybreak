@@ -1,7 +1,3 @@
-### calculate the log-likelihood ###
-
-
-
 #' Log-likelihood of a phybreak-object.
 #' 
 #' The likelihood of a \code{phybreak}-object is calculated, with the option to include or exclude parts of the 
@@ -25,16 +21,16 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
 #' logLik(MCMCstate)
 #' 
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
 #' logLik(MCMCstate)
 #' 
-#' tree0 <- get.phylo(MCMCstate)
-#' seqdata <- get.seqdata(MCMCstate)
-#' pml(tree0, seqdata, rate = 0.75*get.parameters(MCMCstate)["mu"]) 
+#' tree0 <- get_phylo(MCMCstate)
+#' seqdata <- get_data(MCMCstate)$sequences
+#' phangorn::pml(tree0, seqdata, rate = 0.75*get_parameters(MCMCstate, "mu") 
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export

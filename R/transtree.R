@@ -1,8 +1,3 @@
-### consensus transmission tree from phybreak-object ###
-
-
-
-
 #' Create a consensus transmission tree.
 #' 
 #' Various methods to create summary transmission trees from a \code{phybreak}-object containing posterior samples.
@@ -49,10 +44,10 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' transtree(MCMCstate, method = "edmonds")
 #' transtree(MCMCstate, method = "mpc", infection.times = "infector.sd")

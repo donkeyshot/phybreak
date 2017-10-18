@@ -4,11 +4,11 @@
 \alias{phylotree}
 \title{Maximum clade credibility tree.}
 \usage{
-phylotree(phybreak.object, samplesize = Inf, support = c("proportion",
-  "count"), phylo.class = FALSE)
+phylotree(x, samplesize = Inf, support = c("proportion", "count"),
+  phylo.class = FALSE)
 }
 \arguments{
-\item{phybreak.object}{An object of class \code{phybreak}.}
+\item{x}{An object of class \code{phybreak}.}
 
 \item{samplesize}{The number of posterior samples that is used, taken from the tail.}
 
@@ -27,10 +27,10 @@ Identify the maximum clade credibility tree from a \code{phybreak}-object contai
 }
 \examples{
 #First build a phybreak-object containing samples.
-simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+simulation <- sim_phybreak(obsize = 5)
+MCMCstate <- phybreak(dataset = simulation)
+MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 
 phylotree(MCMCstate)
 plot(phylotree(MCMCstate, phylo.class = TRUE))

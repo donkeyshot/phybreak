@@ -1,12 +1,3 @@
-### phybreakdata class constructor ###
-
-### phybreak functions called ###
-# .rinftimes(sampling times, sample.mean, sample.shape)
-# .rinfectors(infection times, generation.mean, generation.shape)
-# .samplecoaltimes(tip times, wh.model, wh.slope)
-# .sampletopology(nodes, nodetimes, nodetypes, rootnode, wh.model)
-# .distmatrix(SNP, SNPfrequencies)
-
 #' Create a phybreakdata-object from raw data.
 #' 
 #' phybreakdata takes as data sequences and sampling times and makes a \code{phybreakdata} object.
@@ -88,7 +79,7 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
   if(is.null(row.names(sequences))) {
     row.names(sequences) <- sample.names
   } else if (all(row.names(sequences) %in% sample.names)) {
-    sequences <- sequences[sample.names, ]
+    sequences <- sequences[sample.names, , drop = FALSE]
   } else {
     warning("names in sequences don't match sample.names and are therefore overwritten")
     row.names(sequences) <- sample.names

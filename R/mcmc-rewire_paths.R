@@ -46,6 +46,14 @@ rewire_pathCF2 <- function(loose_bottleneck) {
   }
 }
 
+rewire_pathK <- function(loose_bottleneck) {
+  if(loose_bottleneck) {
+    rewire_pathK_wh_loose()
+  } else {
+    rewire_pathK_wh_strict()
+  }
+}
+
 
 link_s_to_t <- function(parentnodes, childnodes, snode, tnode) {
   current_t_node <- which(parentnodes == tnode)

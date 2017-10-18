@@ -1,14 +1,13 @@
 #' Effective sample size
-#' @name ESS
-NULL
+#' @export ESS
+ESS <- function(x) UseMethod("ESS")
 
-### Calculate ESS, using coda::effectiveSize for all continuous parameters,
-### and effectiveSize_infector for all infectors
 #' @describeIn ESS Effective sample size of phybreak posterior.
 #' @param x An object of class \code{phybreak}.
 #' @return Effective sample sizes.
-#' @details For all parameters and continuous variables (infection times), \code{effectiveSize_phybreak} calculates
-#'   the effective sample size (ESS) with the \code{\link[coda]{effectiveSize}} function in \pkg{coda}. For the infectors, 
+#' @details When applied to an object of class \code{phybreak}, \code{ESS} calculates for all parameters and continuous
+#'   variables (infection times) the effective sample size (ESS) with the \code{\link[coda]{effectiveSize}} 
+#'   function in \pkg{coda}. For the infectors, 
 #'   a method is used that is similar to the method for the approximate ESS for phylogenetic trees, described in 
 #'   Lanfaer et al (2016):
 #'   \enumerate{
@@ -18,7 +17,7 @@ NULL
 #'         The distance will increase with increasing interval k.
 #'     \item Use the rate at which f(k) approaches the asymptote to calculate the ESS (see Lanfaer et al, 2016)
 #'   }
-#'   This method can also be directly called with \code{effectiveSize_factor} for a single vector of categorical variables.
+#'   The latter method can also be directly called for single vectors of class \code{factor} or \code{integer}.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @references \href{http://dx.doi.org/10.1093/gbe/evw171}{Lanfaer et al. (2016)} Estimating 
 #'   the effective sample size of tree topologies from Bayesian phylogenetic analyses. 
@@ -26,13 +25,13 @@ NULL
 #' @examples 
 #' #First create a phybreak object
 #' simulation <- sim_phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation)
+#' MCMCstate <- phybreak(dataset = simulation)
 #' 
 #' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
-#' effectiveSize_phybreak(MCMCstate)
+#' ESS(MCMCstate)
 #' @export
-effectiveSize_phybreak <- function(x) {
+ESS.phybreak <- function(x) {
   ### tests
   if (!inherits(x, "phybreak")) {
     stop("object must be of class \"phybreak\"")
@@ -47,7 +46,7 @@ effectiveSize_phybreak <- function(x) {
   # Calculate the ESS per chain with the correct method
   res <- sapply(1:ncol(mcmcobj), function(i) {
     if(whichinfectors[i]) {
-      effectiveSize_categorical(mcmcobj[, i])
+      ESS(as.numeric(mcmcobj[, i]))
     } else {
       coda::effectiveSize(mcmcobj[, i])
     }
@@ -59,30 +58,30 @@ effectiveSize_phybreak <- function(x) {
 }
 
 #' @describeIn ESS Effective sample size of a categorical variable.
-#' @param chain Vector of class \code{factor}, or a numeric vector with integers indicating categories.
+#' @param x Vector of class \code{factor}.
 #' @export
-effectiveSize_factor <- function(chain) {
+ESS.factor <- function(x) {
   # length must be 2 at least
-  if(length(chain) < 2) return(NA_real_)  
+  if(length(x) < 2) return(NA_real_)  
   
   # maximum interval k to calculate mean distance
-  max_int <- min(floor(length(chain)/2), 250L)
+  max_int <- min(floor(length(x)/2), 250L)
   
   # make numerical vector
-  chain <- as.numeric(chain)
+  x <- as.numeric(x)
   
   # no ESS if all samples are identical
-  if(length(unique(chain)) == 1) return(NaN)
+  if(length(unique(x)) == 1) return(NaN)
   
   ### get ballpark m by looking at complete chain (intervals up to half chain length)
   # step 1: squared distance as function of interval
-  intervalstart <- floor(length(chain)/(2 * max_int))
+  intervalstart <- floor(length(x)/(2 * max_int))
   squared_distances <- rep(0, max_int)
   for(i in 1:max_int) {
     samplinginterval <- 1 + (i - 1) * intervalstart
     
     # distance is 0 if identical, 1 if different
-    squared_distances[i] <- mean(chain != c(tail(chain, -samplinginterval), head(chain, samplinginterval)))
+    squared_distances[i] <- mean(x != c(tail(x, -samplinginterval), head(x, samplinginterval)))
   }
   
   # step 2: fit to exponential semivariogram to find asymptote
@@ -111,7 +110,7 @@ effectiveSize_factor <- function(chain) {
   sqdists <- rep(0, max_int)
   for(i in 1:max_int) {
     samplinginterval <- i * intervalend
-    sqdists[i] <- mean(chain != c(tail(chain, -samplinginterval), head(chain, samplinginterval)))
+    sqdists[i] <- mean(x != c(tail(x, -samplinginterval), head(x, samplinginterval)))
   }
   
   # step 2: calculate m as lowest k where f is within 5% of asymptote
@@ -119,7 +118,7 @@ effectiveSize_factor <- function(chain) {
   
   ### calculate other parameters of equation
   Dpar <- max(Dpar, sqdists)
-  Npar <- length(chain)
+  Npar <- length(x)
   
   ### calculate right-hand side of equation
   if(mpar == 0) {
@@ -138,3 +137,9 @@ effectiveSize_factor <- function(chain) {
   }
 }
 
+#' @describeIn ESS Effective sample size of a categorical variable.
+#' @param x Vector of class \code{numeric}, containing only integers. This will be treated as a categorical variable.
+#' @export
+ESS.numeric <- function(x) {
+  ESS(as.factor(as.integer(x)))
+}

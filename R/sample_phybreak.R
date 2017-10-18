@@ -1,7 +1,3 @@
-### run mcmc chain, take samples from the chain, and return the updated phylo-object ###
-
-
-
 #' Sampling from a phybreak MCMC-chain.
 #' 
 #' Function to take (additional) samples from the posterior distribution of a phylogenetic and transmission tree 
@@ -22,8 +18,8 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First create a phybreak-object
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
 #' 
 #' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
@@ -62,29 +58,23 @@ sample_phybreak <- function(x, nsample, thin = 1, keepphylo = NULL, withinhost_o
     build_pbe(x)
     
     message(paste0("  sample      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+    print_screen_log(length(x$s$mu))
     
     curtime <- Sys.time()
     
     for (sa in tail(1:length(s.post$mu), nsample)) {
       
       if(Sys.time() - curtime > 10) {
-        message(paste0(
-          stringr::str_pad(sa, 8),
-          stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
-          stringr::str_pad(signif(pbe0$p$mu, 3), 11),
-          stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
-          stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
-          stringr::str_pad(phangorn::parsimony(
-            phybreak2phylo(environment2phybreak(pbe0$v)), pbe0$d$sequences), 10)))
+        print_screen_log(sa)
         curtime <- Sys.time()
       }
       
       for (rep in 1:thin) {
         for (i in sample(x$p$obs)) {
           if (runif(1) < 1 - keepphylo - withinhost_only) 
-            .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
-              .updatehost.keepphylo(i)
-            } else .updatehost.withinhost(i)
+            update_host(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
+              update_host_keepphylo(i)
+            } else update_host_withinhost(i)
         }
         if (x$h$est.mG) 
           update_mG()

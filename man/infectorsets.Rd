@@ -4,12 +4,12 @@
 \alias{infectorsets}
 \title{Sampled infectors for each host in a phybreak-object.}
 \usage{
-infectorsets(phybreak.object, which.hosts = "all", percentile = 0.95,
-  minsupport = 0, samplesize = Inf, infector.name = TRUE,
-  support = c("proportion", "count"))
+infectorsets(x, which.hosts = "all", percentile = 0.95, minsupport = 0,
+  samplesize = Inf, infector.name = TRUE, support = c("proportion",
+  "count"))
 }
 \arguments{
-\item{phybreak.object}{An object of class \code{phybreak}.}
+\item{x}{An object of class \code{phybreak}.}
 
 \item{which.hosts}{A vector with hosts (positions in the dataset), or \code{"all"} for all hosts.}
 
@@ -36,10 +36,10 @@ The function takes a \code{phybreak}-object containing MCMC-samples, and returns
 }
 \examples{
 #First build a phybreak-object containing samples.
-simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+simulation <- sim_phybreak(obsize = 5)
+MCMCstate <- phybreak(dataset = simulation)
+MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 
 infectorsets(MCMCstate)
 }

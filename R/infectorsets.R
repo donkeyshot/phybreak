@@ -1,13 +1,9 @@
-### sets of possible infectors per host, from phybreak-object with samples ###
-
-### function returns a list with for each host their most likely infectors (ordered) with support.  calls: .infarray
-
 #' Sampled infectors for each host in a phybreak-object.
 #' 
 #' The function takes a \code{phybreak}-object containing MCMC-samples, and returns for each host 
 #'   a table with posterior infectors, with support per infector.
 #' 
-#' @param phybreak.object An object of class \code{phybreak}.
+#' @param x An object of class \code{phybreak}.
 #' @param which.hosts A vector with hosts (positions in the dataset), or \code{"all"} for all hosts.
 #' @param percentile Return infectors ordered by support, until a cumulative support indicated by \code{percentile},
 #'   support measured by proportion (value between 0 and 1).
@@ -25,18 +21,18 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' infectorsets(MCMCstate)
 #' @export
-infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95, minsupport = 0, samplesize = Inf, infector.name = TRUE, 
+infectorsets <- function(x, which.hosts = "all", percentile = 0.95, minsupport = 0, samplesize = Inf, infector.name = TRUE, 
     support = c("proportion", "count")) {
     ### initialize some constants
-    chainlength <- length(phybreak.object$s$mu)
-    obs <- phybreak.object$p$obs
+    chainlength <- length(x$s$mu)
+    obs <- x$p$obs
     samplesize <- min(samplesize, chainlength)
     samplerange <- (chainlength - samplesize + 1):chainlength
     if (support[1] == "count") {
@@ -51,14 +47,14 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
     }
     which.hosts <- unique(which.hosts)
     if(is.numeric(which.hosts)) {
-      if(min(which.hosts) < 1 | max(which.hosts) > phybreak.object$p$obs) {
+      if(min(which.hosts) < 1 | max(which.hosts) > x$p$obs) {
         stop("'which.hosts' contains out-of-range numbers, should be between 1 and outbreak size")
       }
     } else if (any(which.hosts == "all")) {
       which.hosts <- 1:obs
-    } else if (!all(which.hosts %in% phybreak.object$d$names)) {
+    } else if (!all(which.hosts %in% x$d$names)) {
       stop("'which.hosts' contains non-existing host names'")
-    } else which.hosts <- match(which.hosts, phybreak.object$d$hostnames)
+    } else which.hosts <- match(which.hosts, x$d$hostnames)
     if (percentile < 0 | percentile > 1) {
       stop("'percentile' should be given as number between 0 and 1")
     }
@@ -77,7 +73,7 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
     ### obtaining the result in steps
     
     # array with ordered infectors per host, plus support
-    inffreqs <- .infarray(phybreak.object$s$nodehosts[obs:(2 * obs - 1), samplerange])
+    inffreqs <- .infarray(x$s$nodehosts[obs:(2 * obs - 1), samplerange])
     
     # take out those with too little support
     if(minsupport < 1) {
@@ -94,7 +90,7 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
     if (infector.name) {
         res <- list()
         for (i in which.hosts) {
-            res <- c(res, list(data.frame(infector = c("index", phybreak.object$d$names)[1 + inffreqs[i, 1, ][includemat[i, ]]], 
+            res <- c(res, list(data.frame(infector = c("index", x$d$names)[1 + inffreqs[i, 1, ][includemat[i, ]]], 
                 support = inffreqs[i, 2, ][includemat[i, ]]/denominator)))
         }
     } else {
@@ -104,7 +100,7 @@ infectorsets <- function(phybreak.object, which.hosts = "all", percentile = 0.95
                 ]]/denominator)))
         }
     }
-    names(res) <- phybreak.object$d$hostnames[which.hosts]
+    names(res) <- x$d$hostnames[which.hosts]
     
     ### return the result
     return(res)

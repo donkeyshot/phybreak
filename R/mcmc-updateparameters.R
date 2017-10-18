@@ -1,8 +1,6 @@
-### all helper functions exclusively involved in updating the parameters ###
+### functions exclusively involved in updating the parameters ###
 
 
-### updating mu by proposing within .pbe1, and accepting or rejecting called from: burnin.phybreak sample.phybreak
-### calling: .prepare.pbe .propose.pbe .accept.pbe
 update_mu <- function() {
     ### create an up-to-date proposal-environment
     prepare_pbe()
@@ -31,8 +29,6 @@ update_mu <- function() {
 }
 
 
-### updating mS by sampling from the posterior, conditional on the current tree called from: burnin.phybreak sample.phybreak
-### calling: .prepare.pbe .propose.pbe .accept.pbe
 update_mS <- function() {
     ### create an up-to-date proposal-environment
     prepare_pbe()
@@ -60,8 +56,6 @@ update_mS <- function() {
 }
 
 
-### updating mG by sampling from the posterior, conditional on the current tree called from: burnin.phybreak sample.phybreak
-### calling: .prepare.pbe .propose.pbe .accept.pbe
 update_mG <- function() {
     ### create an up-to-date proposal-environment
     prepare_pbe()
@@ -91,8 +85,6 @@ update_mG <- function() {
 }
 
 
-### updating slope by proposing within .pbe1, and accepting or rejecting called from: burnin.phybreak
-### sample.phybreak calling: .prepare.pbe .propose.pbe .accept.pbe
 update_wh_slope <- function() {
     ### create an up-to-date proposal-environment
     prepare_pbe()

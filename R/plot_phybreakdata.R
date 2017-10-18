@@ -1,9 +1,3 @@
-### plot functions for phybreakdata-object ###
-
-### makes use of plot function in 'simmap', colouring the branches by host in which they reside, but no unique colour per host.
-### calls: transtree get.phylo
-
-
 #' Plotting a phybreakdata object.
 #' 
 #' Plots a \code{phybreakdata}-object twice: (1) as transmission tree and (2) as phylogenetic tree, using the default graphical parameters
@@ -18,13 +12,10 @@
 #'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
-#' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' # First make a phybreakdata-object by simulation.
+#' simulation <- sim_phybreak(obsize = 5)
 #' 
-#' plot(MCMCstate, plot.which = "mpc")
+#' plot(simulation)
 #' @export
 plot.phybreakdata <- function(x, ...) {
 

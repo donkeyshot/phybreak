@@ -1,6 +1,3 @@
-### thin samples in phybreak object ###
-
-
 #' Remove posterior samples from a phybreak-object.
 #' 
 #' The function removes (all or some) posterior samples by thinning and/or removing the first part of the chain, 
@@ -17,14 +14,15 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First create a phybreak-object
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
-#' MCMCstate <- thin_phybreak(MCMCstate, thin = 2)
+#' MCMCstate <- thin.phybreak(MCMCstate, thin = 2)
+#' @importFrom coda thin
 #' @export
-thin_phybreak <- function(x, thin = 1, nkeep = Inf) {
+thin.phybreak <- function(x, thin = 1, nkeep = Inf, ...) {
     ### tests
     if(nkeep * thin > length(x$s$logLik) & nkeep < Inf) {
       stop("'nkeep * thin' should not be larger than the current chain length (unless 'nkeep = Inf')")

@@ -1,9 +1,3 @@
-### plot functions for phybreak-object ###
-
-### makes use of plot function in 'simmap', colouring the branches by host in which they reside, but no unique colour per host.
-### calls: transtree get.phylo
-
-
 #' Plotting a phybreak object phylogenetic tree.
 #' 
 #' Plots a \code{phybreak}-object as phylogenetic tree with coloured branches indicating hosts. The default 
@@ -22,10 +16,10 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' plot(MCMCstate, plot.which = "mpc")
 #' @export

@@ -8,13 +8,14 @@
 # logLikgen and logLiksam are the log-likelihood values of generation and sampling times with means mG and mS. logLikcoal is
 # the log-likelihood value of the coalescent model.
 
-# The function '.build.pbe' is used to initialise The function '.destroy.pbe' is used at the end The function
-# '.prepare.pbe' is used to prepare pbe1 for another proposal The function '.propose.pbe' is
-# used to calculate the likelihoods in pbe1 after changing in proposal functions.  The function
-# '.accept.pbe' is to change pbe0 by copying pbe1.
+# The function 'build_pbe' is used to initialise pbe0 at the start of mcmc-sampling. The function 'destroy_pbe' 
+# is used at the end to return a phybreak object with current state. The function 'prepare_pbe' is used to 
+# prepare pbe1 for another proposal. The proposal itself is then made in update-functions. The function 'propose_pbe' is
+# used to calculate the likelihoods in pbe1 for the new proposed state.  The function
+# 'accept_pbe' is to change pbe0 by copying pbe1.
 
 
-# The environments are only used during MCMC-updating.
+# The environments are used during MCMC-updating, and in sim_phybreak and phybreak to simulate the phylogenetic tree.
 pbe0 <- new.env()
 pbe1 <- new.env()
 
@@ -41,11 +42,13 @@ build_pbe <- function(phybreak.obj) {
   
   ### Jukes-Cantor: reduce diversity by naming each nucleotide by its frequency order, and grouping SNPs by same pattern across
   ### hosts
+  # interpreting the phangorn sequence codes
   codematrix <- t(matrix(c(1,0,0,0,0,1,1,1,0,0,0,1,1,1,0,1,1,1,
                            0,1,0,0,0,1,0,0,1,1,0,1,1,0,1,1,1,1,
                            0,0,1,0,0,0,1,0,1,0,1,1,0,1,1,1,1,1,
                            0,0,0,1,1,0,0,1,0,1,1,0,1,1,1,1,1,1),
                          ncol = 4))
+  # function to rename nucleotides by their frequency order (most frequent is 1, second most is 2, etc)
   fn <- function(snpvector) {
     bincodes <- codematrix[,snpvector]
     bincodes <- bincodes[order(rowSums(bincodes), decreasing = TRUE),]
@@ -53,13 +56,10 @@ build_pbe <- function(phybreak.obj) {
     snpcodes <- match(numcodes, colSums(codematrix * c(1,2,4,8)))
     return(snpcodes)
   }
-  
-  # fn <- function(snpvector) {
-  #   match(snpvector, names(sort(table(snpvector), decreasing = TRUE)))
-  # }
+  # rename the nucleotides by frequency order
   snpreduced <- apply(SNP, 2, fn)
-  # snpreduced <- SNP
   snpfrreduced <- SNPfr
+  # remove identical SNP patterns
   if (ncol(SNP) > 1) {
     for (i in (ncol(SNP) - 1):1) {
       for (j in length(snpfrreduced):(i + 1)) {
@@ -146,7 +146,7 @@ propose_pbe <- function(f) {
   v <- pbe1$v
   p <- pbe1$p
   
-  if (f == "phylotrans" || f == "topology") {
+  if (f == "phylotrans" || f == "withinhost") {
     # identify changed nodes
     chnodes <- c(which((v$nodeparents != pbe0$v$nodeparents[1:length(v$nodeparents)]) | 
                          (v$nodetimes != pbe0$v$nodetimes[1:length(v$nodetimes)])),
@@ -159,8 +159,6 @@ propose_pbe <- function(f) {
       nodetips[nodetips >= 2 * d$nsamples] <- which(v$nodeparents %in% nodetips[nodetips >= 2 * d$nsamples])
     }
     nodetips <- setdiff(nodetips, chnodes)
-    # nodetips <- c(match(chnodes, v$nodeparents), 2 * d$nsamples + p$obs -match(chnodes, rev(v$nodeparents)))
-    # nodetips <- nodetips[is.na(match(nodetips, chnodes))]
   } else if (f == "mu") {
     chnodes <- (d$nsamples + 1):(2 * d$nsamples - 1)
     nodetips <- 1:d$nsamples
@@ -172,7 +170,6 @@ propose_pbe <- function(f) {
   
   if (!is.null(chnodes)) {
     .likseqenv(pbe1, chnodes, nodetips)
-
   }
   
   
@@ -199,7 +196,7 @@ accept_pbe <- function(f) {
   copy2pbe0("v", pbe1)
   copy2pbe0("p", pbe1)
   
-  if(f == "phylotrans" || f == "topology" || f == "mu") {
+  if(f == "phylotrans" || f == "withinhost" || f == "mu") {
     copy2pbe0("likarray", pbe1)
     copy2pbe0("logLikseq", pbe1)
   }

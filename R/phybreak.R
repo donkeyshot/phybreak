@@ -1,6 +1,3 @@
-### phybreak class constructor ###
-
-
 #' Create a phybreak-object from data and prior distributions.
 #' 
 #' phybreak takes as data either an \code{'obkData'}-object or a \code{\link{phybreakdata}}-object with sequences 
@@ -93,11 +90,11 @@
 #'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
-#' simulation <- sim.phybreak(obsize = 10)
-#' MCMCstate <- phybreak(data = simulation)
+#' simulation <- sim_phybreak(obsize = 10)
+#' MCMCstate <- phybreak(dataset = simulation)
 #' 
-#' simulation <- sim.phybreak(obsize = 10)
-#' MCMCstate <- phybreak(data = simulation, use.tree = TRUE)
+#' simulation <- sim_phybreak(obsize = 10)
+#' MCMCstate <- phybreak(dataset = simulation, use.tree = TRUE)
 #' 
 #' 
 #' sampletimedata <- c(0,2,2,4,4)
@@ -108,7 +105,7 @@
 #' MCMCstate <- phybreak(data = dataset)
 #' 
 #' ### also possible without 'phybreakdata' as intermediate, 
-#' ### but not with additional data (future implementation)
+#' ### but only with single samples per host and not with additional data (future implementation)
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
 phybreak <- function(dataset, times = NULL,
@@ -139,6 +136,7 @@ phybreak <- function(dataset, times = NULL,
   dataset <- testdataclass_phybreak(dataset, times)
   if(use.tree) testfortree_phybreak(dataset)
   testargumentsclass_phybreak(environment())
+  wh.model <- choose_whmodel(wh.model)
   
   ### outbreak parameters ###
   
@@ -388,6 +386,19 @@ testargumentsclass_phybreak <- function(env) {
   })
 }
 
+### set within-host model from possible input values
+choose_whmodel <- function(x) {
+  whoptions <- c("single", "infinite", "linear", "exponential", "constant")
+  if(is.numeric(x)) {
+    if(floor(x) %in% 1:5) {
+      return(whoptions[x])
+    } else {
+      stop("pick one of five within-host models")
+    }
+  } else {
+    return(match.arg(x, whoptions))
+  }
+}
 
 
 ### pseudo-distance matrix between sequences given SNP data

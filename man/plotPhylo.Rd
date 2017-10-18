@@ -25,10 +25,10 @@ Plots a \code{phybreak}-object as phylogenetic tree with coloured branches indic
 }
 \examples{
 #First build a phybreak-object containing samples.
-simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+simulation <- sim_phybreak(obsize = 5)
+MCMCstate <- phybreak(dataset = simulation)
+MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 
 plot(MCMCstate, plot.which = "mpc")
 }

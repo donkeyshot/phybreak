@@ -1,10 +1,11 @@
-#' Plotting a phybreak object transmission tree.
+#' Plotting a phybreak or phybreakdata transmission tree.
 #' 
-#' Plots a \code{phybreak}-object as transmission tree. The default 
+#' Plots a \code{phybreak}-object or \code{phybreakdata}-object as transmission tree. The default 
 #'   is to plot the current state, but any posterior sample can be chosen, as well as various 
 #'   consensus trees; in that case, coloured arrows indicate posterior support.
 #' 
-#' @param x An object of class \code{phybreak}.
+#' @param x An object of class \code{phybreak} or \code{phybreakdata}. A \code{\link{phybreakdata}}-object should
+#'   contain the slots \code{sim.infectors} and \code{sim.infection.times}.
 #' @param plot.which Either \code{"sample"} to plot the current state or a selected posterior sample, 
 #'   \code{"mpc"} or \code{"mtcc"} to plot a consensus transmission tree (see \code{\link{transtree}}) or \code{"mcc"}
 #'   to plot the maximum clade credibility tree (see \code{\link{phylotree}}).
@@ -44,12 +45,20 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(data = simulation)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
-#' plot(MCMCstate, plot.which = "mpc")
+#' plotTrans(MCMCstate, plot.which = "mpc")
+#' 
+#' #Plotting from data only (empty sequences needed):
+#' outbreak <- phybreakdata(sequences = matrix("a", nrow = 5, ncol = 1),
+#'   sample.names = LETTERS[1:5],
+#'   sample.times = c(0, 2, 2, 4, 4),
+#'   sim.infectors = c("B", "index", "B", "A", "A"), 
+#'   sim.infection.times = c(-2, -3, -1, 1, 2)))
+#' plotTrans(outbreak)
 #' @export
 plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), samplenr = 0,
                       mar = 0.1 + c(4, 0, 0, 0), label.cex = NULL, 
@@ -244,13 +253,6 @@ maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0,
               graphicalparameters("polygon", 1, ...)
               )
             )
-#     do.call(text,
-#             c(list(x = max(samtimes) + 10 * tstep,
-#                    y = plotrank[i],
-#                    labels = hosts[i], 
-#                    adj = label.adj, 
-#                    cex = label.cex),
-#               graphicalparameters("label", timedorder, ...)))
   }
   do.call(text,
           c(list(x = max(samtimes) + 10 * tstep,
@@ -348,21 +350,6 @@ rankhostsforplot <- function(hosts, infectors) {
     }
     plotrank[1:i] <- rank(plotrank)[1:i]
   }
-  
-#   plotrank <- 1:2
-#   for(i in 3:Nhosts) {
-#     ior <- which(hosts == infectors[i])
-#     if(plotrank[ior] == 1) {
-#       plotrank[i] <- insideYN[hosts[i]] + 0.5
-#     } else if (plotrank[ior] == i - 1) {
-#       plotrank[i] <- i - 0.5 - insideYN[hosts[i]]
-#     } else {
-#       iorior <- which(hosts == infectors[ior])
-#       aboveYN <- xor((plotrank[iorior] < plotrank[ior]), insideYN[hosts[i]])
-#       if(infectors[ior] == "index") aboveYN <- insideYN[hosts[i]]
-#       plotrank[i] <- plotrank[ior] + aboveYN - 0.5    }
-#     plotrank[1:i] <- rank(plotrank)[1:i]
-#   }
   
   return(plotrank)
 }

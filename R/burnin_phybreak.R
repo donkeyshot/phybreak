@@ -1,9 +1,3 @@
-### run mcmc chain and return the updated phylo-object ###
-
-### phybreak functions called ### build_pbe .updatehost .updatehost.keepphylo .update.mG .update.mS .update.wh
-### .update.mu destroy_pbe
-
-
 #' MCMC updating of a phybreak-object.
 #' 
 #' This function allows the MCMC chain to burn in. If used after samples have been taken (with \code{\link{sample_phybreak}}), 
@@ -23,8 +17,8 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First create a phybreak object
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
 #' 
 #' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 50)
 #' @export
@@ -32,12 +26,14 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   ### tests
   if(ncycles < 1) stop("ncycles should be positive")
   if(is.null(keepphylo)) {
+    keepphylo <- 0.2
+  }
+  if(keepphylo > 0) {
     if(any(duplicated(x$d$hostnames)) || !(x$p$wh.model %in% c(3, "linear")) ) {
       keepphylo <- 0
       message("keepphylo = 0")
     } else {
-      keepphylo <- 0.2
-      message("keepphylo = 0.2")
+      message(paste0("keepphylo = ", keepphylo))
     }
   }
   if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
@@ -47,37 +43,21 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   build_pbe(x)
   
   message(paste0("   cycle      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+  print_screen_log(0)
   
   curtime <- Sys.time()
   
-  tostop <<- FALSE
-  
   for (rep in 1:ncycles) {
     if(Sys.time() - curtime > 10) {
-      message(paste0(
-        stringr::str_pad(rep, 8),
-        stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
-        stringr::str_pad(signif(pbe0$p$mu, 3), 11),
-        stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
-        stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
-        stringr::str_pad(phangorn::parsimony(
-          phybreak2phylo(environment2phybreak(pbe0$v)), pbe0$d$sequences), 10)))
+      print_screen_log(rep)
       curtime <- Sys.time()
     }
-        
-    # cat("\nrep:", rep)
-
 
     for (i in sample(x$p$obs)) {
-           # cat(i, " ")
-      # if(i == 6 && rep == 15) {
-      #   tostop <<- TRUE
-      # }
-      if(tostop) Sys.sleep(1)
       if (runif(1) < 1 - keepphylo - withinhost_only) 
-        .updatehost(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
-          .updatehost.keepphylo(i)
-        } else .updatehost.withinhost(i)
+        update_host(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
+          update_host_keepphylo(i)
+        } else update_host_withinhost(i)
     }
     if (x$h$est.mG)
       update_mG()
@@ -105,3 +85,13 @@ burnin.phybreak <- function(...) {
   burnin_phybreak(...)
 }
 
+print_screen_log <- function(iteration) {
+  message(paste0(
+    stringr::str_pad(iteration, 8),
+    stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
+    stringr::str_pad(signif(pbe0$p$mu, 3), 11),
+    stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
+    stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
+    stringr::str_pad(phangorn::parsimony(
+      phybreak2phylo(environment2phybreak(pbe0$v)), pbe0$d$sequences), 10)))
+}

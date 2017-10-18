@@ -30,8 +30,8 @@ This function allows the MCMC chain to burn in. If used after samples have been 
 }
 \examples{
 #First create a phybreak object
-simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation)
+simulation <- sim_phybreak(obsize = 5)
+MCMCstate <- phybreak(dataset = simulation)
 
 MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 50)
 }

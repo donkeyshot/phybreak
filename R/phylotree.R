@@ -1,13 +1,8 @@
-### consensus phylogenetic tree from phybreak-object ###
-
-
-### maximum clade credibility tree calls: .mcctree ##C++ .makephyloparsets .makephylo2
-
 #' Maximum clade credibility tree.
 #' 
 #' Identify the maximum clade credibility tree from a \code{phybreak}-object containing posterior samples.
 #' 
-#' @param phybreak.object An object of class \code{phybreak}.
+#' @param x An object of class \code{phybreak}.
 #' @param samplesize The number of posterior samples that is used, taken from the tail.
 #' @param support Whether to return the support (= posterior probability) for each infector as a \code{"proportion"} 
 #'   or as a \code{"count"} of posterior trees in which that transmission link or transmission cluster is present.
@@ -21,16 +16,16 @@
 #'   \emph{PLoS Comput Biol}, \strong{13}(5): e1005495.
 #' @examples 
 #' #First build a phybreak-object containing samples.
-#' simulation <- sim.phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
-#' MCMCstate <- burnin.phybreak(MCMCstate, ncycles = 20)
-#' MCMCstate <- sample.phybreak(MCMCstate, nsample = 50, thin = 2)
+#' simulation <- sim_phybreak(obsize = 5)
+#' MCMCstate <- phybreak(dataset = simulation)
+#' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
+#' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 
 #' phylotree(MCMCstate)
 #' plot(phylotree(MCMCstate, phylo.class = TRUE))
 #' @export
-phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion", "count"), phylo.class = FALSE) {
-    chainlength <- length(phybreak.object$s$mu)
+phylotree <- function(x, samplesize = Inf, support = c("proportion", "count"), phylo.class = FALSE) {
+    chainlength <- length(x$s$mu)
     
     ### tests
     if (chainlength == 0) 
@@ -44,20 +39,20 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
 
     ### initialization
     samplesize <- min(samplesize, chainlength)
-    nsamples <- phybreak.object$d$nsamples
-    obs <- phybreak.object$p$obs
+    nsamples <- x$d$nsamples
+    obs <- x$p$obs
     res <- c()
     
     ### decision tree to use correct model
     # if(method[1] == 'mcc') {
-    res <- .mcctree(.makephyloparsets(phybreak.object$s$nodeparents[, (1:samplesize) + chainlength - samplesize], nsamples), 
-                    phybreak.object$s$nodetimes[1:(nsamples - 1), (1:samplesize) + chainlength - samplesize], c(nsamples, samplesize))
+    res <- .mcctree(make_phyloparsets(x$s$nodeparents[, (1:samplesize) + chainlength - samplesize], nsamples), 
+                    x$s$nodetimes[1:(nsamples - 1), (1:samplesize) + chainlength - samplesize], c(nsamples, samplesize))
     if (phylo.class) 
-        return(get.phylo(phybreak.object, samplenr = tail(res, 1) + chainlength - samplesize, simmap = TRUE))
+        return(get_phylo(x, samplenr = tail(res, 1) + chainlength - samplesize, simmap = TRUE))
     res <- matrix(head(res, -1), ncol = 5)
-    # } if(method[1] == 'cc.construct') { res <- matrix(.CCphylotreeconstruct( .makephyloparsets(phybreak.object$s$nodeparents[,
-    # (1:samplesize) + chainlength - samplesize]), phybreak.object$s$nodetimes[1:(obs - 1), (1:samplesize) + chainlength -
-    # samplesize], c(obs, samplesize) ), ncol = 4) res[1:obs, 3] <- phybreak.object$v$nodetimes[1:obs] } if(length(res) == 0) {
+    # } if(method[1] == 'cc.construct') { res <- matrix(.CCphylotreeconstruct( make_phyloparsets(x$s$nodeparents[,
+    # (1:samplesize) + chainlength - samplesize]), x$s$nodetimes[1:(obs - 1), (1:samplesize) + chainlength -
+    # samplesize], c(obs, samplesize) ), ncol = 4) res[1:obs, 3] <- x$v$nodetimes[1:obs] } if(length(res) == 0) {
     # stop('incorrect method provided, choose \'mcc\' or \'cc.construct\'') }
     
     ### make node obs+1 the root node
@@ -80,8 +75,8 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
     }
     
     # times
-    res[1:nsamples, 3] <- phybreak.object$v$nodetimes[1:nsamples]
-    res[1:nsamples, 5] <- phybreak.object$v$nodetimes[1:nsamples]
+    res[1:nsamples, 3] <- x$v$nodetimes[1:nsamples]
+    res[1:nsamples, 5] <- x$v$nodetimes[1:nsamples]
     
     parents.out <- matrix(res[, 1], ncol = 1, dimnames = list(1:(2 * nsamples - 1), "parent"))
     # if(method[1] == 'mcc') {
@@ -93,13 +88,13 @@ phylotree <- function(phybreak.object, samplesize = Inf, support = c("proportion
 }
 
 
-### function to remove the transmission nodes from a matrix with nodeparents-sets called by: .phylotree calls: .makephyloparset
-.makephyloparsets <- function(nodeparentsets, nsamples) {
-    apply(nodeparentsets, MARGIN = 2, .makephyloparset, nsamples = nsamples)
+### function to remove the transmission nodes from a matrix with nodeparents-sets called by: .phylotree calls: make_phyloparset
+make_phyloparsets <- function(nodeparentsets, nsamples) {
+    apply(nodeparentsets, MARGIN = 2, make_phyloparset, nsamples = nsamples)
 }
 
-### function to remove the transmission nodes from a nodeparents-set of a phybreak-object called by: .makephyloparsets
-.makephyloparset <- function(parentset, nsamples) {
+### function to remove the transmission nodes from a nodeparents-set of a phybreak-object called by: make_phyloparsets
+make_phyloparset <- function(parentset, nsamples) {
     res <- parentset
     while (max(res) >= 2 * nsamples) {
         res[res >= 2 * nsamples] <- parentset[res][res >= 2 * nsamples]

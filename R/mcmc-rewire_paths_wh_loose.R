@@ -1,78 +1,3 @@
-
-# library(phybreak)
-# set.seed(1)
-# simul <- sim_phybreak(15, samplesperhost = 2, additionalsampledelay = 1, wh.model = 4)
-# pbo <- phybreak(simul, wh.model = 3, wh.level = 1)
-# plotPhylo(pbo)
-# # pbo <- burnin_phybreak(pbo, 1, 0)
-# var <- phybreak2environment(pbo$v)
-# params <- list(obs = 15, wh.model = "linear", wh.slope = 1, wh.exponent = .3, wh.level = .5, sample.mean = 1, gen.mean = 1)
-# dat <- list(nsamples = 30)
-# 
-# pbe1 <- new.env()
-# list2env(list(d = dat, v = var, p = params, hostID = 1, tinf.prop = -1.5), pbe1)
-# plotPhylo(pbo)
-# rewire_pathA()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 3, tinf.prop = 0.2, infector.proposed.ID = 2), pbe1)
-# plotPhylo(pbo)
-# rewire_pathE()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 3, tinf.prop = -1.5), pbe1)
-# plotPhylo(pbo)
-# rewire_pathD()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 1, tinf.prop = -.5, infector.proposed.ID = 2), pbe1)
-# plotPhylo(pbo)
-# rewire_pathB()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 1, tinf.prop = .5), pbe1)
-# plotPhylo(pbo)
-# rewire_pathCF1()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 9, tinf.prop = 3.0), pbe1)
-# plotPhylo(pbo)
-# rewire_pathCF1()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 7, tinf.prop = 0), pbe1)
-# plotPhylo(pbo)
-# rewire_pathCF1()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 1, tinf.prop = .5), pbe1)
-# #pbe1$hostID <- 2
-# plotPhylo(pbo)
-# rewire_pathCF2()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 9, tinf.prop = 3.0), pbe1)
-# plotPhylo(pbo)
-# rewire_pathCF2()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-# list2env(list(d = dat, v = var, p = params, hostID = 7, tinf.prop = 0), pbe1)
-# plotPhylo(pbo)
-# rewire_pathCF2()
-# pbox <- pbo
-# pbox$v <- environment2phybreak(pbe1$v)
-# plotPhylo(pbox)
-
-
 rewire_pathA_wh_loose <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
@@ -104,7 +29,7 @@ rewire_pathA_wh_loose <- function() {
   if(nr_of_bnodes > 0) {
     newcoaltimes <- tail(newcoaltimes, - nr_of_bnodes)
   }
-  coalnodes <- tail(coalnodes, length(coalnodes) - nr_of_bnodes)
+  coalnodes <- tail(coalnodes, length(newcoaltimes))
   
   # order all edges (transmission, sample, coalescent) by endtime in hostID
   nodeorder <- order(c(edgeintimes, newcoaltimes), c(rep("x", length(edgeintimes)), 
@@ -146,190 +71,6 @@ rewire_pathA_wh_loose <- function() {
 
   ### phylotree before index case
   rewire_pullnodes_wh_loose(0)
-}
-
-rewire_pathE_wh_loose <- function() {
-  ### First, dismantle minitree
-  # edges entering hostID, with endtimes
-  edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes %in% c("s", "x", "t", "b"))
-  edgeintimes <- pbe1$v$nodetimes[edgesin]
-  
-  # transmission node of hostID
-  transnode <- 2*pbe1$d$nsamples - 1 + pbe1$hostID
-  
-  # coalescent nodes of hostID
-  coalnodes <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes == "c")
-  
-  # bottleneck nodes of hostID
-  bottlenodes <- pbe1$v$nodeparents[c(coalnodes, edgesin)]
-  bottlenodes <- bottlenodes[pbe1$v$nodetypes[bottlenodes] == "b"]
-  
-  # more coalescent nodes: 
-  # (1) parent of transmission edge leaving hostID
-  coalnodes <- c(take_cnode(transnode), coalnodes)
-  # (2) parents of bottleneck edges leaving hostID
-  for(bnode in bottlenodes) {
-    coalnodes <- c(take_cnode(bnode), coalnodes)
-  }
-  
-  # dismantle topology, move transmission node
-  pbe1$v$nodetypes[bottlenodes] <- 0
-  pbe1$v$nodehosts[c(coalnodes, bottlenodes)] <- -1L
-  pbe1$v$nodehosts[transnode] <- pbe1$infector.proposed.ID
-  pbe1$v$nodeparents[c(edgesin, coalnodes, transnode, bottlenodes)] <- -1L
-  pbe1$v$nodetimes[transnode] <- pbe1$tinf.prop
-
-  ### Second, change transmission tree
-  pbe1$v$inftimes[pbe1$hostID] <- pbe1$tinf.prop
-  pbe1$v$infectors[pbe1$hostID] <- pbe1$infector.proposed.ID
-
-  ### Third, rebuild minitree in hostID
-  # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
-  newcoaltimes <- sample_coaltimes(c(edgeintimes), pbe1$tinf.prop, pbe1$p)
-  nr_of_bnodes <- sum(newcoaltimes < pbe1$tinf.prop)
-  if(nr_of_bnodes > 0) {
-    newcoaltimes <- tail(newcoaltimes, - nr_of_bnodes)
-  }
-  coalnodes <- tail(coalnodes, length(newcoaltimes))
-  
-  # order all edges (transmission, sample, coalescent) by endtime in hostID
-  nodeorder <- order(c(edgeintimes, newcoaltimes), c(rep("x", length(edgeintimes)), 
-                                                     rep("c", length(newcoaltimes))))
-  edgeend <- c(edgesin, coalnodes)[nodeorder]
-  edgeendtimes <- c(edgeintimes, newcoaltimes)[nodeorder]
-  
-  # take bottleneck nodes as needed
-  if(nr_of_bnodes > 0) {
-    availablebnodes <- which(pbe1$v$nodetypes == "0")
-    if(length(availablebnodes) >= nr_of_bnodes) {
-      bnodes <- head(availablebnodes, nr_of_bnodes)
-    } else {
-      bnode_shortage <- nr_of_bnodes - length(availablebnodes)
-      bnodes <- c(availablebnodes, length(pbe1$v$nodeparents) + 1:bnode_shortage)
-      pbe1$v$nodetypes[bnodes] <- "b" # other nodevectors are extended automatically
-    }
-    pbe1$v$nodetypes[bnodes] <- "b"
-    pbe1$v$nodehosts[bnodes] <- pbe1$infector.proposed.ID
-    pbe1$v$nodeparents[bnodes] <- -1L
-    pbe1$v$nodetimes[bnodes] <- pbe1$tinf.prop
-  } else {
-    bnodes <- c()
-  }
-  
-  # sample topology of minitree within hostID
-  edgestart <- sample_topology(edgeend, 
-                               edgeendtimes, 
-                               c(rep("x", length(edgeintimes)), 
-                                 rep("c", length(newcoaltimes)))[nodeorder],
-                               c(transnode, bnodes))
-  if(nr_of_bnodes > 0) edgestart <- link_s_to_t(edgestart, edgeend, 
-                                                snode = pbe1$hostID, 
-                                                tnode = transnode)
-  
-  # change minitree in hostID
-  pbe1$v$nodehosts[edgeend] <- pbe1$hostID
-  pbe1$v$nodeparents[edgeend] <- edgestart
-  pbe1$v$nodetimes[edgeend] <- edgeendtimes
-  
-
-  ### phylotree in infector
-  rewire_pullnodes_wh_loose(pbe1$v$infectors[pbe1$hostID])
-}
-
-rewire_pathD_wh_loose <- function() {
-  ### First, dismantle minitree
-  # edges entering hostID, with endtimes
-  edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes %in% c("s", "x", "t", "b"))
-  edgeintimes <- pbe1$v$nodetimes[edgesin]
-  
-  # transmission node of hostID
-  transnode <- 2*pbe1$d$nsamples - 1 + pbe1$hostID
-  
-  # coalescent nodes of hostID
-  coalnodes <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes == "c")
-
-  # bottleneck nodes of hostID
-  bottlenodes <- pbe1$v$nodeparents[c(coalnodes, edgesin)]
-  bottlenodes <- bottlenodes[pbe1$v$nodetypes[bottlenodes] == "b"]
-  
-  # more coalescent nodes: 
-  # (1) parent of transmission edge leaving hostID
-  coalnodes <- c(take_cnode(transnode), coalnodes)
-  # (2) parents of bottleneck edges leaving hostID
-  for(bnode in bottlenodes) {
-    coalnodes <- c(take_cnode(bnode), coalnodes)
-  }
-  # (3) coalescent nodes before current index
-  coalnodes <- c(which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes == "c"), coalnodes)
-  
-  # new edges entering hostID, from old index
-  newedgesin <- which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes %in% c("t", "b"))
-  newedgeintimes <- pbe1$v$nodetimes[newedgesin]
-  
-  # dismantle topology, move transmission and bottleneck nodes
-  pbe1$v$nodetypes[bottlenodes] <- 0
-  pbe1$v$nodehosts[c(coalnodes, bottlenodes)] <- -1L
-  pbe1$v$nodehosts[newedgesin] <- pbe1$hostID
-  pbe1$v$nodehosts[transnode] <- 0L
-  pbe1$v$nodeparents[c(edgesin, newedgesin, coalnodes, transnode, bottlenodes)] <- -1L
-  pbe1$v$nodetimes[transnode] <- pbe1$tinf.prop
-
-  ### Second, change transmission tree
-  pbe1$v$inftimes[pbe1$hostID] <- pbe1$tinf.prop
-  pbe1$v$infectors[pbe1$v$infectors == 0] <- pbe1$hostID
-  pbe1$v$infectors[pbe1$hostID] <- 0L
-  
-  ### Third, rebuild minitree in hostID
-  # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
-  newcoaltimes <- sample_coaltimes(c(edgeintimes, newedgeintimes), pbe1$tinf.prop, pbe1$p)
-  nr_of_bnodes <- sum(newcoaltimes < pbe1$tinf.prop)
-  if(nr_of_bnodes > 0) {
-    newcoaltimes <- tail(newcoaltimes, - nr_of_bnodes)
-  }
-  coalnodes <- tail(coalnodes, length(newcoaltimes))
-  
-  # order all edges (transmission, sample, coalescent) by endtime in hostID
-  nodeorder <- order(c(edgeintimes, newedgeintimes, newcoaltimes), c(rep("x", length(edgeintimes) + length (newedgeintimes)), 
-                                                                     rep("c", length(newcoaltimes))))
-  edgeend <- c(edgesin, newedgesin, coalnodes)[nodeorder]
-  edgeendtimes <- c(edgeintimes, newedgeintimes, newcoaltimes)[nodeorder]
-  
-  # take bottleneck nodes as needed
-  if(nr_of_bnodes > 0) {
-    availablebnodes <- which(pbe1$v$nodetypes == "0")
-    if(length(availablebnodes) >= nr_of_bnodes) {
-      bnodes <- head(availablebnodes, nr_of_bnodes)
-    } else {
-      bnode_shortage <- nr_of_bnodes - length(availablebnodes)
-      bnodes <- c(availablebnodes, length(pbe1$v$nodeparents) + 1:bnode_shortage)
-    }
-    pbe1$v$nodetypes[bnodes] <- "b"
-    pbe1$v$nodehosts[bnodes] <- 0L
-    pbe1$v$nodeparents[bnodes] <- -1L
-    pbe1$v$nodetimes[bnodes] <- pbe1$tinf.prop
-  } else {
-    bnodes <- c()
-  }
-  
-  # sample topology of minitree within hostID
-  edgestart <- sample_topology(edgeend, 
-                               edgeendtimes, 
-                               c(rep("x", length(c(edgeintimes, newedgeintimes))), 
-                                 rep("c", length(newcoaltimes)))[nodeorder],
-                               c(transnode, bnodes))
-  if(nr_of_bnodes > 0) edgestart <- link_s_to_t(edgestart, edgeend, 
-                                                snode = pbe1$hostID, 
-                                                tnode = transnode)
-  
-  # change minitree in hostID
-  pbe1$v$nodehosts[edgeend] <- pbe1$hostID
-  pbe1$v$nodeparents[edgeend] <- edgestart
-  pbe1$v$nodetimes[edgeend] <- edgeendtimes
-  
-
-  ### phylotree before index case
-  rewire_pullnodes_wh_loose(0)
-  
 }
 
 rewire_pathB_wh_loose <- function() {
@@ -607,9 +348,189 @@ rewire_pathCF1_wh_loose <- function() {
   rewire_pullnodes_wh_loose(oldinfector)
 }
 
+rewire_pathD_wh_loose <- function() {
+  ### First, dismantle minitree
+  # edges entering hostID, with endtimes
+  edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes %in% c("s", "x", "t", "b"))
+  edgeintimes <- pbe1$v$nodetimes[edgesin]
+  
+  # transmission node of hostID
+  transnode <- 2*pbe1$d$nsamples - 1 + pbe1$hostID
+  
+  # coalescent nodes of hostID
+  coalnodes <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes == "c")
 
-# newindex <- newinfector
-# set.seed(1)
+  # bottleneck nodes of hostID
+  bottlenodes <- pbe1$v$nodeparents[c(coalnodes, edgesin)]
+  bottlenodes <- bottlenodes[pbe1$v$nodetypes[bottlenodes] == "b"]
+  
+  # more coalescent nodes: 
+  # (1) parent of transmission edge leaving hostID
+  coalnodes <- c(take_cnode(transnode), coalnodes)
+  # (2) parents of bottleneck edges leaving hostID
+  for(bnode in bottlenodes) {
+    coalnodes <- c(take_cnode(bnode), coalnodes)
+  }
+  # (3) coalescent nodes before current index
+  coalnodes <- c(which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes == "c"), coalnodes)
+  
+  # new edges entering hostID, from old index
+  newedgesin <- which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes %in% c("t", "b"))
+  newedgeintimes <- pbe1$v$nodetimes[newedgesin]
+  
+  # dismantle topology, move transmission and bottleneck nodes
+  pbe1$v$nodetypes[bottlenodes] <- 0
+  pbe1$v$nodehosts[c(coalnodes, bottlenodes)] <- -1L
+  pbe1$v$nodehosts[newedgesin] <- pbe1$hostID
+  pbe1$v$nodehosts[transnode] <- 0L
+  pbe1$v$nodeparents[c(edgesin, newedgesin, coalnodes, transnode, bottlenodes)] <- -1L
+  pbe1$v$nodetimes[transnode] <- pbe1$tinf.prop
+
+  ### Second, change transmission tree
+  pbe1$v$inftimes[pbe1$hostID] <- pbe1$tinf.prop
+  pbe1$v$infectors[pbe1$v$infectors == 0] <- pbe1$hostID
+  pbe1$v$infectors[pbe1$hostID] <- 0L
+  
+  ### Third, rebuild minitree in hostID
+  # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
+  newcoaltimes <- sample_coaltimes(c(edgeintimes, newedgeintimes), pbe1$tinf.prop, pbe1$p)
+  nr_of_bnodes <- sum(newcoaltimes < pbe1$tinf.prop)
+  if(nr_of_bnodes > 0) {
+    newcoaltimes <- tail(newcoaltimes, - nr_of_bnodes)
+  }
+  coalnodes <- tail(coalnodes, length(newcoaltimes))
+  
+  # order all edges (transmission, sample, coalescent) by endtime in hostID
+  nodeorder <- order(c(edgeintimes, newedgeintimes, newcoaltimes), c(rep("x", length(edgeintimes) + length (newedgeintimes)), 
+                                                                     rep("c", length(newcoaltimes))))
+  edgeend <- c(edgesin, newedgesin, coalnodes)[nodeorder]
+  edgeendtimes <- c(edgeintimes, newedgeintimes, newcoaltimes)[nodeorder]
+  
+  # take bottleneck nodes as needed
+  if(nr_of_bnodes > 0) {
+    availablebnodes <- which(pbe1$v$nodetypes == "0")
+    if(length(availablebnodes) >= nr_of_bnodes) {
+      bnodes <- head(availablebnodes, nr_of_bnodes)
+    } else {
+      bnode_shortage <- nr_of_bnodes - length(availablebnodes)
+      bnodes <- c(availablebnodes, length(pbe1$v$nodeparents) + 1:bnode_shortage)
+    }
+    pbe1$v$nodetypes[bnodes] <- "b"
+    pbe1$v$nodehosts[bnodes] <- 0L
+    pbe1$v$nodeparents[bnodes] <- -1L
+    pbe1$v$nodetimes[bnodes] <- pbe1$tinf.prop
+  } else {
+    bnodes <- c()
+  }
+  
+  # sample topology of minitree within hostID
+  edgestart <- sample_topology(edgeend, 
+                               edgeendtimes, 
+                               c(rep("x", length(c(edgeintimes, newedgeintimes))), 
+                                 rep("c", length(newcoaltimes)))[nodeorder],
+                               c(transnode, bnodes))
+  if(nr_of_bnodes > 0) edgestart <- link_s_to_t(edgestart, edgeend, 
+                                                snode = pbe1$hostID, 
+                                                tnode = transnode)
+  
+  # change minitree in hostID
+  pbe1$v$nodehosts[edgeend] <- pbe1$hostID
+  pbe1$v$nodeparents[edgeend] <- edgestart
+  pbe1$v$nodetimes[edgeend] <- edgeendtimes
+  
+
+  ### phylotree before index case
+  rewire_pullnodes_wh_loose(0)
+  
+}
+
+rewire_pathE_wh_loose <- function() {
+  ### First, dismantle minitree
+  # edges entering hostID, with endtimes
+  edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes %in% c("s", "x", "t", "b"))
+  edgeintimes <- pbe1$v$nodetimes[edgesin]
+  
+  # transmission node of hostID
+  transnode <- 2*pbe1$d$nsamples - 1 + pbe1$hostID
+  
+  # coalescent nodes of hostID
+  coalnodes <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes == "c")
+  
+  # bottleneck nodes of hostID
+  bottlenodes <- pbe1$v$nodeparents[c(coalnodes, edgesin)]
+  bottlenodes <- bottlenodes[pbe1$v$nodetypes[bottlenodes] == "b"]
+  
+  # more coalescent nodes: 
+  # (1) parent of transmission edge leaving hostID
+  coalnodes <- c(take_cnode(transnode), coalnodes)
+  # (2) parents of bottleneck edges leaving hostID
+  for(bnode in bottlenodes) {
+    coalnodes <- c(take_cnode(bnode), coalnodes)
+  }
+  
+  # dismantle topology, move transmission node
+  pbe1$v$nodetypes[bottlenodes] <- 0
+  pbe1$v$nodehosts[c(coalnodes, bottlenodes)] <- -1L
+  pbe1$v$nodehosts[transnode] <- pbe1$infector.proposed.ID
+  pbe1$v$nodeparents[c(edgesin, coalnodes, transnode, bottlenodes)] <- -1L
+  pbe1$v$nodetimes[transnode] <- pbe1$tinf.prop
+
+  ### Second, change transmission tree
+  pbe1$v$inftimes[pbe1$hostID] <- pbe1$tinf.prop
+  pbe1$v$infectors[pbe1$hostID] <- pbe1$infector.proposed.ID
+
+  ### Third, rebuild minitree in hostID
+  # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
+  newcoaltimes <- sample_coaltimes(c(edgeintimes), pbe1$tinf.prop, pbe1$p)
+  nr_of_bnodes <- sum(newcoaltimes < pbe1$tinf.prop)
+  if(nr_of_bnodes > 0) {
+    newcoaltimes <- tail(newcoaltimes, - nr_of_bnodes)
+  }
+  coalnodes <- tail(coalnodes, length(newcoaltimes))
+  
+  # order all edges (transmission, sample, coalescent) by endtime in hostID
+  nodeorder <- order(c(edgeintimes, newcoaltimes), c(rep("x", length(edgeintimes)), 
+                                                     rep("c", length(newcoaltimes))))
+  edgeend <- c(edgesin, coalnodes)[nodeorder]
+  edgeendtimes <- c(edgeintimes, newcoaltimes)[nodeorder]
+  
+  # take bottleneck nodes as needed
+  if(nr_of_bnodes > 0) {
+    availablebnodes <- which(pbe1$v$nodetypes == "0")
+    if(length(availablebnodes) >= nr_of_bnodes) {
+      bnodes <- head(availablebnodes, nr_of_bnodes)
+    } else {
+      bnode_shortage <- nr_of_bnodes - length(availablebnodes)
+      bnodes <- c(availablebnodes, length(pbe1$v$nodeparents) + 1:bnode_shortage)
+      pbe1$v$nodetypes[bnodes] <- "b" # other nodevectors are extended automatically
+    }
+    pbe1$v$nodetypes[bnodes] <- "b"
+    pbe1$v$nodehosts[bnodes] <- pbe1$infector.proposed.ID
+    pbe1$v$nodeparents[bnodes] <- -1L
+    pbe1$v$nodetimes[bnodes] <- pbe1$tinf.prop
+  } else {
+    bnodes <- c()
+  }
+  
+  # sample topology of minitree within hostID
+  edgestart <- sample_topology(edgeend, 
+                               edgeendtimes, 
+                               c(rep("x", length(edgeintimes)), 
+                                 rep("c", length(newcoaltimes)))[nodeorder],
+                               c(transnode, bnodes))
+  if(nr_of_bnodes > 0) edgestart <- link_s_to_t(edgestart, edgeend, 
+                                                snode = pbe1$hostID, 
+                                                tnode = transnode)
+  
+  # change minitree in hostID
+  pbe1$v$nodehosts[edgeend] <- pbe1$hostID
+  pbe1$v$nodeparents[edgeend] <- edgestart
+  pbe1$v$nodetimes[edgeend] <- edgeendtimes
+  
+
+  ### phylotree in infector
+  rewire_pullnodes_wh_loose(pbe1$v$infectors[pbe1$hostID])
+}
 
 rewire_pathCF2_wh_loose <- function() {
   ### Identify new infector and old infector
@@ -772,15 +693,87 @@ rewire_pathCF2_wh_loose <- function() {
   #   }    
   # }
 }
-# currentID <- pbe1$v$infectors[pbe1$hostID]
-# loosenodes <- c(transnode, bnodes)
-# free_cnodes <- coalnodes_toinfector
-# currentID <- pbe1$hostID
-# loosenodes <- c(pbe1$hostID, sampleedges_x)
-# free_cnodes <- coalnodes
-# currentID <- newinfector
-# loosenodes <- c(newinfector, sampleedges_nix)
-# free_cnodes <- coalnodes_ni
+
+rewire_pathK_wh_loose <- function() {
+  ### First, dismantle minitree
+  # edges entering hostID, with endtimes
+  edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes %in% c("s", "x", "t", "b"))
+  edgeintimes <- pbe1$v$nodetimes[edgesin]
+  
+  # transmission node of hostID
+  transnode <- 2*pbe1$d$nsamples - 1 + pbe1$hostID
+  
+  # bottleneck nodes
+  all_edges <- which(pbe1$v$nodehosts == pbe1$hostID)
+  bottlenodes <- pbe1$v$nodeparents[all_edges]
+  bottlenodes <- bottlenodes[pbe1$v$nodetypes[bottlenodes] == "b"]
+  
+  # all coalescent nodes in new infector and hostID
+  coalnodes <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes == "c")
+  
+  # more coalescent nodes:
+  # parents of bottleneck edges leaving hostID
+  for(bnode in bottlenodes) {
+    coalnodes <- c(take_cnode(bnode), coalnodes)
+  }
+
+  # dismantle topology, move transmission node
+  pbe1$v$nodetypes[bottlenodes] <- 0
+  pbe1$v$nodehosts[c(coalnodes, bottlenodes)] <- -1
+  pbe1$v$nodeparents[c(edgesin, coalnodes, bottlenodes)] <- -1
+
+  ### Second, rebuild minitree
+  # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
+  newcoaltimes <- sample_coaltimes(edgeintimes, pbe1$v$inftimes[pbe1$hostID], pbe1$p)
+  nr_of_bnodes <- sum(newcoaltimes < pbe1$v$inftimes[pbe1$hostID])
+  if(nr_of_bnodes > 0) {
+    newcoaltimes <- tail(newcoaltimes, - nr_of_bnodes)
+  }
+  coalnodes <- tail(coalnodes, length(newcoaltimes))
+  
+  # order all edges (transmission, sample, coalescent) by endtime in hostID
+  nodeorder <- order(c(edgeintimes, newcoaltimes), c(rep("x", length(edgeintimes)), 
+                                                     rep("c", length(newcoaltimes))))
+  edgeend <- c(edgesin, coalnodes)[nodeorder]
+  edgeendtimes <- c(edgeintimes, newcoaltimes)[nodeorder]
+  
+  # take bottleneck nodes as needed
+  if(nr_of_bnodes > 0) {
+    availablebnodes <- which(pbe1$v$nodetypes == "0")
+    if(length(availablebnodes) >= nr_of_bnodes) {
+      bnodes <- head(availablebnodes, nr_of_bnodes)
+    } else {
+      bnode_shortage <- nr_of_bnodes - length(availablebnodes)
+      bnodes <- c(availablebnodes, length(pbe1$v$nodetypes) + 1:bnode_shortage)
+    }
+    pbe1$v$nodetypes[bnodes] <- "b"
+    pbe1$v$nodehosts[bnodes] <- pbe1$v$infectors[pbe1$hostID]
+    pbe1$v$nodeparents[bnodes] <- -1L
+    pbe1$v$nodetimes[bnodes] <- pbe1$v$inftimes[pbe1$hostID]
+  } else {
+    bnodes <- c()
+  }
+  
+  # sample topology of minitree within hostID
+  edgestart <- sample_topology(edgeend, 
+                               edgeendtimes, 
+                               c(rep("x", length(edgeintimes)), 
+                                 rep("c", length(newcoaltimes)))[nodeorder],
+                               c(transnode, bnodes))
+  if(nr_of_bnodes > 0) edgestart <- link_s_to_t(edgestart, edgeend, 
+                                                snode = pbe1$hostID, 
+                                                tnode = transnode)
+  
+  # change minitree in hostID
+  pbe1$v$nodehosts[edgeend] <- pbe1$hostID
+  pbe1$v$nodeparents[edgeend] <- edgestart
+  pbe1$v$nodetimes[edgeend] <- edgeendtimes
+  
+  ### phylotree in infector
+  rewire_pullnodes_wh_loose(pbe1$v$infectors[pbe1$hostID])
+}
+
+
 
 rewire_pullnodes_wh_loose <- function(currentID) {
   loosenodes <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodeparents == -1)
@@ -916,24 +909,4 @@ rewire_pullnodes_wh_loose <- function(currentID) {
     }
   }
 }
-# currentID <- pbe1$v$infectors[currentID]
-# loosenodes <- bnodes
-# free_cnodes <- free_cnodestoinfector
-
-# childnode <- transnode
-# take_cnode_sample <- function(childnode) {
-#   parentnode <- pbe1$v$nodeparents[childnode]
-#   while(pbe1$v$nodetypes[parentnode] %in% c("t", "b")) {
-#     pbe1$v$nodeparents[childnode] <- -1
-#     childnode <- parentnode
-#     parentnode <- pbe1$v$nodeparents[parentnode]
-#     pbe1$v$nodetypes[childnode] <- "0"
-#   }
-#   second_childnode <- setdiff(which(pbe1$v$nodeparents == parentnode), childnode)
-#   pbe1$v$nodeparents[second_childnode] <- pbe1$v$nodeparents[parentnode]
-#   pbe1$v$nodeparents[childnode] <- -1
-#   pbe1$v$nodeparents[parentnode] <- -1
-#   pbe1$v$nodehosts[parentnode] <- -1
-#   return(parentnode)
-# }
 

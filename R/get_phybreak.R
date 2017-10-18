@@ -1,5 +1,3 @@
-### get current state of the tree ### This file contains get.XXX functions
-
 #' Extracting from a phybreak object
 #' 
 #' @param x An object of class \code{phybreak}.
@@ -13,7 +11,7 @@
 #' @examples 
 #' #First build a phybreak-object.
 #' simulation <- sim_phybreak(obsize = 5)
-#' MCMCstate <- phybreak(data = simulation)
+#' MCMCstate <- phybreak(dataset = simulation)
 #' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' 

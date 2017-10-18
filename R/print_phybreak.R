@@ -1,4 +1,3 @@
-
 #' Description of phybreak object.
 #' 
 #' Give a short description of the data and the model, with the current parameter values.
