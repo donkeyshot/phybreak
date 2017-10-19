@@ -33,8 +33,8 @@ Function to take (additional) samples from the posterior distribution of a phylo
 }
 \examples{
 #First create a phybreak-object
-simulation <- sim.phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation)
+simulation <- sim_phybreak(obsize = 5)
+MCMCstate <- phybreak(dataset = simulation)
 
 MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
 MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)

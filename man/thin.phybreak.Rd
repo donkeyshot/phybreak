@@ -24,7 +24,7 @@ The function removes (all or some) posterior samples by thinning and/or removing
 \examples{
 #First create a phybreak-object
 simulation <- sim_phybreak(obsize = 5)
-MCMCstate <- phybreak(data = simulation$sequences, times = simulation$sample.times)
+MCMCstate <- phybreak(dataset = simulation)
 MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
 MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 
