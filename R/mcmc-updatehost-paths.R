@@ -340,8 +340,12 @@ update_host_withinhost <- function(hostID) {
   
   ### update if hostID is not index and tinf.prop is after the first secondary case
   update_pathF <- function(exchange) {
-      ### change the trees
-      if(exchange) {
+    if(tostop) {
+      pbetest <<- pbe1
+      stop()
+    }
+    ### change the trees
+    if(exchange) {
       rewire_pathCF2(pbe0$p$wh.model %in% c(4, 5, "exponential", "constant"))
     } else {
       rewire_pathCF1(pbe0$p$wh.model %in% c(4, 5, "exponential", "constant"))

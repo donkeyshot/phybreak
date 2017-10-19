@@ -46,14 +46,16 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   print_screen_log(0)
   
   curtime <- Sys.time()
-  
+tostop <<- FALSE
   for (rep in 1:ncycles) {
     if(Sys.time() - curtime > 10) {
       print_screen_log(rep)
       curtime <- Sys.time()
     }
-
+# cat(paste0("rep ", rep, ": "))
     for (i in sample(x$p$obs)) {
+      # cat(paste0(i, " "))
+      # if(rep == 3 && i == 8) {Sys.sleep(1); tostop <<- TRUE}
       if (runif(1) < 1 - keepphylo - withinhost_only) 
         update_host(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
           update_host_keepphylo(i)
