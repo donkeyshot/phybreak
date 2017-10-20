@@ -150,7 +150,7 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
 
 
 transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
-
+  
   ### extract and order samples
   refdate <- min(vars$sample.times)
   samtimes <- vars$sample.times - refdate
@@ -192,20 +192,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   hostnames <- unique(samhosts)
   samhosts <- match(samhosts, hostnames)
   nhosts <- length(hostnames)
-  # samtimes <- as.numeric(sort(samtimes))
-  # samplenames <- names(samhosts)
-  # hostnames <- unique(samhosts)
-  # samhosts <- match(samhosts, hostnames)
-  # nhosts <- length(hostnames)
-  
-  # ### reorder sampletimes: first the first per host, then all others
-  # 
-  # firstsamples <- !duplicated(samhosts)
-  # finalorder <- c(which(firstsamples), which(!firstsamples))
-  # samtimes <- samtimes[finalorder]
-  # samhosts <- samhosts[finalorder]
-  # samplenames <- samplenames[finalorder]
-  
+
   ### infection times and infectors
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
     resample <- TRUE
@@ -219,36 +206,44 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
       stop("numbers of infection times and infectors should match the number of sampled hosts")
     }
   }
-
-  res <- list(
-    inftimes = inftimes,
-    infectors = infectors,
-    nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1), rep("t", nhosts)),  
-      #node type (primary sampling, extra sampling, coalescent)
-    nodetimes = c(samtimes, samtimes[-1], inftimes),
-    nodehosts = c(samhosts, rep(-1, length(samhosts) - 1), infectors),
-    nodeparents = rep(-1, 2 * nsamples + nhosts - 1)
-  )
+  
   
   if(is.null(vars$sim.tree) | resample) {
+    res <- list(
+      inftimes = inftimes,
+      infectors = infectors,
+      nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1), rep("t", nhosts)),  
+      #node type (primary sampling, extra sampling, coalescent)
+      nodetimes = c(samtimes, samtimes[-1], inftimes),
+      nodehosts = c(samhosts, rep(-1, length(samhosts) - 1), infectors),
+      nodeparents = rep(-1, 2 * nsamples + nhosts - 1)
+    )
     list2env(list(v = res, p = resamplepars, d = list(nsamples = nsamples)), pbe1)
-    # pbetest <<- pbe1
-    # stop()
+
     if(resamplepars$wh.model %in% c(4, 5, "exponential", "constant")) {
       invisible(sapply(1:nhosts, rewire_pullnodes_wh_loose))
     } else {
       invisible(sapply(0:nhosts, rewire_pullnodes_wh_strict))
     }
     res <- environment2phybreak(pbe1$v)
-
+    
   } else {
+    res <- list(
+      inftimes = inftimes,
+      infectors = infectors,
+      nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1)),  
+      #node type (primary sampling, extra sampling, coalescent)
+      nodetimes = c(samtimes, samtimes[-1]),
+      nodehosts = c(samhosts, rep(-1, length(samhosts) - 1)),
+      nodeparents = rep(-1, 2 * nsamples - 1)
+    )
     phytree <- vars$sim.tree
     res$nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:nsamples]))
     res$nodeparents <- c(0, phytree$edge[,1])[order(c(nsamples + 1, phytree$edge[, 2]))]
     list2env(list(v = res, p = list(wh.model = "single")), pbe1)
     make_nodehosts(pbe1)
     res <- pbe1$v
-    }
+  }
   
   return(list(
     d = list(names = samplenames,
@@ -339,6 +334,7 @@ environment2phybreak <- function(varsenv) {
   varlength <- sum(varsenv$nodetypes %in% c("s", "x", "c"))
   
   np <- c(1, 1 + varsenv$nodeparents)
+  np[np == 0] <- which(np == 0)
   while(any(np[1:(varlength + 1)] > 1 + varlength)) {
     np[np > 1 + varlength] <- np[np][np > 1 + varlength]
   }
@@ -398,14 +394,15 @@ whichgeneration <- function(infectors, hostID) {
 
 
 make_nodehosts <- function(phybreakenv) {
-  for(i in 1:length(phybreakenv$v$infectors)) {
-    nodepath <- .ptr(phybreakenv$v$nodeparents, i)
+  whmodel2 <- all(phybreakenv$v$nodetimes[phybreakenv$v$nodeparents[phybreakenv$v$nodetypes == "s"]] <= 
+                    phybreakenv$v$inftimes) + 1
+  for(i in 1:length(phybreakenv$v$nodetypes %in% c("s", "x"))) {
+    nodepath <- .ptr(as.integer(phybreakenv$v$nodeparents), i)
     hostpath <- c(.ptr(phybreakenv$v$infectors, phybreakenv$v$nodehosts[i]), 0)
     hostpathtimes <- c(phybreakenv$v$inftimes[hostpath], -Inf) + 
-      switch(phybreakenv$p$wh.model,
-             single = 1e-10,
-             infinite = -1e-10,
-             0)
+      switch(whmodel2,
+             1e-10,
+             -1e-10)
     phybreakenv$v$nodehosts[nodepath] <- 
       invisible(sapply(nodepath, function(x) hostpath[hostpathtimes < phybreakenv$v$nodetimes[x]][1]))
   }
