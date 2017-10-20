@@ -108,7 +108,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         arrow.col <- c("blue", "green", "orange", "red", "purple")
       }
       tg.mean <- median(x$s$mG)
-      tg.shape = x$p$shape.gen
+      tg.shape = x$p$gen.shape
     } else if (samplenr == 0) {
       # plot.which == "sample"
       
