@@ -77,52 +77,44 @@ lik_sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
 
 ### calculate the log-likelihood of coalescent intervals 
 lik_coaltimes <- function(phybreakenv) {
-  return(sum(sapply(0:phybreakenv$p$obs, lik_coaltimes_host, phybreakenv = phybreakenv)))
-}
+  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
+    return(0)
+  
+  remove0nodes <- phybreakenv$v$nodetypes != "0"
+  nodetypes <- phybreakenv$v$nodetypes[remove0nodes]
+  nodehosts <- phybreakenv$v$nodehosts[remove0nodes]
+  nodetimes <- phybreakenv$v$nodetimes[remove0nodes]
+  inftimes <- c(min(phybreakenv$v$inftimes) - phybreakenv$p$sample.mean, phybreakenv$v$inftimes)
+  
+  coalnodes <- nodetypes == "c"
+  orderednodes <- order(nodehosts, nodetimes)
 
-### calculate the log-likelihood of coalescent intervals 
-lik_coaltimes_host <- function(phybreakenv, hostID) {
-  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) return(0)
+  coalnodes <- coalnodes[orderednodes]
+  orderedhosts <- nodehosts[orderednodes]
   
-  if(hostID > 0) {
-    bnodes_from_infector <- which(phybreakenv$v$nodehosts == phybreakenv$v$infectors[hostID] & phybreakenv$v$nodetypes == "b")
-    bnodes_in_infectees <- which(phybreakenv$v$nodeparents %in% bnodes_from_infector)
-    bottleneck <- 1 + length(phybreakenv$v$nodehosts[bnodes_in_infectees] == hostID)
-    starttime <- phybreakenv$v$inftimes[hostID]
-    inftime <- 0
-  } else {
-    bottleneck <- 1
-    starttime <- min(phybreakenv$v$inftimes) - phybreakenv$p$sample.mean
-    inftime <- min(phybreakenv$v$nodetimes) - 1 - starttime
-  }
+  bottlenecks <- sapply(0:phybreakenv$p$obs, function(i) sum((orderedhosts == i) * (1 - 2 * coalnodes))) - 1
+  dlineage <- 2 * c(FALSE, head(coalnodes, -1)) - 1
+  dlineage[!duplicated(orderedhosts)] <- bottlenecks
+  nrlineages <- 1 + cumsum(dlineage)
   
-  ### minustimes
-  minustimes <- phybreakenv$v$nodetimes[phybreakenv$v$nodehosts == hostID & phybreakenv$v$nodetypes %in% c("s", "x", "t", "b")] - starttime
+  whtimes <- nodetimes[orderednodes] - inftimes[orderedhosts + 1]
+  whtimes[c(!duplicated(orderedhosts)[-1], FALSE)] <- 0
   
-  plustimes <- phybreakenv$v$nodetimes[phybreakenv$v$nodehosts == hostID & phybreakenv$v$nodetypes == "c"] - starttime
-  
-  eventslist <- c(bottleneck, rep(-1, length(minustimes)), rep(1, length(plustimes)))
-  timeslist <- c(inftime, minustimes, plustimes)
-  eventslist <- eventslist[order(timeslist)]
-  timeslist <- sort(timeslist)
-  
-  lineagecounts <- cumsum(eventslist)
-  coalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
-                      linear = 1/(phybreakenv$p$wh.slope * plustimes),
-                      exponential = 1/(phybreakenv$p$wh.level * exp(phybreakenv$p$wh.exponent * plustimes)),
-                      constant = rep(1, length(plustimes))/phybreakenv$p$wh.level)
-  logcoalrates <- log(coalrates)
-  cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
-                         linear = c(0, log(timeslist[-1]) / phybreakenv$p$wh.slope),
-                         exponential = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
-                                             exp(phybreakenv$p$wh.exponent * timeslist)),
-                         constant = timeslist/phybreakenv$p$wh.level)
-  logcoalescapes <- -(tail(cumcoalrates, -1) - head(cumcoalrates, -1)) * head(choose(lineagecounts, 2), -1)
+  logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
+                         linear = -log(phybreakenv$p$wh.slope * whtimes[coalnodes]),
+                         exponential = 
+                           -log(phybreakenv$p$wh.level * 
+                                    exp(phybreakenv$p$wh.exponent * 
+                                          whtimes[coalnodes])),
+                         constant = -log(phybreakenv$p$wh.level) * coalnodes)
+  cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite=,
+                         linear = log(whtimes + (whtimes == 0)) / phybreakenv$p$wh.slope,
+                         exponential  = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
+                                              exp(phybreakenv$p$wh.exponent * whtimes)),
+                         constant = whtimes/phybreakenv$p$wh.level)
+  coalratediffs <- cumcoalrates - c(0, head(cumcoalrates, -1))
+  logcoalescapes <- -coalratediffs * choose(nrlineages, 2)
   
   return(sum(logcoalrates) + sum(logcoalescapes))
-  
 }
-
-
-
 
