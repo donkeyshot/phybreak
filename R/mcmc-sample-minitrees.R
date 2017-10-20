@@ -22,7 +22,7 @@ sample_coaltimes <- function(tiptimes, inftime, parameters) {
       res <- sort(exp(parameters$wh.slope * tnodetrans))
       # make sure that all branches will have positive length
       res <- inftime + apply(cbind(res,
-                         min(10^-5,tiptimes/length(tiptimes))*(1:length(res))), 1, max)
+                         min(10^-5,(tiptimes - inftime)/length(tiptimes))*(1:length(res))), 1, max)
       
       return(res)
     },
