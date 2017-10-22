@@ -280,7 +280,7 @@ sim_sequences <- function (sim.object, mu, sequence.length) {
     edgelengths[edgelengths < 0] <- 0  #rounding errors close to 0
     nmutations <- rpois(1, mu * sequence.length * sum(edgelengths))
     #place mutations on edges, order by time of edge (end)
-    mutedges <- sample(2 * Nsamples + obs - 1, size = nmutations, replace = TRUE, prob = edgelengths)
+    mutedges <- sample(length(edgelengths), size = nmutations, replace = TRUE, prob = edgelengths)
     mutedges <- mutedges[order(nodetimes[mutedges])]
     #sample mutations: which locus, to which nucleotide
     mutsites <- sample(sequence.length, size = nmutations, replace = TRUE)
