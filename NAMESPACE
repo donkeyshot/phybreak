@@ -3,6 +3,7 @@
 S3method(ESS,factor)
 S3method(ESS,numeric)
 S3method(ESS,phybreak)
+S3method(c,phybreak)
 S3method(logLik,phybreak)
 S3method(plot,phybreak)
 S3method(plot,phybreakdata)
