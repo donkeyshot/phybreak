@@ -55,7 +55,10 @@
 #' @export
 transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesize = Inf, infector.name = TRUE, 
     support = c("proportion", "count"), infection.times = c("all", "infector", "infector.sd"), time.quantiles = c(0.025, 0.5, 0.975), phylo.class = FALSE) {
-    chainlength <- length(x$s$mu)
+  if (!inherits(x, "phybreak")) 
+    stop("object should be of class \"phybreak\"")
+  
+  chainlength <- length(x$s$mu)
     
     ### tests
     if (chainlength == 0) 
