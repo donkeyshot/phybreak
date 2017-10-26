@@ -16,9 +16,19 @@
 #' print(x)
 #' @export
 print.phybreak <- function(x, ...) {
+  print_phybreak_general(x)
+  cat("\n\n")
   print_data(x)
   cat("\n\n")
   print_model(x)
+}
+
+print_phybreak_general <- function(x) {
+  if (!inherits(x, "phybreak")) {
+    stop("object must be of class \"phybreak\"")
+  }
+  
+  cat("A phybreak object with ", length(x$s$mu), " posterior samples.", sep = "")
 }
 
 print_model <- function(x) {
