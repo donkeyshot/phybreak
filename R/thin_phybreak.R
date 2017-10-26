@@ -57,7 +57,7 @@ thin.phybreak <- function(x, thin = 1, nkeep = Inf, ...) {
       mG = s$mG[tokeep], 
       mS = s$mS[tokeep], 
       wh.s = s$wh.s[tokeep], 
-      wh.e = s$wh.s[tokeep], 
-      wh.0 = s$wh.s[tokeep], 
+      wh.e = s$wh.e[tokeep], 
+      wh.0 = s$wh.0[tokeep], 
       logLik = s$logLik[tokeep])))
 }
