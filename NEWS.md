@@ -1,3 +1,22 @@
+# phybreak 0.2.1.9001
+
+### Major changes
+* Added two within-host models allowing for loose transmission bottlenecks, i.e. bottlenecks with more than 1 lineage:
+    * Change in variable and sample slots of phybreak objects, with separate infector and inftime entries for the transmission tree
+    * More within-host parameters in the parameter slot of phybreak objects
+    * Simulation and analysis with the new models
+    * See help(phybreak) for a description of the new models
+* Effective sample size calculation with new function ESS
+    * Applied to factor objects, it applies a method similar to the approximate ESS for phylogenetic tree (Lanfaer et al, 2016)
+    * Applied to phybreak objects, it applies ESS.factor for the infectors, and coda::effectiveSize for all other parameters and variables
+    * See help(ESS) for more information
+* More generic functions working with phybreak objects: c, print, quantile, thin
+* Dots in function names replaced by underscores
+
+### Minor changes
+* Function infectorsets can remove matrix with support for all host-infector pairs
+
+
 # phybreak 0.2.1
 
 ### BUG FIXES
