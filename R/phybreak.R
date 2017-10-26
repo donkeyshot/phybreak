@@ -60,10 +60,20 @@
 #' @param prior.sample.mean.sd Standard deviation of the (gamma) prior distribution of mean sampling interval \code{mS} 
 #'   (only if \code{est.sample.mean = TRUE}).
 #' @param est.wh.slope Whether to estimate the within-host slope or keep it fixed. 
-#' @param prior.wh.shape Shape parameter of the (gamma) prior distribution of \code{slope} 
+#' @param prior.wh.slope.shape Shape parameter of the (gamma) prior distribution of \code{wh.slope} 
 #'   (only if \code{est.wh.slope = TRUE}).
-#' @param prior.wh.mean Mean of the (gamma) prior distribution of \code{slope} 
+#' @param prior.wh.slope.mean Mean of the (gamma) prior distribution of \code{wh.slope} 
 #'   (only if \code{est.wh.slope = TRUE}).
+#' @param est.wh.exponent Whether to estimate the within-host exponent or keep it fixed. 
+#' @param prior.wh.exponent.shape Shape parameter of the (gamma) prior distribution of \code{wh.exponent} 
+#'   (only if \code{est.wh.exponent = TRUE}).
+#' @param prior.wh.exponent.mean Mean of the (gamma) prior distribution of \code{wh.exponent} 
+#'   (only if \code{est.wh.exponent = TRUE}).
+#' @param est.wh.level Whether to estimate the within-host level at \code{t = 0} or keep it fixed. 
+#' @param prior.wh.level.shape Shape parameter of the (gamma) prior distribution of \code{wh.level} 
+#'   (only if \code{est.wh.level = TRUE}).
+#' @param prior.wh.level.mean Mean of the (gamma) prior distribution of \code{wh.level} 
+#'   (only if \code{est.wh.level = TRUE}).
 #' @param use.tree Whether to use the transmission and phylogenetic tree given in data of class \code{'obkData'}, 
 #'   to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
 #'   the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 

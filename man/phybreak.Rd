@@ -88,6 +88,28 @@ Options are:
 
 \item{est.wh.slope}{Whether to estimate the within-host slope or keep it fixed.}
 
+\item{prior.wh.slope.shape}{Shape parameter of the (gamma) prior distribution of \code{wh.slope} 
+(only if \code{est.wh.slope = TRUE}).}
+
+\item{prior.wh.slope.mean}{Mean of the (gamma) prior distribution of \code{wh.slope} 
+(only if \code{est.wh.slope = TRUE}).}
+
+\item{est.wh.exponent}{Whether to estimate the within-host exponent or keep it fixed.}
+
+\item{prior.wh.exponent.shape}{Shape parameter of the (gamma) prior distribution of \code{wh.exponent} 
+(only if \code{est.wh.exponent = TRUE}).}
+
+\item{prior.wh.exponent.mean}{Mean of the (gamma) prior distribution of \code{wh.exponent} 
+(only if \code{est.wh.exponent = TRUE}).}
+
+\item{est.wh.level}{Whether to estimate the within-host level at \code{t = 0} or keep it fixed.}
+
+\item{prior.wh.level.shape}{Shape parameter of the (gamma) prior distribution of \code{wh.level} 
+(only if \code{est.wh.level = TRUE}).}
+
+\item{prior.wh.level.mean}{Mean of the (gamma) prior distribution of \code{wh.level} 
+(only if \code{est.wh.level = TRUE}).}
+
 \item{use.tree}{Whether to use the transmission and phylogenetic tree given in data of class \code{'obkData'}, 
 to create a \code{phybreak}-object with an exact copy of the outbreak. This requires more data in \code{data}: 
 the slot \code{individuals} with vectors \code{infector} and \code{date}, and the slot \code{trees} with at least 
@@ -95,12 +117,6 @@ one phylogenetic tree. Such data can be simulated with \code{\link{sim.phybreak}
 
 \item{...}{If arguments from previous versions of this function are used, they may be interpreted correctly through 
 this argument, but it is better to provide the correct argument names.}
-
-\item{prior.wh.shape}{Shape parameter of the (gamma) prior distribution of \code{slope} 
-(only if \code{est.wh.slope = TRUE}).}
-
-\item{prior.wh.mean}{Mean of the (gamma) prior distribution of \code{slope} 
-(only if \code{est.wh.slope = TRUE}).}
 }
 \value{
 An object of class \code{phybreak} with the following elements
