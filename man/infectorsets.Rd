@@ -6,18 +6,18 @@
 \usage{
 infectorsets(x, which.hosts = "all", percentile = 0.95, minsupport = 0,
   samplesize = Inf, infector.name = TRUE, support = c("proportion",
-  "count"))
+  "count"), output = c("list", "matrix"))
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}
 
-\item{which.hosts}{A vector with hosts (positions in the dataset), or \code{"all"} for all hosts.}
+\item{which.hosts}{A vector with hosts (exact names or positions in the dataset), or \code{"all"} for all hosts.}
 
 \item{percentile}{Return infectors ordered by support, until a cumulative support indicated by \code{percentile},
 support measured by proportion (value between 0 and 1).}
 
-\item{minsupport}{Only return infectors with more support than \code{minsupport}. Values in the range [0,1] are 
-interpreted as support in \code{"proportion"} of posterior samples, values > 1 as code{"count"} of posterior 
+\item{minsupport}{Only return infectors with more support than \code{minsupport}. Values in the range [0,1) are 
+interpreted as support in \code{"proportion"} of posterior samples, values >= 1 as \code{"count"} of posterior 
 samples.}
 
 \item{samplesize}{The number of samples to include (taken from the tail of the MCMC-chain).}
@@ -26,13 +26,19 @@ samples.}
 
 \item{support}{Whether to return the support (= posterior probability) for each infector as a \code{"proportion"} 
 or as a \code{"count"} of posterior trees in which that transmission link or transmission cluster is present.}
+
+\item{output}{Whether to return a \code{list} of hosts with infectors, or a \code{matrix} with support values 
+for all host-infector pairs.
+Arguments \code{percentile}, \code{samplesize}, and \code{infector.name} are not used in case of \code{matrix}.}
 }
 \value{
-A named list with \code{data.frame}s, each with a vector of infectors and a vector of supports.
+A named list with \code{data.frame}s, each with a vector of infectors and a vector of supports. Or a matrix with
+  supports for each host-infector pair.
 }
 \description{
 The function takes a \code{phybreak}-object containing MCMC-samples, and returns for each host 
-  a table with posterior infectors, with support per infector.
+  the posterior infectors, with support per infector. That can be in the form of a list, with infectors ordered
+  by support, or in the form of a matrix with supports for all host-infector combinations (host in columns, infectors in rows).
 }
 \examples{
 #First build a phybreak-object containing samples.
