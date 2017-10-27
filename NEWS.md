@@ -1,3 +1,9 @@
+# phybreak 0.2.1.9002
+
+### BUG FIXES
+* Fixed bug in transtree-methdod "edmonds" that could occur with much uncertainty in the posterior trees
+
+
 # phybreak 0.2.1.9001
 
 ### Major changes
