@@ -66,13 +66,9 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
     if (samplesize > chainlength & samplesize < Inf) {
         warning("desired 'samplesize' larger than number of available samples")
     }
-    if (support[1] != "proportion" && support[1] != "count") {
-        warning("support is given as proportion")
-    }
-    if (infection.times[1] != "all" && infection.times[1] != "infector" && infection.times[1] != "infector.sd") {
-        warning("infection time summaries based on all samples")
-    }
-    if (infection.times[1] == "all" || infection.times[1] == "infector") {
+    support <- match.arg(support)
+    infection.times <- match.arg(infection.times)
+    if (infection.times == "all" || infection.times == "infector") {
         if (class(time.quantiles) != "numeric") {
             stop("time.quantiles should be numeric")
         }
@@ -235,7 +231,7 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
         highestsupportthusfar <- max(treesupports)
         maxsupportwithnextcandidate <- sum(maxsupportperhost[-candidateindex[nextcandidate]]) + 
           indexsupports[candidateindex[nextcandidate]]
-        if(highestsupportthusfar > maxsupportwithnextcandidate) bestYN <- TRUE
+        if(highestsupportthusfar > maxsupportwithnextcandidate || nextcandidate > obsize) bestYN <- TRUE
     }
     
     # find the tree with maximum support
