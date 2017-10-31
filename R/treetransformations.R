@@ -223,7 +223,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     if(resamplepars$wh.model %in% c(4, 5, "exponential", "constant")) {
       invisible(sapply(1:nhosts, rewire_pullnodes_wh_loose))
     } else {
-      invisible(sapply(0:nhosts, rewire_pullnodes_wh_strict))
+      invisible(sapply(0:nhosts, rewire_pullnodes_wh_complete))
     }
     res <- environment2phybreak(pbe1$v)
     

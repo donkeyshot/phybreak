@@ -2,7 +2,7 @@ rewire_pathA <- function(loose_bottleneck) {
   if(loose_bottleneck) {
     rewire_pathA_wh_loose()
   } else {
-    rewire_pathA_wh_strict()
+    rewire_pathA_wh_complete()
   }
 }
 
@@ -10,7 +10,7 @@ rewire_pathB <- function(loose_bottleneck) {
   if(loose_bottleneck) {
     rewire_pathB_wh_loose()
   } else {
-    rewire_pathB_wh_strict()
+    rewire_pathB_wh_complete()
   }
 }
 
@@ -18,7 +18,7 @@ rewire_pathCF1 <- function(loose_bottleneck) {
   if(loose_bottleneck) {
     rewire_pathCF1_wh_loose()
   } else {
-    rewire_pathCF1_wh_strict()
+    rewire_pathCF1_wh_complete()
   }
 }
 
@@ -26,7 +26,7 @@ rewire_pathD <- function(loose_bottleneck) {
   if(loose_bottleneck) {
     rewire_pathD_wh_loose()
   } else {
-    rewire_pathD_wh_strict()
+    rewire_pathD_wh_complete()
   }
 }
 
@@ -34,7 +34,7 @@ rewire_pathE <- function(loose_bottleneck) {
   if(loose_bottleneck) {
     rewire_pathE_wh_loose()
   } else {
-    rewire_pathE_wh_strict()
+    rewire_pathE_wh_complete()
   }
 }
 
@@ -42,7 +42,7 @@ rewire_pathCF2 <- function(loose_bottleneck) {
   if(loose_bottleneck) {
     rewire_pathCF2_wh_loose()
   } else {
-    rewire_pathCF2_wh_strict()
+    rewire_pathCF2_wh_complete()
   }
 }
 
@@ -50,7 +50,7 @@ rewire_pathK <- function(loose_bottleneck) {
   if(loose_bottleneck) {
     rewire_pathK_wh_loose()
   } else {
-    rewire_pathK_wh_strict()
+    rewire_pathK_wh_complete()
   }
 }
 

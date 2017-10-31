@@ -39,9 +39,9 @@
 #'   N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Names and numbers are allowed.
 #'   Options are:
 #'   \enumerate{
-#'     \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (strict bottleneck)
-#'     \item "infinite": effective size = Inf, with strict bottleneck, so coalescence occurs 'just after' transmission in the infectee
-#'     \item "linear": effective size at time t after infection = \code{wh.slope * t} (strict bottleneck)
+#'     \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (complete bottleneck)
+#'     \item "infinite": effective size = Inf, with complete bottleneck, so coalescence occurs 'just after' transmission in the infectee
+#'     \item "linear": effective size at time t after infection = \code{wh.slope * t} (complete bottleneck)
 #'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
 #'     \item "constant": effective size = wh.level (loose bottleneck)
 #'   }

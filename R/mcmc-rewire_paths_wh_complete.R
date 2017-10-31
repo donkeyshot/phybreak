@@ -1,4 +1,4 @@
-rewire_pathA_wh_strict <- function() {
+rewire_pathA_wh_complete <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -37,7 +37,7 @@ rewire_pathA_wh_strict <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 }
 
-rewire_pathB_wh_strict <- function() {
+rewire_pathB_wh_complete <- function() {
   ### Identify new index
   newindex <- which(pbe1$v$inftimes == sort(pbe1$v$inftimes)[2])
 
@@ -91,11 +91,11 @@ rewire_pathB_wh_strict <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 
   ### Fourth, add edges in infector and new index
-  rewire_pullnodes_wh_strict(0)
-  rewire_pullnodes_wh_strict(pbe1$infector.proposed.ID)
+  rewire_pullnodes_wh_complete(0)
+  rewire_pullnodes_wh_complete(pbe1$infector.proposed.ID)
 }
 
-rewire_pathCF1_wh_strict <- function() {
+rewire_pathCF1_wh_complete <- function() {
   ### Identify new infector and old infector
   newinfector <- which(pbe1$v$infectors == pbe1$hostID)
   newinfector <- newinfector[which(pbe1$v$inftimes[newinfector] == min(pbe1$v$inftimes[newinfector]))]
@@ -188,10 +188,10 @@ rewire_pathCF1_wh_strict <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 
   ### Fifth, add edges before new infector
-  rewire_pullnodes_wh_strict(oldinfector)
+  rewire_pullnodes_wh_complete(oldinfector)
 }
 
-rewire_pathD_wh_strict <- function() {
+rewire_pathD_wh_complete <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -245,11 +245,11 @@ rewire_pathD_wh_strict <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 
   ### phylotree before index case
-  rewire_pullnodes_wh_strict(0)
+  rewire_pullnodes_wh_complete(0)
 
 }
 
-rewire_pathE_wh_strict <- function() {
+rewire_pathE_wh_complete <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -299,10 +299,10 @@ rewire_pathE_wh_strict <- function() {
 
 
   ### phylotree in infector
-  rewire_pullnodes_wh_strict(pbe1$v$infectors[pbe1$hostID])
+  rewire_pullnodes_wh_complete(pbe1$v$infectors[pbe1$hostID])
 }
 
-rewire_pathCF2_wh_strict <- function() {
+rewire_pathCF2_wh_complete <- function() {
   ### Identify new infector and old infector
   newinfector <- which(pbe1$v$infectors == pbe1$hostID)
   newinfector <- newinfector[which(pbe1$v$inftimes[newinfector] == min(pbe1$v$inftimes[newinfector]))]
@@ -364,12 +364,12 @@ rewire_pathCF2_wh_strict <- function() {
   pbe1$v$infectors[c(pbe1$hostID, newinfector)] <- c(newinfector, oldinfector)
 
   # Fourth, add sample edges in hostID and new infector
-  rewire_pullnodes_wh_strict(pbe1$hostID)
-  rewire_pullnodes_wh_strict(newinfector)
-  rewire_pullnodes_wh_strict(oldinfector)
+  rewire_pullnodes_wh_complete(pbe1$hostID)
+  rewire_pullnodes_wh_complete(newinfector)
+  rewire_pullnodes_wh_complete(oldinfector)
 }
 
-rewire_pathK_wh_strict <- function() {
+rewire_pathK_wh_complete <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -407,7 +407,7 @@ rewire_pathK_wh_strict <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 }
 
-rewire_pullnodes_wh_strict <- function(currentID) {
+rewire_pullnodes_wh_complete <- function(currentID) {
   loosenodes <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodeparents == -1)
   if(length(loosenodes) > 0) {
     free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodeparents == -1)

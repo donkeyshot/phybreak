@@ -1,4 +1,4 @@
-# rewire_pathA_wh_strict <- function() {
+# rewire_pathA_wh_complete <- function() {
 #   ### Make input locally available
 #   d <- pbe1$d
 #   p <- pbe1$p
@@ -36,7 +36,7 @@
 #   copy2pbe1("v", environment())
 # }
 # 
-# rewire_pathB_wh_strict <- function() {
+# rewire_pathB_wh_complete <- function() {
 #   ### Make input locally available
 #   d <- pbe1$d
 #   p <- pbe1$p
@@ -106,7 +106,7 @@
 #   copy2pbe1("v", environment())
 # }
 # 
-# rewire_pathCF1_wh_strict <- function() {
+# rewire_pathCF1_wh_complete <- function() {
 #   ### Make input locally available
 #   d <- pbe1$d
 #   p <- pbe1$p
@@ -156,7 +156,7 @@
 #   copy2pbe1("v", environment())
 # }
 # 
-# rewire_pathD_wh_strict <- function() {
+# rewire_pathD_wh_complete <- function() {
 #   ### Make input locally available
 #   d <- pbe1$d
 #   p <- pbe1$p
@@ -211,7 +211,7 @@
 #   copy2pbe1("v", environment())
 # }
 # 
-# rewire_pathE_wh_strict <- function() {
+# rewire_pathE_wh_complete <- function() {
 #   ### Make input locally available
 #   d <- pbe1$d
 #   p <- pbe1$p
@@ -276,7 +276,7 @@
 #   copy2pbe1("v", environment())
 # }
 # 
-# rewire_pathCF2_wh_strict <- function() {
+# rewire_pathCF2_wh_complete <- function() {
 #   ### Make input locally available
 #   d <- pbe1$d
 #   p <- pbe1$p
@@ -395,7 +395,7 @@
 #   copy2pbe1("v", environment())
 # }
 # 
-# rewire_pathK_wh_strict <- function() {
+# rewire_pathK_wh_complete <- function() {
 #   ### First, dismantle minitree
 #   # edges entering hostID, with endtimes
 #   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -433,7 +433,7 @@
 #   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 # }
 # 
-# rewire_pullnodes_wh_strict <- function(currentID) {
+# rewire_pullnodes_wh_complete <- function(currentID) {
 #   loosenodes <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodeparents == -1)
 #   if(length(loosenodes) > 0) {
 #     free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodeparents == -1)
