@@ -51,8 +51,13 @@ update_mS <- function() {
     ### calculate likelihood
     propose_pbe("mS")
     
-    ### accept
-    accept_pbe("mS")
+    ### calculate acceptance probability
+    logaccprob <- pbe1$logLikcoal - pbe0$logLikcoal
+    
+    ### accept or reject
+    if (runif(1) < exp(logaccprob)) {
+      accept_pbe("mS")
+    }
 }
 
 

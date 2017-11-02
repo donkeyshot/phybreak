@@ -183,11 +183,14 @@ propose_pbe <- function(f) {
     copy2pbe1("logLiksam", le)
   }
   
-  if (f == "trans" || f == "slope" || f == "exponent" || f == "level") {
+  if (f == "trans" || (f == "mS" && p$wh.bottleneck == "loose") || f == "slope" || f == "exponent" || f == "level") {
     logLikcoal <- lik_coaltimes(le)
     copy2pbe1("logLikcoal", le)
   }
-  
+
+  if (f == "mS" && p$wh.bottleneck == "complete") {
+    copy2pbe1("logLikcoal", pbe0)
+  }
 }
 
 
@@ -209,7 +212,7 @@ accept_pbe <- function(f) {
     copy2pbe0("logLikgen", pbe1)
   }
   
-  if(f == "trans" || f == "slope" || f == "exponent" || f == "level") {
+  if(f == "trans" || (f == "mS" && pbe0$p$wh.bottleneck == "loose") || f == "slope" || f == "exponent" || f == "level") {
     copy2pbe0("logLikcoal", pbe1)
   }
   
