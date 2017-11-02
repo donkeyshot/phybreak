@@ -220,7 +220,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     )
     list2env(list(v = res, p = resamplepars, d = list(nsamples = nsamples)), pbe1)
 
-    if(resamplepars$wh.model %in% c(4, 5, "exponential", "constant")) {
+    if(resamplepars$wh.bottleneck == "loose") {
       invisible(sapply(1:nhosts, rewire_pullnodes_wh_loose))
     } else {
       invisible(sapply(0:nhosts, rewire_pullnodes_wh_complete))

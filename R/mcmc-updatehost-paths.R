@@ -137,7 +137,7 @@ update_host_withinhost <- function(hostID) {
   copy2pbe1("hostID", environment())
   
   ### change the tree
-  rewire_pathK(pbe0$p$wh.model %in% c(4, 5, "exponential", "constant"))
+  rewire_pathK(pbe0$p$wh.bottleneck == "loose")
   
   ### calculate proposal ratio
   logproposalratio <- 0
@@ -165,8 +165,8 @@ update_host_withinhost <- function(hostID) {
     v <- pbe1$v
     hostID <- pbe1$hostID
 
-    rewire_pathA(p$wh.model %in% c(4, 5, "exponential", "constant"))
-    
+    rewire_pathA(p$wh.bottleneck == "loose")
+
     ### update local v
     v <- pbe1$v
     
@@ -212,7 +212,7 @@ update_host_withinhost <- function(hostID) {
     copy2pbe1("infector.proposed.ID", environment())
 
     ### change the trees
-    rewire_pathB(p$wh.model %in% c(4, 5, "exponential", "constant"))
+    rewire_pathB(p$wh.bottleneck == "loose")
 
     ### update local v
     v <- pbe1$v
@@ -251,9 +251,9 @@ update_host_withinhost <- function(hostID) {
     
     ### change the trees
     if(exchange) {
-      rewire_pathCF2(p$wh.model %in% c(4, 5, "exponential", "constant"))
+      rewire_pathCF2(p$wh.bottleneck == "loose")
     } else {
-      rewire_pathCF1(p$wh.model %in% c(4, 5, "exponential", "constant"))
+      rewire_pathCF1(p$wh.bottleneck == "loose")
     }
 
     ### update local v
@@ -304,7 +304,7 @@ update_host_withinhost <- function(hostID) {
     hostID <- pbe1$hostID
 
     ### change the trees
-    rewire_pathD(p$wh.model %in% c(4, 5, "exponential", "constant"))
+    rewire_pathD(p$wh.bottleneck == "loose")
 
     ### update local v
     v <- pbe1$v
@@ -362,7 +362,7 @@ update_host_withinhost <- function(hostID) {
     copy2pbe1("infector.proposed.ID", environment())
     
     ### change the trees    
-    rewire_pathE(p$wh.model %in% c(4, 5, "exponential", "constant"))
+    rewire_pathE(p$wh.bottleneck == "loose")
  
     ### update local v
     v <- pbe1$v
@@ -406,11 +406,12 @@ update_host_withinhost <- function(hostID) {
     v <- pbe1$v
     hostID <- pbe1$hostID
 
+    
     ### change the trees
     if(exchange) {
-      rewire_pathCF2(p$wh.model %in% c(4, 5, "exponential", "constant"))
+      rewire_pathCF2(p$wh.bottleneck == "loose")
     } else {
-      rewire_pathCF1(p$wh.model %in% c(4, 5, "exponential", "constant"))
+      rewire_pathCF1(p$wh.bottleneck == "loose")
     }
     
     ### update local v
@@ -425,14 +426,14 @@ update_host_withinhost <- function(hostID) {
       pgamma(v$nodetimes[hostID] - v$inftimes[infectee.first.ID],
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log.p = TRUE)
-    
+
     ### calculate likelihood
     propose_pbe("phylotrans")
     
     ### calculate acceptance probability
     logaccprob <- pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam - pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam +
       logproposalratio
-    
+
     ### accept or reject
     if (runif(1) < exp(logaccprob)) {
       accept_pbe("phylotrans")

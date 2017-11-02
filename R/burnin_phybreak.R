@@ -28,8 +28,11 @@ burnin_phybreak <- function(x, ncycles, keepphylo = NULL, withinhost_only = 0) {
   if(is.null(keepphylo)) {
     keepphylo <- 0.2
   }
+  if(is.null(x$p$wh.bottleneck)) {
+    x$p$wh.bottleneck <- choose_whbottleneck("auto", x$p$wh.model)
+  }
   if(keepphylo > 0) {
-    if(any(duplicated(x$d$hostnames)) || !(x$p$wh.model %in% c(3, "linear")) ) {
+    if(any(duplicated(x$d$hostnames)) || !(x$p$wh.model %in% c(3, "linear")) || x$p$wh.bottleneck == "loose") {
       keepphylo <- 0
       message("keepphylo = 0")
     } else {
@@ -52,10 +55,10 @@ tostop <<- FALSE
       print_screen_log(rep)
       curtime <- Sys.time()
     }
-# cat(paste0("rep ", rep, ": "))
+# if(rep>600) cat(paste0("rep ", rep, ": "))
     for (i in sample(x$p$obs)) {
-      # cat(paste0(i, " "))
-      # if(rep == 3 && i == 8) {Sys.sleep(1); tostop <<- TRUE}
+      # if(rep == 935) cat(paste0(i, " "))
+      # if(rep == 935 && i == 14) {Sys.sleep(1); tostop <<- TRUE}
       if (runif(1) < 1 - keepphylo - withinhost_only) 
         update_host(i) else  if (runif(1) < keepphylo/(keepphylo + withinhost_only)) {
           update_host_keepphylo(i)

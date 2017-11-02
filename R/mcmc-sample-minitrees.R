@@ -16,13 +16,14 @@ sample_coaltimes <- function(tiptimes, inftime, parameters) {
     #linear increase
     linear = {
       # transform times so that fixed rate 1 can be used
-      ttrans <- sort(log(tiptimes - inftime)/(parameters$wh.slope), decreasing = TRUE)
+      ttrans <- sort(log(parameters$wh.level/parameters$wh.slope + tiptimes - inftime)/(parameters$wh.slope), decreasing = TRUE)
       tnodetrans <- .sctwh3(ttrans)
       
       res <- sort(exp(parameters$wh.slope * tnodetrans))
-      # make sure that all branches will have positive length
-      res <- inftime + apply(cbind(res,
-                         min(10^-5,(tiptimes - inftime)/length(tiptimes))*(1:length(res))), 1, max)
+      res <- apply(cbind(res,
+                         min(10^-5, (parameters$wh.level/parameters$wh.slope + tiptimes - inftime)/length(tiptimes))),
+                   1, max)
+      res <- res + inftime - parameters$wh.level/parameters$wh.slope
       
       return(res)
     },
@@ -81,9 +82,9 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime
     infinite = return(inftime),
     linear = {
       # transform times so that fixed rate 1 can be used
-      transtiptimes <- log(oldtiptimes - inftime)/parameters$wh.slope
-      transcoaltimes <- log(oldcoaltimes - inftime)/parameters$wh.slope
-      transcurtime <- log(newtiptime - inftime)/parameters$wh.slope
+      transtiptimes <- log(parameters$wh.level/parameters$wh.slope + oldtiptimes - inftime)/parameters$wh.slope
+      transcoaltimes <- log(parameters$wh.level/parameters$wh.slope + oldcoaltimes - inftime)/parameters$wh.slope
+      transcurtime <- log(parameters$wh.level/parameters$wh.slope + newtiptime - inftime)/parameters$wh.slope
     },
     exponential = {
       transtiptimes <- -exp(-parameters$wh.exponent * (oldtiptimes - inftime))/(parameters$wh.exponent * parameters$wh.level)
@@ -118,7 +119,12 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime
   # transform to real time
   switch(
     parameters$wh.model, single =, infinite = ,
-    linear = inftime + exp(parameters$wh.slope * transreturntime),
+    linear = {
+      res <- min(c(10^-5, (oldcoaltimes[-1] - inftime)/2))
+      res <- max(res, exp(parameters$wh.slope * transreturntime))
+      res <- inftime + res - parameters$wh.level/parameters$wh.slope
+      return(res)
+      },
     exponential = inftime - log(-parameters$wh.exponent * parameters$wh.level * transreturntime)/(parameters$wh.exponent),
     constant = inftime + parameters$wh.level * transreturntime
   )
@@ -132,3 +138,20 @@ sample_singlechildnode <- function(nodeIDs, nodeparents, nodetimes, newnodetime)
 }
 
 
+### Should I ever consider weighted topology sampling, the topology should be sampled backwards in time instead of forwards.
+### This function does exactly that and is slightly less efficient than the now-used forward sampling
+# sample_topology_backwards <- function(nodeIDs, nodetypes, infectornodes) {
+#   res <- rep(-1, length(nodeIDs))
+#   tochoose <- c()
+#   for(i in length(nodeIDs):1) {
+#     if(nodetypes[i] == "c") {
+#       tojoin <- sample(length(tochoose), 2)
+#       res[tochoose[tojoin]] <- nodeIDs[i]
+#       tochoose <- c(tochoose[-tojoin], i)
+#     } else {
+#       tochoose <- c(tochoose, i)
+#     }
+#   }
+#   res[res == -1] <- infectornodes
+#   return(res)
+# }

@@ -28,15 +28,21 @@ sample_phybreak <- function(x, nsample, thin = 1, keepphylo = NULL, withinhost_o
     ### tests
     if(nsample < 1) stop("nsample should be positive")
     if(thin < 1) stop("thin should be positive")
+    if(is.null(x$p$wh.bottleneck)) {
+      x$p$wh.bottleneck <- choose_whbottleneck("auto", x$p$wh.model)
+    }
     if(is.null(keepphylo)) {
-      if(any(duplicated(x$d$hostnames)) || !(x$p$wh.model %in% c(3, "linear")) ) {
+      keepphylo <- 0.2
+    }
+    if(keepphylo > 0) {
+      if(any(duplicated(x$d$hostnames)) || !(x$p$wh.model %in% c(3, "linear")) || x$p$wh.bottleneck == "loose") {
         keepphylo <- 0
         message("keepphylo = 0")
       } else {
-        keepphylo <- 0.2
-        message("keepphylo = 0.2")
+        message(paste0("keepphylo = ", keepphylo))
       }
     }
+  
     if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
     if(withinhost_only < 0 | withinhost_only > 1) stop("withinhost_only should be a fraction")
     if(withinhost_only + keepphylo > 1) stop("keepphylo + withinhost_only should be a fraction")

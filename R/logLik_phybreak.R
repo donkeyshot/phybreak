@@ -80,6 +80,11 @@ lik_coaltimes <- function(phybreakenv) {
   if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
     return(0)
   
+  if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "loose") {
+    if(min(phybreakenv$v$inftimes) - min(phybreakenv$v$nodetimes[phybreakenv$v$nodetypes == "c"]) > 
+       phybreakenv$p$sample.mean + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) return(-Inf)
+  }
+  
   remove0nodes <- phybreakenv$v$nodetypes != "0"
   nodetypes <- phybreakenv$v$nodetypes[remove0nodes]
   nodehosts <- phybreakenv$v$nodehosts[remove0nodes]
@@ -88,7 +93,7 @@ lik_coaltimes <- function(phybreakenv) {
   
   coalnodes <- nodetypes == "c"
   orderednodes <- order(nodehosts, nodetimes)
-
+  
   coalnodes <- coalnodes[orderednodes]
   orderedhosts <- nodehosts[orderednodes]
   
@@ -101,14 +106,15 @@ lik_coaltimes <- function(phybreakenv) {
   whtimes[c(!duplicated(orderedhosts)[-1], FALSE)] <- 0
   
   logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
-                         linear = -log(phybreakenv$p$wh.slope * whtimes[coalnodes]),
+                         linear = -log(phybreakenv$p$wh.level + phybreakenv$p$wh.slope * whtimes[coalnodes]),
                          exponential = 
                            -log(phybreakenv$p$wh.level * 
-                                    exp(phybreakenv$p$wh.exponent * 
-                                          whtimes[coalnodes])),
+                                  exp(phybreakenv$p$wh.exponent * 
+                                        whtimes[coalnodes])),
                          constant = -log(phybreakenv$p$wh.level) * coalnodes)
   cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite=,
-                         linear = log(whtimes + (whtimes == 0)) / phybreakenv$p$wh.slope,
+                         linear = log(whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope + 
+                                        ((whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) == 0)) / phybreakenv$p$wh.slope,
                          exponential  = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
                                               exp(phybreakenv$p$wh.exponent * whtimes)),
                          constant = whtimes/phybreakenv$p$wh.level)

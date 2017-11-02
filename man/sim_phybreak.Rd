@@ -7,9 +7,9 @@
 \usage{
 sim_phybreak(obsize = 50, popsize = NA, samplesperhost = 1, R0 = 1.5,
   gen.shape = 10, gen.mean = 1, sample.shape = 10, sample.mean = 1,
-  additionalsampledelay = 0, wh.model = "linear", wh.slope = 1,
-  wh.exponent = 1, wh.level = 0.1, mu = 1e-04, sequence.length = 10000,
-  output.class = c("phybreakdata", "obkData"), ...)
+  additionalsampledelay = 0, wh.model = "linear", wh.bottleneck = "auto",
+  wh.slope = 1, wh.exponent = 1, wh.level = 0.1, mu = 1e-04,
+  sequence.length = 10000, output.class = c("phybreakdata", "obkData"), ...)
 
 sim.phybreak(...)
 }
@@ -39,19 +39,22 @@ used first for all additional samples of host 1, then of host 2, etc.}
 N*gE = actual population size * pathogen generation time), used to simulate coalescence events. Names and numbers are allowed.
 Options are:
 \enumerate{
-  \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (strict bottleneck)
-  \item "infinite": effective size = Inf, with strict bottleneck, so coalescence occurs 'just after' transmission in the infectee
-  \item "linear": effective size at time t after infection = \code{wh.slope * t} (strict bottleneck)
+  \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (complete bottleneck)
+  \item "infinite": effective size = Inf, with complete bottleneck, so coalescence occurs 'just after' transmission in the infectee
+  \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or loose bottleneck; if complete, \code{wh.level = 0})
   \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
   \item "constant": effective size = wh.level (loose bottleneck)
 }}
 
-\item{wh.slope}{Initial value for the within-host slope, used if \code{wh.model = "linear"}.}
+\item{wh.bottleneck}{Whether the bottleneck should be complete or loose, which is only an option if \code{wh.model = "linear"} 
+(in that case, \code{"auto"} defaults to \code{"complete"}).}
 
-\item{wh.exponent}{Initial value for the within-host exponent, used if \code{wh.model = "exponential"}}
+\item{wh.slope}{Within-host slope, used if \code{wh.model = "linear"}.}
 
-\item{wh.level}{Initial value for the within-host effective pathogen size at transmission, used if 
-\code{wh.model = "exponential"} or if \code{wh.model = "constant"}}
+\item{wh.exponent}{Within-host exponent, used if \code{wh.model = "exponential"}}
+
+\item{wh.level}{Within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "loose"}
+(if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})}
 
 \item{mu}{Expected number of mutations per nucleotide per unit of time along each lineage.}
 

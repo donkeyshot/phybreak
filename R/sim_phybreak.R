@@ -20,14 +20,16 @@
 #'   \enumerate{
 #'     \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (complete bottleneck)
 #'     \item "infinite": effective size = Inf, with complete bottleneck, so coalescence occurs 'just after' transmission in the infectee
-#'     \item "linear": effective size at time t after infection = \code{wh.slope * t} (complete bottleneck)
+#'     \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or loose bottleneck; if complete, \code{wh.level = 0})
 #'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
 #'     \item "constant": effective size = wh.level (loose bottleneck)
 #'   }
-#' @param wh.slope Initial value for the within-host slope, used if \code{wh.model = "linear"}.
-#' @param wh.exponent Initial value for the within-host exponent, used if \code{wh.model = "exponential"}
-#' @param wh.level Initial value for the within-host effective pathogen size at transmission, used if 
-#'   \code{wh.model = "exponential"} or if \code{wh.model = "constant"}
+#' @param wh.bottleneck Whether the bottleneck should be complete or loose, which is only an option if \code{wh.model = "linear"} 
+#'   (in that case, \code{"auto"} defaults to \code{"complete"}).
+#' @param wh.slope Within-host slope, used if \code{wh.model = "linear"}.
+#' @param wh.exponent Within-host exponent, used if \code{wh.model = "exponential"}
+#' @param wh.level Within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "loose"}
+#'   (if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})
 #' @param mu Expected number of mutations per nucleotide per unit of time along each lineage. 
 #' @param sequence.length Number of available nucleotides for mutations.
 #' @param output.class Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
@@ -58,7 +60,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
                          R0 = 1.5, gen.shape = 10, gen.mean = 1, 
                          sample.shape = 10, sample.mean = 1,
                          additionalsampledelay = 0,
-                         wh.model = "linear", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
+                         wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
                          mu = 0.0001, sequence.length = 10000, output.class = c("phybreakdata", "obkData"), ...) {
   ### parameter name compatibility 
   old_arguments <- list(...)
@@ -95,6 +97,8 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
     stop("parameter values should be positive")
   }
   wh.model <- choose_whmodel(wh.model)
+  wh.bottleneck <- choose_whbottleneck(wh.bottleneck, wh.model)
+  wh.level <- wh.level * (wh.bottleneck == "loose")
   
   ### simulate step by step
   if(is.na(obsize)) {
@@ -109,7 +113,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(any(samplesperhost < 1)) stop("samplesperhost should be positive")
   if(any(additionalsampledelay < 0)) stop("additionalsampledelay cannot be negative")
   res <- sim_additionalsamples(res, samplesperhost, additionalsampledelay)
-  res <- sim_phylotree(res, wh.model, wh.slope, wh.exponent, wh.level, sample.mean)
+  res <- sim_phylotree(res, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean)
   res <- sim_sequences(res, mu, sequence.length)
   hostnames <- paste0("host.", 1:obsize)
   samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples], ".", nthsample(res))
@@ -248,9 +252,9 @@ sim_additionalsamples <- function(sim.object, samperh, addsamdelay) {
 }
 
 ### simulate a phylogenetic tree given a transmission tree
-sim_phylotree <- function (sim.object, wh.model, wh.slope, wh.exponent, wh.level, sample.mean) {
+sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean) {
   list2env(list(v = sim.object, 
-                p = list(wh.model = wh.model, wh.slope = wh.slope, wh.exponent = wh.exponent,
+                p = list(wh.model = wh.model, wh.bottleneck = wh.bottleneck, wh.slope = wh.slope, wh.exponent = wh.exponent,
                          wh.level = wh.level, sample.mean = sample.mean),
                 d = list(nsamples = sim.object$Nsamples)), pbe1)
   pbe1$v$nodeparents <- rep(-1, 2 * sim.object$Nsamples + sim.object$obs - 1)  #initialize nodes: will contain parent node in phylotree
@@ -260,7 +264,7 @@ sim_phylotree <- function (sim.object, wh.model, wh.slope, wh.exponent, wh.level
                         rep(-1, sim.object$Nsamples - 1), sim.object$infectors)   #initialize nodes: will contain host carrying the node
   pbe1$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
                          rep("c", sim.object$Nsamples - 1), rep("t", sim.object$obs))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
-  if(wh.model %in% c(4, 5, "exponential", "constant")) {
+  if(wh.bottleneck == "loose") {
     invisible(sapply(1:sim.object$obs, rewire_pullnodes_wh_loose))
   } else {
     invisible(sapply(0:sim.object$obs, rewire_pullnodes_wh_complete))
