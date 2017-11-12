@@ -80,7 +80,7 @@ lik_coaltimes <- function(phybreakenv) {
   if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
     return(0)
   
-  if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "loose") {
+  if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "wide") {
     if(min(phybreakenv$v$inftimes) - min(phybreakenv$v$nodetimes[phybreakenv$v$nodetypes == "c"]) > 
        phybreakenv$p$sample.mean + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) return(-Inf)
   }
@@ -124,3 +124,80 @@ lik_coaltimes <- function(phybreakenv) {
   return(sum(logcoalrates) + sum(logcoalescapes))
 }
 
+
+### calculate the log-likelihood of coalescent intervals in a single host
+lik_coaltimes_host <- function(phybreakenv, hostID) {
+  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
+    return(0)
+  
+  if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "wide") {
+    if(min(phybreakenv$v$inftimes) - min(phybreakenv$v$nodetimes[phybreakenv$v$nodetypes == "c"]) > 
+       phybreakenv$p$sample.mean + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) return(-Inf)
+  }
+  
+  selecthostnodes <- phybreakenv$v$nodehosts == hostID
+  nodetypes <- phybreakenv$v$nodetypes[selecthostnodes]
+  nodetimes <- phybreakenv$v$nodetimes[selecthostnodes]
+  inftime <- phybreakenv$v$inftimes[hostID]
+  
+  coalnodes <- nodetypes == "c"
+  orderednodes <- order(nodetimes)
+  
+  coalnodes <- coalnodes[orderednodes]
+
+  bottlenecks <- sum(1 - 2 * coalnodes) - 1
+  dlineage <- 2 * c(FALSE, head(coalnodes, -1)) - 1
+  dlineage[1] <- bottlenecks
+  nrlineages <- 1 + cumsum(dlineage)
+  
+  whtimes <- nodetimes[orderednodes] - inftime
+
+  logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
+                         linear = -log(phybreakenv$p$wh.level + phybreakenv$p$wh.slope * whtimes[coalnodes]),
+                         exponential = 
+                           -log(phybreakenv$p$wh.level * 
+                                  exp(phybreakenv$p$wh.exponent * 
+                                        whtimes[coalnodes])),
+                         constant = -log(phybreakenv$p$wh.level) * coalnodes)
+  cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite=,
+                         linear = log(whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope + 
+                                        ((whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) == 0)) / phybreakenv$p$wh.slope,
+                         exponential  = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
+                                              exp(phybreakenv$p$wh.exponent * whtimes)),
+                         constant = whtimes/phybreakenv$p$wh.level)
+  coalratediffs <- cumcoalrates - c(0, head(cumcoalrates, -1))
+  logcoalescapes <- -coalratediffs * choose(nrlineages, 2)
+  
+  return(sum(logcoalrates) + sum(logcoalescapes))
+}
+
+
+### calculate the log-likelihood of the within-host topology
+lik_topology_host <- function(phybreakenv, hostID) {
+  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
+    return(0)
+  
+  if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "wide") {
+    if(min(phybreakenv$v$inftimes) - min(phybreakenv$v$nodetimes[phybreakenv$v$nodetypes == "c"]) > 
+       phybreakenv$p$sample.mean + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) return(-Inf)
+  }
+  
+  selecthostnodes <- phybreakenv$v$nodehosts == hostID
+  nodetypes <- phybreakenv$v$nodetypes[selecthostnodes]
+  nodetimes <- phybreakenv$v$nodetimes[selecthostnodes]
+  inftime <- phybreakenv$v$inftimes[hostID]
+  
+  coalnodes <- nodetypes == "c"
+  orderednodes <- order(nodetimes)
+  
+  coalnodes <- coalnodes[orderednodes]
+  
+  bottlenecks <- sum(1 - 2 * coalnodes) - 1
+  dlineage <- 2 * c(FALSE, head(coalnodes, -1)) - 1
+  dlineage[1] <- bottlenecks
+  nrlineages <- 1 + cumsum(dlineage)
+  
+  logcoalprobabilities <- -log(choose(nrlineages[c(FALSE, head(coalnodes, -1))], 2))
+  
+  return(sum(logcoalprobabilities))
+}

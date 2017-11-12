@@ -58,19 +58,19 @@ Options are:
 \enumerate{
   \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (complete bottleneck)
   \item "infinite": effective size = Inf, with complete bottleneck, so coalescence occurs 'just after' transmission in the infectee
-  \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or loose bottleneck; if complete, \code{wh.level = 0})
-  \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
-  \item "constant": effective size = wh.level (loose bottleneck)
+  \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or wide bottleneck; if complete, \code{wh.level = 0})
+  \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (wide bottleneck)
+  \item "constant": effective size = wh.level (wide bottleneck)
 }}
 
-\item{wh.bottleneck}{Whether the bottleneck should be complete or loose, which is only an option if \code{wh.model = "linear"} 
+\item{wh.bottleneck}{Whether the bottleneck should be complete or wide, which is only an option if \code{wh.model = "linear"} 
 (in that case, \code{"auto"} defaults to \code{"complete"}).}
 
 \item{wh.slope}{Initial value for the within-host slope, used if \code{wh.model = "linear"}.}
 
 \item{wh.exponent}{Initial value for the within-host exponent, used if \code{wh.model = "exponential"}}
 
-\item{wh.level}{Initial value for the within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "loose"}
+\item{wh.level}{Initial value for the within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "wide"}
 (if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})}
 
 \item{est.gen.mean}{Whether to estimate the mean generation interval or keep it fixed.}

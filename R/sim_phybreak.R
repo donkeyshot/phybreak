@@ -20,15 +20,15 @@
 #'   \enumerate{
 #'     \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (complete bottleneck)
 #'     \item "infinite": effective size = Inf, with complete bottleneck, so coalescence occurs 'just after' transmission in the infectee
-#'     \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or loose bottleneck; if complete, \code{wh.level = 0})
-#'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
-#'     \item "constant": effective size = wh.level (loose bottleneck)
+#'     \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or wide bottleneck; if complete, \code{wh.level = 0})
+#'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (wide bottleneck)
+#'     \item "constant": effective size = wh.level (wide bottleneck)
 #'   }
-#' @param wh.bottleneck Whether the bottleneck should be complete or loose, which is only an option if \code{wh.model = "linear"} 
+#' @param wh.bottleneck Whether the bottleneck should be complete or wide, which is only an option if \code{wh.model = "linear"} 
 #'   (in that case, \code{"auto"} defaults to \code{"complete"}).
 #' @param wh.slope Within-host slope, used if \code{wh.model = "linear"}.
 #' @param wh.exponent Within-host exponent, used if \code{wh.model = "exponential"}
-#' @param wh.level Within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "loose"}
+#' @param wh.level Within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "wide"}
 #'   (if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})
 #' @param mu Expected number of mutations per nucleotide per unit of time along each lineage. 
 #' @param sequence.length Number of available nucleotides for mutations.
@@ -98,7 +98,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   }
   wh.model <- choose_whmodel(wh.model)
   wh.bottleneck <- choose_whbottleneck(wh.bottleneck, wh.model)
-  wh.level <- wh.level * (wh.bottleneck == "loose")
+  wh.level <- wh.level * (wh.bottleneck == "wide")
   
   ### simulate step by step
   if(is.na(obsize)) {
@@ -264,10 +264,10 @@ sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exp
                         rep(-1, sim.object$Nsamples - 1), sim.object$infectors)   #initialize nodes: will contain host carrying the node
   pbe1$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
                          rep("c", sim.object$Nsamples - 1), rep("t", sim.object$obs))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
-  if(wh.bottleneck == "loose") {
-    invisible(sapply(1:sim.object$obs, rewire_pullnodes_wh_loose))
+  if(wh.bottleneck == "wide") {
+    invisible(sapply(1:sim.object$obs, rewire_pullnodes_wide))
   } else {
-    invisible(sapply(0:sim.object$obs, rewire_pullnodes_wh_complete))
+    invisible(sapply(0:sim.object$obs, rewire_pullnodes_complete))
   }
   res <- as.list.environment(pbe1)$v
   return(res)

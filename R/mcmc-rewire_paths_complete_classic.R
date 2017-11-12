@@ -1,4 +1,4 @@
-rewire_pathA_wh_complete <- function() {
+rewire_pathA_complete_classic <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -37,7 +37,7 @@ rewire_pathA_wh_complete <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 }
 
-rewire_pathB_wh_complete <- function() {
+rewire_pathB_complete_classic <- function() {
   ### Identify new index
   newindex <- which(pbe1$v$inftimes == sort(pbe1$v$inftimes)[2])
 
@@ -91,11 +91,11 @@ rewire_pathB_wh_complete <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 
   ### Fourth, add edges in infector and new index
-  rewire_pullnodes_wh_complete(0)
-  rewire_pullnodes_wh_complete(pbe1$infector.proposed.ID)
+  rewire_pullnodes_complete(0)
+  rewire_pullnodes_complete(pbe1$infector.proposed.ID)
 }
 
-rewire_pathCF1_wh_complete <- function() {
+rewire_pathCF1_complete_classic <- function() {
   ### Identify new infector and old infector
   newinfector <- which(pbe1$v$infectors == pbe1$hostID)
   newinfector <- newinfector[which(pbe1$v$inftimes[newinfector] == min(pbe1$v$inftimes[newinfector]))]
@@ -188,10 +188,10 @@ rewire_pathCF1_wh_complete <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 
   ### Fifth, add edges before new infector
-  rewire_pullnodes_wh_complete(oldinfector)
+  rewire_pullnodes_complete(oldinfector)
 }
 
-rewire_pathD_wh_complete <- function() {
+rewire_pathD_complete_classic <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -245,11 +245,11 @@ rewire_pathD_wh_complete <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 
   ### phylotree before index case
-  rewire_pullnodes_wh_complete(0)
+  rewire_pullnodes_complete(0)
 
 }
 
-rewire_pathE_wh_complete <- function() {
+rewire_pathE_complete_classic <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -299,10 +299,10 @@ rewire_pathE_wh_complete <- function() {
 
 
   ### phylotree in infector
-  rewire_pullnodes_wh_complete(pbe1$v$infectors[pbe1$hostID])
+  rewire_pullnodes_complete(pbe1$v$infectors[pbe1$hostID])
 }
 
-rewire_pathCF2_wh_complete <- function() {
+rewire_pathCF2_complete_classic <- function() {
   ### Identify new infector and old infector
   newinfector <- which(pbe1$v$infectors == pbe1$hostID)
   newinfector <- newinfector[which(pbe1$v$inftimes[newinfector] == min(pbe1$v$inftimes[newinfector]))]
@@ -364,12 +364,12 @@ rewire_pathCF2_wh_complete <- function() {
   pbe1$v$infectors[c(pbe1$hostID, newinfector)] <- c(newinfector, oldinfector)
 
   # Fourth, add sample edges in hostID and new infector
-  rewire_pullnodes_wh_complete(pbe1$hostID)
-  rewire_pullnodes_wh_complete(newinfector)
-  rewire_pullnodes_wh_complete(oldinfector)
+  rewire_pullnodes_complete(pbe1$hostID)
+  rewire_pullnodes_complete(newinfector)
+  rewire_pullnodes_complete(oldinfector)
 }
 
-rewire_pathK_wh_complete <- function() {
+rewire_pathK_complete_classic <- function() {
   ### First, dismantle minitree
   # edges entering hostID, with endtimes
   edgesin <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes != "c")
@@ -407,62 +407,3 @@ rewire_pathK_wh_complete <- function() {
   pbe1$v$nodetimes[edgeend] <- edgeendtimes
 }
 
-rewire_pullnodes_wh_complete <- function(currentID) {
-  loosenodes <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodeparents == -1)
-  if(length(loosenodes) > 0) {
-    free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodeparents == -1)
-    if(currentID == 0) {
-      pbe1$v$nodeparents[loosenodes] <- 0L
-     } else {
-      # old edges entering currentID, with endtimes
-      edgesendold <- setdiff(which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes != "c"), loosenodes)
-      if(length(edgesendold) == 0) {
-        parentnode <- 2 * pbe1$d$nsamples - 1 + currentID
-        edgesendold <- currentID
-        pbe1$v$nodeparents[edgesendold] <- parentnode
-        pbe1$v$nodehosts[parentnode] <- pbe1$v$infectors[currentID]
-        pbe1$v$nodetimes[parentnode] <- pbe1$v$inftimes[currentID]
-        loosenodes <- setdiff(loosenodes, currentID)
-      }
-      edgesendoldtimes <- pbe1$v$nodetimes[edgesendold]
-
-      if(length(loosenodes) > 0) {
-        # coalescentnodes in currentID, with endtimes
-        coalescentnodesold <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes == "c")
-        coalescenttimesold <- pbe1$v$nodetimes[coalescentnodesold]
-
-        # endtimes of new edges, and new coalescenttimes
-        loosenodetimes <- c()
-        coalescenttimesnew <- c()
-        for(le in 1:length(loosenodes)) {
-          coalescenttimesnew <- c(coalescenttimesnew,
-                                    sample_singlecoaltime(c(edgesendoldtimes, loosenodetimes),
-                                                          c(coalescenttimesold, coalescenttimesnew),
-                                                          pbe1$v$nodetimes[loosenodes[le]], pbe1$v$inftimes[currentID], pbe1$p))
-          loosenodetimes <- c(loosenodetimes, pbe1$v$nodetimes[loosenodes[le]])
-        }
-
-        # old within-host minitree
-        childnodes <- c(edgesendold, coalescentnodesold)
-        parentnodes <- pbe1$v$nodeparents[childnodes]
-        childnodestimes <- c(edgesendoldtimes, coalescenttimesold)
-
-        # place new edges into minitree
-        loosenodestoinfector <- c()
-        free_cnodestoinfector <- c()
-        for(le in 1:length(loosenodes)) {
-            newchildnode <- sample_singlechildnode(childnodes, parentnodes, childnodestimes, coalescenttimesnew[le])
-            childnodes <- c(childnodes, loosenodes[le], free_cnodes[le])
-            parentnodes <- c(parentnodes, free_cnodes[le], parentnodes[childnodes == newchildnode])
-            childnodestimes <- c(childnodestimes, loosenodetimes[le], coalescenttimesnew[le])
-            parentnodes[childnodes == newchildnode] <- free_cnodes[le]
-        }
-
-        # change phybreak object
-        pbe1$v$nodetimes[childnodes] <- childnodestimes
-        pbe1$v$nodehosts[childnodes] <- currentID
-        pbe1$v$nodeparents[childnodes] <- parentnodes
-      }
-    }
-  }
-}

@@ -220,10 +220,10 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     )
     list2env(list(v = res, p = resamplepars, d = list(nsamples = nsamples)), pbe1)
 
-    if(resamplepars$wh.bottleneck == "loose") {
-      invisible(sapply(1:nhosts, rewire_pullnodes_wh_loose))
+    if(resamplepars$wh.bottleneck == "wide") {
+      invisible(sapply(1:nhosts, rewire_pullnodes_wide))
     } else {
-      invisible(sapply(0:nhosts, rewire_pullnodes_wh_complete))
+      invisible(sapply(0:nhosts, rewire_pullnodes_complete))
     }
     res <- environment2phybreak(pbe1$v)
     

@@ -5,7 +5,8 @@
 \alias{burnin.phybreak}
 \title{MCMC updating of a phybreak-object.}
 \usage{
-burnin_phybreak(x, ncycles, keepphylo = NULL, withinhost_only = 0)
+burnin_phybreak(x, ncycles, edgewise = 0.8, keepphylo = 0,
+  withinhost_only = 0, parameter_frequency = 1, status_interval = 10)
 
 burnin.phybreak(...)
 }
@@ -15,11 +16,20 @@ burnin.phybreak(...)
 \item{ncycles}{Number of iterations to be carried out. Each iteration does one update of all parameters and
 tree updates with each host as focal host once.}
 
-\item{keepphylo}{The proportion of tree updates keeping the phylotree intact, only possible if there is one sample per host
-and the \code{wh.model = "linear"}. If \code{NULL} (default), it is set to 0.2 only in that case, otherwise to 0.}
+\item{edgewise}{The proportion of tree updates with the edgewise protocol, which keeps the within-host minitree topology
+intact when proposing a new infection time and infector, and then resamples the within-host minitree for each sampling tip
+separately ("edgewise"). This results in better mixing of the mcmc-chain if there is much genetic information (many SNPs)
+and if there are many possible within-host minitree topologies (e.g. many samples per host).}
+
+\item{keepphylo}{The proportion of tree updates keeping the phylogenetic tree intact, only possible if there is one 
+sample per host and the \code{wh.model = "linear"} with complete bottleneck.}
 
 \item{withinhost_only}{The proportion of tree updates in which only the within-host minitree is sampled, and 
 the transmission tree and infection times are kept unchanged.}
+
+\item{parameter_frequency}{The relative frequency by which the model parameters are updated relative to updating each host.}
+
+\item{status_interval}{The number of second between each on-screen print of the progress of the mcmc-chain.}
 }
 \value{
 The \code{phybreak} object provided as input, with variables and parameters changed due to the updating.

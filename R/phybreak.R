@@ -41,15 +41,15 @@
 #'   \enumerate{
 #'     \item "single": effective size = 0, so coalescence occurs 'just before' transmission in the infector (complete bottleneck)
 #'     \item "infinite": effective size = Inf, with complete bottleneck, so coalescence occurs 'just after' transmission in the infectee
-#'     \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or loose bottleneck; if complete, \code{wh.level = 0})
-#'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (loose bottleneck)
-#'     \item "constant": effective size = wh.level (loose bottleneck)
+#'     \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or wide bottleneck; if complete, \code{wh.level = 0})
+#'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (wide bottleneck)
+#'     \item "constant": effective size = wh.level (wide bottleneck)
 #'   }
-#' @param wh.bottleneck Whether the bottleneck should be complete or loose, which is only an option if \code{wh.model = "linear"} 
+#' @param wh.bottleneck Whether the bottleneck should be complete or wide, which is only an option if \code{wh.model = "linear"} 
 #'   (in that case, \code{"auto"} defaults to \code{"complete"}).
 #' @param wh.slope Initial value for the within-host slope, used if \code{wh.model = "linear"}.
 #' @param wh.exponent Initial value for the within-host exponent, used if \code{wh.model = "exponential"}
-#' @param wh.level Initial value for the within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "loose"}
+#' @param wh.level Initial value for the within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "wide"}
 #'   (if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})
 #' @param est.gen.mean Whether to estimate the mean generation interval or keep it fixed. 
 #' @param prior.gen.mean.mean Mean of the (gamma) prior distribution of mean generation interval \code{mG} 
@@ -215,7 +215,7 @@ phybreak <- function(dataset, times = NULL,
     wh.bottleneck = wh.bottleneck,
     wh.slope = wh.slope,
     wh.exponent = wh.exponent,
-    wh.level = wh.level * (wh.bottleneck == "loose")
+    wh.level = wh.level * (wh.bottleneck == "wide")
   )
   
   ##############################
@@ -252,7 +252,7 @@ phybreak <- function(dataset, times = NULL,
                      est.mS = est.sample.mean,
                      est.wh.s = est.wh.slope && wh.model == "linear",
                      est.wh.e = est.wh.exponent && wh.model == "exponential",
-                     est.wh.0 = est.wh.level && wh.bottleneck == "loose",
+                     est.wh.0 = est.wh.level && wh.bottleneck == "wide",
                      mG.av = prior.gen.mean.mean,
                      mG.sd = prior.gen.mean.sd,
                      mS.av = prior.sample.mean.mean,
@@ -416,13 +416,13 @@ choose_whmodel <- function(x) {
 
 ### set within-host bottleneck from possible input values
 choose_whbottleneck <- function(x, wh.model) {
-  x <- match.arg(x, c("auto", "complete", "loose"))
+  x <- match.arg(x, c("auto", "complete", "wide"))
   if(wh.model %in% c("single", "infinite")) {
-    if(x == "loose") message(paste0("wh.model = ", wh.model, " only possible with complete bottleneck"))
+    if(x == "wide") message(paste0("wh.model = ", wh.model, " only possible with complete bottleneck"))
     return("complete")
   } else if(wh.model %in% c("exponential", "constant")) {
-    if(x == "complete") message(paste0("wh.model = ", wh.model, " only possible with loose bottleneck"))
-    return("loose")
+    if(x == "complete") message(paste0("wh.model = ", wh.model, " only possible with wide bottleneck"))
+    return("wide")
   } else {
     if(x == "auto") {
       return("complete")

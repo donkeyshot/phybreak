@@ -134,6 +134,7 @@ prepare_pbe <- function() {
   pbe1$likarray <- pbe0$likarray + 0  #make a true copy, not a pointer
   copy2pbe1("likarrayfreq", pbe0)
   pbe1$logLikseq <- pbe0$logLikseq + 0 #make a true copy, not a pointer
+  pbe1$logLiktoporatio <- 0
 }
 
 
@@ -183,7 +184,7 @@ propose_pbe <- function(f) {
     copy2pbe1("logLiksam", le)
   }
   
-  if (f == "trans" || (f == "mS" && p$wh.bottleneck == "loose") || f == "slope" || f == "exponent" || f == "level") {
+  if (f == "trans" || (f == "mS" && p$wh.bottleneck == "wide") || f == "slope" || f == "exponent" || f == "level") {
     logLikcoal <- lik_coaltimes(le)
     copy2pbe1("logLikcoal", le)
   }
@@ -196,8 +197,13 @@ propose_pbe <- function(f) {
 
 ### copy the elements from pbe1 into pbe0 upon acceptance of a proposal 
 accept_pbe <- function(f) {
-  copy2pbe0("v", pbe1)
-  copy2pbe0("p", pbe1)
+  if(f == "phylotrans" || f == "withinhost" || f == "trans") {
+    copy2pbe0("v", pbe1)
+  }
+  
+  if(f == "mG" || f == "mS" || f == "mu" || f == "slope" || f == "exponent" || f == "level") {
+    copy2pbe0("p", pbe1)
+  }
   
   if(f == "phylotrans" || f == "withinhost" || f == "mu") {
     copy2pbe0("likarray", pbe1)
@@ -212,15 +218,14 @@ accept_pbe <- function(f) {
     copy2pbe0("logLikgen", pbe1)
   }
   
-  if(f == "trans" || (f == "mS" && pbe0$p$wh.bottleneck == "loose") || f == "slope" || f == "exponent" || f == "level") {
+  if(f == "trans" || (f == "mS" && pbe0$p$wh.bottleneck == "wide") || f == "slope" || f == "exponent" || f == "level") {
     copy2pbe0("logLikcoal", pbe1)
   }
   
-  if(f == "phylotrans") {
+  if(f == "withinhost" || f == "phylotrans") {
     logLikcoal <- lik_coaltimes(pbe1)
     copy2pbe0("logLikcoal", environment())
   }
   
-  rm(list = ls(pbe1), envir = pbe1)
 }
 
