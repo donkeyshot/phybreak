@@ -7,11 +7,13 @@ Workflow:
 
 * enter data and priors by constructing an object of S3-class 'phybreak', with function 'phybreak'
 
-* do mcmc-updates with functions 'burnin.phybreak' and 'sample.phybreak'; remove samples with 'thin.phybreak'
+* do mcmc-updates with functions 'burnin_phybreak' and 'sample_phybreak'; remove samples with 'thin.phybreak'
 
-* access the 'phybreak'-object by get.phybreak-functions such as 'get.tree', 'get.seqdata', 'get.parameters'
+* access the 'phybreak'-object by get_phybreak-functions such as 'get_transtree', 'get_data', 'get_parameters'
 
-* summarize the mcmc-chain with the functions 'transtree', 'infectorsets', 'phylotree', 'get.mcmc', 'get.phylo'
+* summarize the mcmc-chain with the functions 'ESS', 'transtree', 'infectorsets', 'phylotree', 'get_mcmc', 'get_phylo'
+
+* plotting with 'plot', 'plotTrans', and 'plotPhylo'
 
 
-* it is possible to simulate data with 'sim.phybreak'
+* it is possible to simulate data with 'sim_phybreak'

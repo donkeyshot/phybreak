@@ -1,7 +1,23 @@
+# phybreak 0.2.1.9003
+
+### Major changes
+* New wide bottleneck model ("linear"), which makes it necessary to specify wh.bottleneck if wh.model = "linear" (in "phybreak")
+* New update protocol for proposing the within-host minitrees. In the "classic" protocol, each proposal of a new infection time and infector for a host included a complete resampling of its minitree. In the new protocol (which is now the default in "burnin_phybreak" and "sample_phybreak") only new coalescent times are proposed, but the topology is not. This is now followed by proposals in which the sampling tips are one by one removed and reattached (by simulation). The new protocol is now implemented for the complete bottleneck models (wide will follow)
+
+### Minor changes
+* Name changes of bottleneck options: "complete" and "wide" instead of "strict" and "loose"
+* New arguments in "burnin_phybreak" and "sample_phybreak":
+    * classic: to choose the proportion of tree updates with the classic protocol instead of the new default protocol
+    * parameter_frequency: option to sample the model parameters more frequently than each host in the transmission tree
+    * status_interval: the time interval between the on-screen status updates of the mcmc-chain
+
+### BUG FIXES
+* Acceptance ratio of mean sampling interval now includes coalescent likelihood (needed with wide bottleneck)
+
 # phybreak 0.2.1.9002
 
 ### BUG FIXES
-* Fixed bug in transtree-methdod "edmonds" that could occur with much uncertainty in the posterior trees
+* Fixed bug in transtree-method "edmonds" that could occur with much uncertainty in the posterior trees
 
 
 # phybreak 0.2.1.9001
