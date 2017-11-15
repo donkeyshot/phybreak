@@ -395,10 +395,10 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     ### calculate proposal ratio
     infectees.hostID <- which(v$infectors == hostID)
     infectee.first.ID <- infectees.hostID[v$inftimes[infectees.hostID] == min(v$inftimes[infectees.hostID])]
-    logproposalratio <- pgamma(v$nodetimes[infectee.first.ID] - v$inftimes[hostID],
+    logproposalratio <- pgamma(v$nodetimes[infectee.first.ID] - v$inftimes[infectee.first.ID],
                                shape = tinf.prop.shape.mult * p$sample.shape,
                                scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log.p = TRUE) -
-      pgamma(v$nodetimes[hostID] - v$inftimes[hostID],
+      pgamma(v$nodetimes[hostID] - v$inftimes[infectee.first.ID],
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log.p = TRUE)
     copy2pbe1("logproposalratio", environment())
