@@ -1,3 +1,8 @@
+# phybreak 0.2.1.9004
+
+### BUG FIXES
+* Proposal ratio in update path F (incorrect since 0.2.1.9003)
+
 # phybreak 0.2.1.9003
 
 ### Major changes
