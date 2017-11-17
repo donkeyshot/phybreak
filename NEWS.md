@@ -1,3 +1,8 @@
+# phybreak 0.2.1.9005
+
+### BUG FIXES
+* Frequency of parameter sampling (incorrect since 0.2.1.9003)
+
 # phybreak 0.2.1.9004
 
 ### BUG FIXES
