@@ -1,3 +1,8 @@
+# phybreak 0.2.1.9006
+
+### Major changes
+* New update protocol for proposing the within-host minitrees (0.2.1.9003) now also implemented for the wide bottleneck models
+
 # phybreak 0.2.1.9005
 
 ### BUG FIXES

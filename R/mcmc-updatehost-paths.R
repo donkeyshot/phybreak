@@ -456,7 +456,6 @@ update_host_phylotrans <- function(hostID, which_protocol) {
       }
     }
     
-
     if(which_protocol == "edgewise") {
       update_move_sampleedges()
     }
@@ -475,6 +474,16 @@ update_host_phylotrans <- function(hostID, which_protocol) {
          pbe0$p$wh.bottleneck == "wide") {
         prepare_pbe()
         coalnode <- take_cnode(edge)
+        if(pbe1$v$nodehosts[2 * pbe1$d$nsamples - 1 + pbe1$hostID] == -1) {
+          node_torelink <- which(pbe1$v$nodehosts == pbe1$hostID)
+          node_torelink <- node_torelink[pbe1$v$nodetypes[pbe1$v$nodeparents[node_torelink]] == "b"][1]
+          bnode_toremove <- pbe1$v$nodeparents[node_torelink]
+          pbe1$v$nodeparents[c(node_torelink, 2 * pbe1$d$nsamples - 1 + pbe1$hostID, bnode_toremove)] <-
+            c(2 * pbe1$d$nsamples - 1 + pbe1$hostID, pbe1$v$nodeparents[bnode_toremove], -1L)
+          pbe1$v$nodehosts[c(2 * pbe1$d$nsamples - 1 + pbe1$hostID, bnode_toremove)] <- 
+            c(pbe1$v$nodehosts[bnode_toremove], -1L)
+          pbe1$v$nodetypes[c(2 * pbe1$d$nsamples - 1 + pbe1$hostID, bnode_toremove)] <- c("t", "0")
+        }
         pbe1$v$nodehosts[edge] <- pbe1$hostID
         if(pbe0$p$wh.bottleneck == "wide") {
           rewire_pullnodes_wide(pbe1$hostID)
