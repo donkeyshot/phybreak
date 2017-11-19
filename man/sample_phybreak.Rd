@@ -5,7 +5,7 @@
 \alias{sample.phybreak}
 \title{Sampling from a phybreak MCMC-chain.}
 \usage{
-sample_phybreak(x, nsample, thin = 1, edgewise = 0.8, keepphylo = 0,
+sample_phybreak(x, nsample, thin = 1, classic = 0, keepphylo = 0,
   withinhost_only = 0, parameter_frequency = 1, status_interval = 10)
 
 sample.phybreak(...)
@@ -18,10 +18,13 @@ sample.phybreak(...)
 \item{thin}{The thinning to use (values after every \code{thin}'th iteration will be included in the posterior). 
 Each iteration does one update of all parameters and tree updates with each host as focal host once.}
 
-\item{edgewise}{The proportion of tree updates with the edgewise protocol, which keeps the within-host minitree topology
-intact when proposing a new infection time and infector, and then resamples the within-host minitree for each sampling tip
-separately ("edgewise"). This results in better mixing of the mcmc-chain if there is much genetic information (many SNPs)
-and if there are many possible within-host minitree topologies (e.g. many samples per host).}
+\item{classic}{The proportion of tree updates with the classic protocol (reference see below), in which within-host
+minitrees are proposed by simulating coalescent times and tree topology. In the current default protocol only 
+coalescent times are proposed with the minitree topology kept intact. This is followed by removing and reconnecting
+the sampling tips one by one. This results in better mixing of the mcmc-chain if there is much 
+genetic information (many SNPs) and/or if there are many possible within-host minitree topologies 
+(e.g. many samples per host). The classic protocol is faster in terms of updates/second and can thus be more efficient
+with little genetic information.}
 
 \item{keepphylo}{The proportion of tree updates keeping the phylogenetic tree intact, only possible if there is one 
 sample per host and the \code{wh.model = "linear"} with complete bottleneck.}
@@ -31,7 +34,7 @@ the transmission tree and infection times are kept unchanged.}
 
 \item{parameter_frequency}{The relative frequency by which the model parameters are updated relative to updating each host.}
 
-\item{status_interval}{The number of second between each on-screen print of the progress of the mcmc-chain.}
+\item{status_interval}{The number of seconds between each on-screen print of the progress of the mcmc-chain.}
 }
 \value{
 The \code{phybreak} object used to call the function, including (additional) samples from the posterior.
