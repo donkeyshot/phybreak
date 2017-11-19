@@ -177,11 +177,6 @@ lik_topology_host <- function(phybreakenv, hostID) {
   if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
     return(0)
   
-  if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "wide") {
-    if(min(phybreakenv$v$inftimes) - min(phybreakenv$v$nodetimes[phybreakenv$v$nodetypes == "c"]) > 
-       phybreakenv$p$sample.mean + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) return(-Inf)
-  }
-  
   selecthostnodes <- phybreakenv$v$nodehosts == hostID
   nodetypes <- phybreakenv$v$nodetypes[selecthostnodes]
   nodetimes <- phybreakenv$v$nodetimes[selecthostnodes]
