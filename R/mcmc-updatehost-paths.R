@@ -130,8 +130,10 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   v <- pbe0$v
   
   ### propose the new infection time
-  tinf.prop <- v$nodetimes[hostID] - 
+  tinf.prop <- v$nodetimes[hostID] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
+  # tinf.prop <- v$inftimes[hostID] + rnorm(1, 0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape))
+  # tinf.prop <- min(tinf.prop, 2 * v$nodetimes[hostID] - tinf.prop)
   copy2pbe1("tinf.prop", le)
   
   ### going down the decision tree
@@ -180,6 +182,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     tinf.prop <- pbe1$tinf.prop
     
     ### calculate proposal ratio
+    # logproposalratio <- 0
     logproposalratio <- dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
                                shape = tinf.prop.shape.mult * p$sample.shape,
                                scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
@@ -221,6 +224,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     copy2pbe1("infector.proposed.ID", environment())
 
     ### calculate proposal ratio
+    # logproposalratio <- log(sum(dens.infectorproposal)/(dens.infectorproposal[infector.proposed.ID])) 
     logproposalratio <- log(sum(dens.infectorproposal)/(dens.infectorproposal[infector.proposed.ID])) +
       dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
              shape = tinf.prop.shape.mult * p$sample.shape,
@@ -266,6 +270,14 @@ update_host_phylotrans <- function(hostID, which_protocol) {
       pbe0$v$nodetimes[newindexID] - sort(c(pbe0$v$inftimes[infectees.newindex], Inf))[1]
     }
 
+    # logproposalratio <- pnorm(v$inftimes[newindexID] - v$nodetimes[newindexID] + sampleinterval.newindex, 
+    #                           0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape)) -
+    #   pnorm(v$inftimes[newindexID] - v$nodetimes[newindexID] - sampleinterval.newindex, 
+    #         0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape)) -
+    #   pnorm(v$inftimes[hostID] - v$nodetimes[hostID] + sampleinterval.hostID, 
+    #         0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape)) +
+    #   pnorm(v$inftimes[hostID] - v$nodetimes[hostID] - sampleinterval.hostID, 
+    #         0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape))
     logproposalratio <- pgamma(sampleinterval.newindex, shape = tinf.prop.shape.mult * p$sample.shape,
                                scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log.p = TRUE) -
       pgamma(sampleinterval.hostID, shape = tinf.prop.shape.mult * p$sample.shape,
@@ -308,6 +320,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
       (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorcurrent[hostID] <- 0
     
+    # logproposalratio <- log(dens.infectorcurrent[infector.current.ID]/(sum(dens.infectorcurrent))) 
     logproposalratio <- log(dens.infectorcurrent[infector.current.ID]/(sum(dens.infectorcurrent))) +
       dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
              shape = tinf.prop.shape.mult * p$sample.shape,
@@ -357,12 +370,14 @@ update_host_phylotrans <- function(hostID, which_protocol) {
       (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorcurrent[hostID] <- 0
     
+    # logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
+    #                           (dens.infectorproposal[infector.proposed.ID] * sum(dens.infectorcurrent))) 
     logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
                               (dens.infectorproposal[infector.proposed.ID] * sum(dens.infectorcurrent))) +
       dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
-      dgamma(v$nodetimes[hostID] - tinf.prop, 
+      dgamma(v$nodetimes[hostID] - tinf.prop,
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
     copy2pbe1("logproposalratio", environment())
@@ -395,10 +410,14 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     ### calculate proposal ratio
     infectees.hostID <- which(v$infectors == hostID)
     infectee.first.ID <- infectees.hostID[v$inftimes[infectees.hostID] == min(v$inftimes[infectees.hostID])]
-    logproposalratio <- pgamma(v$nodetimes[infectee.first.ID] - v$inftimes[hostID],
+    # logproposalratio <-  -  pnorm(v$inftimes[hostID] - v$inftimes[infectee.first.ID] - 2 * v$nodetimes[infectee.first.ID], 
+    #         0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape)) +
+    #   pnorm(v$inftimes[hostID] - v$inftimes[infectee.first.ID] - 2 * v$nodetimes[hostID], 
+    #         0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape))
+    logproposalratio <- pgamma(v$nodetimes[infectee.first.ID] - v$inftimes[infectee.first.ID],
                                shape = tinf.prop.shape.mult * p$sample.shape,
                                scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log.p = TRUE) -
-      pgamma(v$nodetimes[hostID] - v$inftimes[hostID],
+      pgamma(v$nodetimes[hostID] - v$inftimes[infectee.first.ID],
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log.p = TRUE)
     copy2pbe1("logproposalratio", environment())
@@ -427,6 +446,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   update_move <- function(rewirefunction, which_protocol) {
     prepare_pbe()
     do.call(rewirefunction, args = list())
+
     if(pbe1$logLiktoporatio > -Inf) {
       propose_pbe("phylotrans")
       logacceptanceprob <- pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLiktoporatio -
@@ -451,11 +471,16 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     
     # deconnect, reconnect, accept/reject each tip one by one
     for(edge in sampleedges) {
-      if(pbe0$v$nodetypes[pbe0$v$nodeparents[edge]] == "c") {
+      if(pbe0$v$nodetypes[pbe0$v$nodeparents[edge]] == "c" || 
+         pbe0$p$wh.bottleneck == "wide") {
         prepare_pbe()
         coalnode <- take_cnode(edge)
         pbe1$v$nodehosts[edge] <- pbe1$hostID
-        rewire_pullnodes_complete(pbe1$hostID)
+        if(pbe0$p$wh.bottleneck == "wide") {
+          rewire_pullnodes_wide(pbe1$hostID)
+        } else {
+          rewire_pullnodes_complete(pbe1$hostID)
+        }
         propose_pbe("withinhost")
         if(runif(1) < pbe1$logLikseq - pbe0$logLikseq) {
           accept_pbe("withinhost")
