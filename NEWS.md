@@ -1,3 +1,8 @@
+# phybreak 0.2.1.9007
+
+### BUG FIXES
+* Bug in resampling of sample edge if it was linked to a t-node (incorrect since 0.2.1.9006)
+
 # phybreak 0.2.1.9006
 
 ### Major changes

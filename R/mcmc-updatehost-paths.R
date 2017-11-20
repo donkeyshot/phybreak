@@ -471,7 +471,8 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     # deconnect, reconnect, accept/reject each tip one by one
     for(edge in sampleedges) {
       if(pbe0$v$nodetypes[pbe0$v$nodeparents[edge]] == "c" || 
-         pbe0$p$wh.bottleneck == "wide") {
+         (pbe0$p$wh.bottleneck == "wide" &&
+          any(pbe0$v$nodetypes %in% c("x", "t") & pbe0$v$nodehosts == pbe1$hostID))) {
         prepare_pbe()
         coalnode <- take_cnode(edge)
         if(pbe1$v$nodehosts[2 * pbe1$d$nsamples - 1 + pbe1$hostID] == -1) {
