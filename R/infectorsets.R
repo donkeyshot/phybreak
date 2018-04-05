@@ -127,13 +127,13 @@ infectorsets <- function(x, which.hosts = "all", percentile = 0.95, minsupport =
         res <- list()
         for (i in which.hosts) {
             res <- c(res, list(data.frame(infector = c("index", hostnames)[1 + inffreqs[i, 1, ][includemat[i, ]]], 
-                support = inffreqs[i, 2, ][includemat[i, ]]/denominator)))
+                support = inffreqs[i, 2, ][includemat[i, ]]/denominator, row.names = NULL)))
         }
     } else {
         res <- list()
         for (i in which.hosts) {
             res <- c(res, list(data.frame(infector = inffreqs[i, 1, ][includemat[i, ]], support = inffreqs[i, 2, ][includemat[i, 
-                ]]/denominator)))
+                ]]/denominator, row.names = NULL)))
         }
     }
     names(res) <- hostnames[which.hosts]
