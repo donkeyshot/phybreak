@@ -20,6 +20,7 @@
 #' mcmcobject <- get_mcmc(MCMCstate, thin = 2)
 #' plot.phylo(get_phylo(MCMCstate))
 #' get_data(MCMCstate)
+#' get_bottlenecks(MCMCstate)
 #' 
 #' #function from package phangorn:
 #' phangorn::parsimony(get_phylo(MCMCstate), get_data(MCMCstate)$sequences)
@@ -251,4 +252,22 @@ get.mcmc <- function(...) {
   get_mcmc(...)
 }
 
+
+
+
+### an mcmc-object (package 'coda')
+#' @describeIn get_phybreak A vector with for each host the current number of extant lineages in its phylogenetic minitree
+#'   at the time of infection (the bottleneck size).
+#'   
+#' @export
+get_bottlenecks <- function(x) {
+  v <- phybreak2environment(x$v)
+  
+  res <- 1L + with(v,
+                   tabulate(nodehosts[which(nodeparents %in% which(nodetypes %in% "b"))], x$p$obs))
+  
+  names(res) <- x$d$hostnames
+  
+  return(res)
+}
 

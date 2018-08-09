@@ -1,3 +1,8 @@
+# phybreak 0.2.1.9008
+
+### Minor changes
+* function get_bottlenecks to obtain the number of lineages leaving each host to its infector
+
 # phybreak 0.2.1.9007
 
 ### BUG FIXES
