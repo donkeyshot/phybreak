@@ -8,6 +8,7 @@
 \alias{get_phylo}
 \alias{get_multiPhylo}
 \alias{get_mcmc}
+\alias{get_bottlenecks}
 \title{Extracting from a phybreak object}
 \usage{
 get_data(x)
@@ -21,6 +22,8 @@ get_phylo(x, simmap = FALSE, samplenr = 0)
 get_multiPhylo(x, thin = 1, nkeep = Inf)
 
 get_mcmc(x, thin = 1, nkeep = Inf)
+
+get_bottlenecks(x)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}
@@ -55,6 +58,9 @@ Extracting from a phybreak object
 
 \item \code{get_mcmc}: An object of class \code{"mcmc"} (package \pkg{coda}), with sampled parameters, 
 infection times, and infectors.
+
+\item \code{get_bottlenecks}: A vector with for each host the current number of extant lineages in its phylogenetic minitree
+at the time of infection (the bottleneck size).
 }}
 
 \examples{
@@ -69,6 +75,7 @@ get_parameters(MCMCstate)
 mcmcobject <- get_mcmc(MCMCstate, thin = 2)
 plot.phylo(get_phylo(MCMCstate))
 get_data(MCMCstate)
+get_bottlenecks(MCMCstate)
 
 #function from package phangorn:
 phangorn::parsimony(get_phylo(MCMCstate), get_data(MCMCstate)$sequences)
