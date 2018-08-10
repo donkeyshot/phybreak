@@ -1,54 +1,7 @@
-# phybreak 0.2.1.9008
-
-### Minor changes
-* function get_bottlenecks to obtain the number of lineages leaving each host to its infector
-
-# phybreak 0.2.1.9007
-
-### BUG FIXES
-* Bug in resampling of sample edge if it was linked to a t-node (incorrect since 0.2.1.9006)
-
-# phybreak 0.2.1.9006
+# phybreak 0.3.0
 
 ### Major changes
-* New update protocol for proposing the within-host minitrees (0.2.1.9003) now also implemented for the wide bottleneck models
-
-# phybreak 0.2.1.9005
-
-### BUG FIXES
-* Frequency of parameter sampling (incorrect since 0.2.1.9003)
-
-# phybreak 0.2.1.9004
-
-### BUG FIXES
-* Proposal ratio in update path F (incorrect since 0.2.1.9003)
-
-# phybreak 0.2.1.9003
-
-### Major changes
-* New wide bottleneck model ("linear"), which makes it necessary to specify wh.bottleneck if wh.model = "linear" (in "phybreak")
-* New update protocol for proposing the within-host minitrees. In the "classic" protocol, each proposal of a new infection time and infector for a host included a complete resampling of its minitree. In the new protocol (which is now the default in "burnin_phybreak" and "sample_phybreak") only new coalescent times are proposed, but the topology is not. This is now followed by proposals in which the sampling tips are one by one removed and reattached (by simulation). The new protocol is now implemented for the complete bottleneck models (wide will follow)
-
-### Minor changes
-* Name changes of bottleneck options: "complete" and "wide" instead of "strict" and "loose"
-* New arguments in "burnin_phybreak" and "sample_phybreak":
-    * classic: to choose the proportion of tree updates with the classic protocol instead of the new default protocol
-    * parameter_frequency: option to sample the model parameters more frequently than each host in the transmission tree
-    * status_interval: the time interval between the on-screen status updates of the mcmc-chain
-
-### BUG FIXES
-* Acceptance ratio of mean sampling interval now includes coalescent likelihood (needed with wide bottleneck)
-
-# phybreak 0.2.1.9002
-
-### BUG FIXES
-* Fixed bug in transtree-method "edmonds" that could occur with much uncertainty in the posterior trees
-
-
-# phybreak 0.2.1.9001
-
-### Major changes
-* Added two within-host models allowing for loose transmission bottlenecks, i.e. bottlenecks with more than 1 lineage:
+* Added three within-host models allowing for wide transmission bottlenecks, i.e. bottlenecks with more than 1 lineage:
     * Change in variable and sample slots of phybreak objects, with separate infector and inftime entries for the transmission tree
     * More within-host parameters in the parameter slot of phybreak objects
     * Simulation and analysis with the new models
@@ -59,9 +12,18 @@
     * See help(ESS) for more information
 * More generic functions working with phybreak objects: c, print, quantile, thin
 * Dots in function names replaced by underscores
+* New update protocol for proposing the within-host minitrees. In the "classic" protocol, each proposal of a new infection time and infector for a host included a complete resampling of its minitree. In the new protocol (which is now the default in "burnin_phybreak" and "sample_phybreak") only new coalescent times are proposed, but the topology is not. This is now followed by proposals in which the sampling tips are one by one removed and reattached (by simulation). 
 
 ### Minor changes
-* Function infectorsets can remove matrix with support for all host-infector pairs
+* Function infectorsets can produce matrix with support for all host-infector pairs
+* New arguments in "burnin_phybreak" and "sample_phybreak":
+    * classic: to choose the proportion of tree updates with the classic protocol instead of the new default protocol (see above)
+    * parameter_frequency: option to sample the model parameters more frequently than each host in the transmission tree
+    * status_interval: the time interval between the on-screen status updates of the mcmc-chain
+* function get_bottlenecks to obtain the number of lineages leaving each host to its infector
+
+### BUG FIXES
+* Fixed bug in transtree-method "edmonds" that could occur with much uncertainty in the posterior trees
 
 
 # phybreak 0.2.1
