@@ -34,7 +34,8 @@
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
-logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, ...) {
+logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, 
+                            distance = TRUE, ...) {
   res <- 0
   if (genetic) {
     res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$nsamples), 
@@ -52,28 +53,49 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
     objectenv$v <- phybreak2environment(objectenv$v)
     res <- res + with(object, lik_coaltimes(objectenv))
   }
+  if(distance && !is.null(object$d$distances)) {
+    res <- res + with(object, lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, 
+                                            v$infectors, d$distances))
+  }
   attributes(res) <- list(
     nobs = object$p$obs,
-    df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.s + object$h$est.wh.e + object$h$est.wh.0,
-    genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation
+    df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.s + object$h$est.wh.e + object$h$est.wh.0 +
+      object$h$est.dist.e + object$h$est.dist.s + object$h$est.dist.m,
+    genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation, distance = distance
   )
   class(res) <- "logLik"
   return(res)
 }
 
 
-### calculate the log-likelihood of sampling intervals 
+### calculate the log-likelihood of generation intervals 
 lik_gentimes <- function(shapeG, meanG, inftimes, infectors) {
   sum(dgamma(inftimes[infectors > 0] - 
                inftimes[infectors[infectors > 0]], 
              shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
-### calculate the log-likelihood of generation intervals 
+### calculate the log-likelihood of sampling intervals 
 lik_sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
   sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
+### calculate the log-likelihood of distances 
+lik_distances <- function(dist.model, dist.exponent, dist.scale, dist.mean, infectors, distances) {
+  distancevector <- distances[cbind(1:10, infectors)]
+  switch(dist.model,
+         power = sum(log(
+           dist.exponent * sin(pi/dist.exponent) / 
+             (dist.scale * pi * (1 + (distancevector/dist.scale)^dist.exponent))
+           )),
+         exponential = sum(
+          -dist.exponent * distancevector - log(dist.exponent) 
+         ),
+         poisson = sum(
+           -dist.mean + distancevector * log(dist.mean) - lgamma(1 + distancevector)
+         )
+  )
+}
 
 ### calculate the log-likelihood of coalescent intervals 
 lik_coaltimes <- function(phybreakenv) {
