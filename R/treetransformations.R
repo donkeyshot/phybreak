@@ -254,36 +254,6 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
 }
 
 
-obkData2phybreak <- function(data, resample = FALSE, resamplepars = NULL) {
-  ### extract variables
-  samtimes <- OutbreakTools::get.dates(data, "dna")
-  names(samtimes) <- OutbreakTools::get.data(data, "sample")
-  samhosts <- OutbreakTools::get.data(data, "individualID")
-  names(samhosts) <- OutbreakTools::get.data(data, "sample")
-  if(!resample) {
-    inftimes <- OutbreakTools::get.dates(data, "individuals")
-    names(inftimes) <- OutbreakTools::get.individuals(data)
-    infectors <- OutbreakTools::get.data(data, "infector")
-    names(inftimes) <- OutbreakTools::get.individuals(data)
-    tree <- OutbreakTools::get.trees(data)[[1]]  
-  } else {
-    inftimes <- NULL
-    infectors <- NULL
-    tree <- NULL
-  }
-  
-  varslist <- list(
-    sample.times = samtimes,
-    sample.hosts = samhosts,
-    sim.infection.times = inftimes,
-    sim.infectors = infectors,
-    sim.tree = tree
-  )
-  
-  return(transphylo2phybreak(vars = varslist, resample = resample, resamplepars = resamplepars))
-}
-  
-
 phybreak2environment <- function(vars) {
   obs <- sum(vars$nodetypes == "s")
   nsamples <- sum(vars$nodetypes %in% c("s", "x"))
