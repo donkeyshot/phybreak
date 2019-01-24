@@ -110,7 +110,7 @@ update_wh_slope <- function() {
     logproposalratio <- log(p$wh.slope) - log(pbe0$p$wh.slope)
 
     ### calculate likelihood
-    propose_pbe("slope")
+    propose_pbe("wh.slope")
     
     ### calculate acceptance probability
     logaccprob <- pbe1$logLikcoal - pbe0$logLikcoal + logproposalratio + 
@@ -119,7 +119,7 @@ update_wh_slope <- function() {
     
     ### accept or reject
     if (runif(1) < exp(logaccprob)) {
-        accept_pbe("slope")
+        accept_pbe("wh.slope")
     }
 }
 
@@ -143,7 +143,7 @@ update_wh_exponent <- function() {
   logproposalratio <- log(p$wh.exponent) - log(pbe0$p$wh.exponent)
   
   ### calculate likelihood
-  propose_pbe("exponent")
+  propose_pbe("wh.exponent")
   
   ### calculate acceptance probability
   logaccprob <- pbe1$logLikcoal - pbe0$logLikcoal + logproposalratio + 
@@ -152,7 +152,7 @@ update_wh_exponent <- function() {
   
   ### accept or reject
   if (runif(1) < exp(logaccprob)) {
-    accept_pbe("exponent")
+    accept_pbe("wh.exponent")
   }
 }
 
@@ -176,7 +176,7 @@ update_wh_level <- function() {
   logproposalratio <- log(p$wh.level) - log(pbe0$p$wh.level)
   
   ### calculate likelihood
-  propose_pbe("level")
+  propose_pbe("wh.level")
   
   ### calculate acceptance probability
   logaccprob <- pbe1$logLikcoal - pbe0$logLikcoal + logproposalratio + 
@@ -185,6 +185,105 @@ update_wh_level <- function() {
   
   ### accept or reject
   if (runif(1) < exp(logaccprob)) {
-    accept_pbe("level")
+    accept_pbe("wh.level")
+  }
+}
+
+update_dist_exponent <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  h <- pbe0$h
+  p <- pbe1$p
+  v <- pbe1$v
+  
+  ### change to proposal state
+  p$dist.exponent <- 1 + exp(log(p$dist.exponent - 1) + rnorm(1, 0, h$si.dist))
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate proposalratio
+  logproposalratio <- log(p$dist.exponent - 1) - log(pbe0$p$dist.exponent - 1)
+  
+  ### calculate likelihood
+  propose_pbe("dist.exponent")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikdist - pbe0$logLikdist + logproposalratio + 
+    dgamma(pbe1$p$dist.exponent - 1, shape = h$dist.e.sh, scale = h$dist.e.av/h$dist.e.sh, log = TRUE) - 
+    dgamma(pbe0$p$dist.exponent - 1, shape = h$dist.e.sh, scale = h$dist.e.av/h$dist.e.sh, log = TRUE)
+  
+  ### accept or reject
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("dist.exponent")
+  }
+}
+
+update_dist_scale <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  h <- pbe0$h
+  p <- pbe1$p
+  v <- pbe1$v
+  
+  ### change to proposal state
+  p$dist.scale <- exp(log(p$dist.scale) + rnorm(1, 0, h$si.dist))
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate proposalratio
+  logproposalratio <- log(p$dist.scale) - log(pbe0$p$dist.scale)
+  
+  ### calculate likelihood
+  propose_pbe("dist.scale")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikdist - pbe0$logLikdist + logproposalratio + 
+    dgamma(pbe1$p$dist.scale, shape = h$dist.s.sh, scale = h$dist.s.av/h$dist.s.sh, log = TRUE) - 
+    dgamma(pbe0$p$dist.scale, shape = h$dist.s.sh, scale = h$dist.s.av/h$dist.s.sh, log = TRUE)
+  
+  ### accept or reject
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("dist.scale")
+  }
+}
+
+update_dist_mean <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  h <- pbe0$h
+  p <- pbe1$p
+  v <- pbe1$v
+  
+  ### change to proposal state
+  p$dist.mean <- exp(log(p$dist.mean) + rnorm(1, 0, h$si.dist))
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate proposalratio
+  logproposalratio <- log(p$dist.mean) - log(pbe0$p$dist.mean)
+  
+  ### calculate likelihood
+  propose_pbe("dist.mean")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikdist - pbe0$logLikdist + logproposalratio + 
+    dgamma(pbe1$p$dist.mean, shape = h$dist.m.sh, scale = h$dist.m.av/h$dist.m.sh, log = TRUE) - 
+    dgamma(pbe0$p$dist.mean, shape = h$dist.m.sh, scale = h$dist.m.av/h$dist.m.sh, log = TRUE)
+  
+  ### accept or reject
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("dist.mean")
   }
 }
