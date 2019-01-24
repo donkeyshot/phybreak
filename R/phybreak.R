@@ -124,11 +124,15 @@ phybreak <- function(dataset, times = NULL,
          mu = NULL, gen.shape = 3, gen.mean = 1,
          sample.shape = 3, sample.mean = 1, 
          wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
+         dist.model = "power", dist.exponent = 2, dist.scale = 1, dist.mean = 1,
          est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
          est.sample.mean = TRUE, prior.sample.mean.mean = 1, prior.sample.mean.sd = Inf,
          est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
          est.wh.exponent = TRUE, prior.wh.exponent.shape = 1, prior.wh.exponent.mean = 1,
          est.wh.level = TRUE, prior.wh.level.shape = 1, prior.wh.level.mean = 0.1,
+         est.dist.exponent = TRUE, prior.dist.exponent.shape = 1, prior.dist.exponent.mean = 1,
+         est.dist.scale = TRUE, prior.dist.scale.shape = 1, prior.dist.scale.mean = 1,
+         est.dist.mean = TRUE, prior.dist.mean.shape = 1, prior.dist.mean.mean = 1,
          use.tree = FALSE, ...) {
   ########################################################
   ### parameter name compatibility with older versions ###
@@ -187,6 +191,21 @@ phybreak <- function(dataset, times = NULL,
     dataslot$sample.times <- dataset$sample.times
   }
   
+  #distances
+  if(inherits(dataset, "obkData")) {
+    if(all(c("lon", "lat") %in% colnames(OutbreakTools::get.data(dataset, "individuals")))) {
+      distances <- sp::spDists(as.matrix(get.data(dataset, c("lon", "lat"))), longlat = TRUE)
+      colnames(distances) <- rownames(distances) <- get.individuals(dataset)
+      dataslot$distances <- distances
+    } else if (all(c("x", "y") %in% colnames(OutbreakTools::get.data(dataset, "individuals")))) {
+      distances <- sp::spDists(as.matrix(get.data(dataset, c("x", "y"))), longlat = FALSE)
+      colnames(distances) <- rownames(distances) <- get.individuals(dataset)
+      dataslot$distances <- distances
+    }
+  } else {
+    dataslot$distances <- dataset$distances
+  }
+  
   #SNP count
   SNPpatterns <- do.call(rbind, dataslot$sequences)
   dataslot$nSNPs <- as.integer(
@@ -215,7 +234,11 @@ phybreak <- function(dataset, times = NULL,
     wh.bottleneck = wh.bottleneck,
     wh.slope = wh.slope,
     wh.exponent = wh.exponent,
-    wh.level = wh.level * (wh.bottleneck == "wide")
+    wh.level = wh.level * (wh.bottleneck == "wide"),
+    dist.model = dist.model,
+    dist.exponent = dist.exponent,
+    dist.scale = dist.scale,
+    dist.mean = dist.mean
   )
   
   ##############################
@@ -247,12 +270,16 @@ phybreak <- function(dataset, times = NULL,
   #################################
   helperslot <- list(si.mu = if(dataslot$nSNPs == 0) 0 else 2.38*sqrt(trigamma(dataslot$nSNPs)),
                      si.wh = 2.38*sqrt(trigamma(dataslot$nsamples - 1)),
+                     si.dist = 2.38*sqrt(trigamma(parameterslot$obs - 1)),
                      dist = distmatrix_phybreak(subset(dataslot$sequences, subset = 1:parameterslot$obs)),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
                      est.wh.s = est.wh.slope && wh.model == "linear",
                      est.wh.e = est.wh.exponent && wh.model == "exponential",
                      est.wh.0 = est.wh.level && wh.bottleneck == "wide",
+                     est.dist.e = est.dist.exponent && dist.model %in% c("power", "exponential") && !is.null(dataslot$distances),
+                     est.dist.s = est.dist.scale && dist.model == "power" && !is.null(dataslot$distances),
+                     est.dist.m = est.dist.mean && dist.model == "poisson" && !is.null(dataslot$distances),
                      mG.av = prior.gen.mean.mean,
                      mG.sd = prior.gen.mean.sd,
                      mS.av = prior.sample.mean.mean,
@@ -262,7 +289,13 @@ phybreak <- function(dataset, times = NULL,
                      wh.e.sh = prior.wh.exponent.shape,
                      wh.e.av = prior.wh.exponent.mean,
                      wh.0.sh = prior.wh.level.shape,
-                     wh.0.av = prior.wh.level.mean)
+                     wh.0.av = prior.wh.level.mean,
+                     dist.e.sh = prior.dist.exponent.shape,
+                     dist.e.av = prior.dist.exponent.mean,
+                     dist.s.sh = prior.dist.scale.shape,
+                     dist.s.av = prior.dist.scale.mean,
+                     dist.m.sh = prior.dist.mean.shape,
+                     dist.m.av = prior.dist.mean.mean)
   
   ###########################
   ### fifth slot: samples ###
@@ -279,6 +312,9 @@ phybreak <- function(dataset, times = NULL,
     wh.s = c(),
     wh.e = c(),
     wh.0 = c(),
+    dist.e = c(),
+    dist.s = c(),
+    dist.m = c(),
     logLik = c()
   )
 

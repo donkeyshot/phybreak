@@ -23,6 +23,7 @@
 #'     \item{sequences}{a \code{'phyDat'}-object with the sequence data.}
 #'     \item{sample.times}{a named \code{vector} with the sample times.}
 #'     \item{sample.hosts}{a named \code{vector} with the hosts from whom the samples have been taken.}
+#'     \item{distances}{a named distance matrix (class \code{dist}) with the mutual distances.}
 #'     \item{sim.infection.times}{a named \code{vector} with the (simulated) infection times (if provided).}
 #'     \item{sim.infectors}{a named \code{vector} with the (simulated) infectors (if provided).}
 #'     \item{sim.tree}{a \code{'phylo'}-object with the (simulated) phylogenetic tree (if provided).}
@@ -39,7 +40,7 @@
 #'                           dimnames = list(LETTERS[1:5], NULL))
 #' dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 #' @export
-phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.names = sample.names, 
+phybreakdata <- function(sequences, sample.times, distances = NULL, sample.names = NULL, host.names = sample.names, 
                          sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL) {
   
   ##########################################################
@@ -135,9 +136,46 @@ phybreakdata <- function(sequences, sample.times, sample.names = NULL, host.name
     sample.times = sample.times,
     sample.hosts = host.names
   )
+  
   ######################################################################
   ### testing and adding the input: then the rest of the information ###
   ######################################################################
+  
+  if(!is.null(distances)) {
+    if(inherits(distances, "dist")) {
+      distances <- as.matrix(distances)
+    } else if(!inherits(distances, "matrix") || !is.numeric(distances)) {
+      stop("distances should be of class \"dist\" or a numeric matrix")
+    }
+    if(nrow(distances) != ncol(distances)) {
+      stop("distance matrix should be square")
+    }
+    if(nrow(distances) != length(allhosts)) {
+      stop("size of distance matrix does not correspond to number of hosts")
+    }
+    if(all(distances != t(distances))) {
+      stop("distance matrix should be symmetric")
+    }
+    if(is.null(rownames(distances)) && is.null(colnames(distances))) {
+      warning("distance matrix does not contain names; names are assigned")
+      rownames(distances) <- allhosts
+      colnames(distances) <- allhosts
+    }
+    if(is.null(rownames(distances))) {
+      rownames(distances) <- colnames(distances)
+    }
+    if(is.null(colnames(distances))) {
+      colnames(distances) <- rownames(distances)
+    }
+    if(!all(allhosts %in% colnames(distances)) || !all(allhosts %in% rownames(distances))) {
+      warning("names in distance matrix do not match host names; names are overridden")
+      rownames(distances) <- allhosts
+      colnames(distances) <- allhosts
+    }
+    res <- c(res, list(distances = distances[orderedhosts, orderedhosts]))
+  }
+ 
+  
   if(!is.null(sim.infection.times)) {
     if(class(sim.infection.times) != class(sample.times)) {
       stop("sim.infection.times should be of same class as sample.times")
