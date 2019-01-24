@@ -1,3 +1,8 @@
+# phybreak 0.3.1
+
+### Minor changes
+* Removed the possibility of using obkData-objects as input data, because the supporting package OutbreakTools has been removed from CRAN
+
 # phybreak 0.3.0
 
 ### Major changes
