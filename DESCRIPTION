@@ -21,7 +21,8 @@ Imports:
     methods,
     stats,
     stringr,
-    utils
+    utils,
+    sp
 Suggests:
     coda,
     phytools,

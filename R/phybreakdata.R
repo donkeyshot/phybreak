@@ -40,7 +40,7 @@
 #'                           dimnames = list(LETTERS[1:5], NULL))
 #' dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 #' @export
-phybreakdata <- function(sequences, sample.times, distances = NULL, sample.names = NULL, host.names = sample.names, 
+phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names = NULL, host.names = sample.names, 
                          sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL) {
   
   ##########################################################
@@ -141,41 +141,87 @@ phybreakdata <- function(sequences, sample.times, distances = NULL, sample.names
   ### testing and adding the input: then the rest of the information ###
   ######################################################################
   
-  if(!is.null(distances)) {
-    if(inherits(distances, "dist")) {
+  ### spatial data ###
+  if(!is.null(spatial)) {
+    if(inherits(spatial, "dist")) {
       distances <- as.matrix(distances)
-    } else if(!inherits(distances, "matrix") || !is.numeric(distances)) {
-      stop("distances should be of class \"dist\" or a numeric matrix")
+    } else {
+      if(inherits(spatial, "data.frame")) spatial <- as.matrix(spatial)
+      if(!inherits(spatial, "matrix") || !is.numeric(spatial)) {
+        stop("\"spatial\" should be either a distance matrix of class \"dist\", 
+             a numeric \"matrix\" with distances or locations, or a \"data.frame\" with locations")
+      }
+      if(nrow(spatial) != ncol(spatial) && ncol(spatial) != 2) {
+        stop("\"spatial\" should be either a distance matrix of class \"dist\", 
+             a square numeric \"matrix\" with distances, a two-column matrix with locations, 
+             or a two-column \"data.frame\" with locations")
+      }
+      if(nrow(spatial) != length(allhosts)) {
+        stop("size of \"spatial\" does not correspond to number of hosts")
+      }
+      if(nrow(spatial) == ncol(spatial) && all(spatial != t(spatial)) && 
+         !(ncol(spatial) == 2 && (colnames(spatial) %in% c("x", "y") || colnames(spatial) %in% c("lon", "lat")))) {
+        stop("distance matrix in \"spatial\" should be symmetric")
+      }
     }
-    if(nrow(distances) != ncol(distances)) {
-      stop("distance matrix should be square")
+    if(is.null(rownames(spatial)) && is.null(colnames(spatial))) {
+      warning("\"spatial\" data do not contain names; names are assigned")
+      rownames(spatial) <- allhosts
+      if(ncol(spatial) != 2 || nrow(spatial) == 2) {
+        colnames(spatial) <- allhosts
+      } else {
+        warning("locations in \"spatial\" are assumed to be (x, y) coordinates")
+        colnames(spatial) <- c("x", "y")
+      }
     }
-    if(nrow(distances) != length(allhosts)) {
-      stop("size of distance matrix does not correspond to number of hosts")
+    if(is.null(rownames(spatial))) {
+      if(ncol(spatial) != 2 || nrow(spatial) == 2) {
+        rownames(spatial) <- colnames(spatial)
+      } else {
+        warning("locations in \"spatial\" do not contain names; names are assigned")
+        rownames(spatial) <- allhosts
+      }
     }
-    if(all(distances != t(distances))) {
-      stop("distance matrix should be symmetric")
+    if(is.null(colnames(spatial))) {
+      if(ncol(spatial) != 2 || nrow(spatial) == 2) {
+        colnames(spatial) <- rownames(spatial)
+      } else {
+        warning("locations in \"spatial\" are assumed to be (x, y) coordinates")
+        colnames(spatial) <- c("x", "y")
+      }
     }
-    if(is.null(rownames(distances)) && is.null(colnames(distances))) {
-      warning("distance matrix does not contain names; names are assigned")
-      rownames(distances) <- allhosts
-      colnames(distances) <- allhosts
+    if(ncol(spatial) != 2 || 
+       (nrow(spatial) == 2 && !(all(colnames(spatial) %in% c("x", "y")) || all(colnames(spatial) %in% c("lon", "lat"))))) {
+      if(!all(allhosts %in% colnames(spatial)) || !all(allhosts %in% rownames(spatial))) {
+        warning("names in distance matrix in \"spatial\" do not match host names; names are overridden")
+        rownames(spatial) <- allhosts
+        colnames(spatial) <- allhosts
+      }
+    } else {
+      if(!all(allhosts %in% rownames(spatial))) {
+        warning("names in locations in \"spatial\" do not match host names; names are overridden")
+        rownames(distances) <- allhosts
+      }
+      if(!(all(colnames(spatial) %in% c("x", "y")) || all(colnames(spatial) %in% c("lon", "lat")))) {
+        warning("locations in \"spatial\" are assumed to be (x, y) coordinates")
+        colnames(spatial) <- c("x", "y")
+      }
     }
-    if(is.null(rownames(distances))) {
-      rownames(distances) <- colnames(distances)
+    if(all(rownames(spatial) == colnames(spatial))) {
+      res <- c(res, list(distances = spatial[orderedhosts, orderedhosts]))
+    } else if(all(colnames(spatial) %in% c("lon", "lat"))) {
+      distances <- sp::spDists(as.matrix(spatial[, c("lon", "lat")]), longlat = TRUE)
+      colnames(distances) <- rownames(distances) <- rownames(spatial)
+      res <- c(res, list(locations = spatial[orderedhosts, c("lon", "lat")],
+                         distances = distances[orderedhosts, orderedhosts]))
+    } else {
+      distances <- as.matrix(dist(spatial))
+      res <- c(res, list(locations = spatial[orderedhosts, c("x", "y")],
+                         distances = distances[orderedhosts, orderedhosts]))
     }
-    if(is.null(colnames(distances))) {
-      colnames(distances) <- rownames(distances)
-    }
-    if(!all(allhosts %in% colnames(distances)) || !all(allhosts %in% rownames(distances))) {
-      warning("names in distance matrix do not match host names; names are overridden")
-      rownames(distances) <- allhosts
-      colnames(distances) <- allhosts
-    }
-    res <- c(res, list(distances = distances[orderedhosts, orderedhosts]))
   }
- 
-  
+
+  ### infection times ###
   if(!is.null(sim.infection.times)) {
     if(class(sim.infection.times) != class(sample.times)) {
       stop("sim.infection.times should be of same class as sample.times")
@@ -198,6 +244,8 @@ phybreakdata <- function(sequences, sample.times, distances = NULL, sample.names
     }
     res <- c(res, list(sim.infection.times = sim.infection.times))
   }
+  
+  ### infectors ###
   if(!is.null(sim.infectors)) {
     if(!inherits(sim.infectors, c("character", "numeric", "integer"))) {
       stop("sim.infectors should be numeric (referring to position of infector) or character (referring to host names)")
@@ -230,6 +278,8 @@ phybreakdata <- function(sequences, sample.times, distances = NULL, sample.names
     names(sim.infectors) <- orderedhosts
     res <- c(res, list(sim.infectors = sim.infectors))
   }
+  
+  ### phylogenetic tree ###
   if(!is.null(sim.tree)) {
     if(!inherits(sim.tree, "phylo")) {
       stop("sim.tree should be of class phylo")
