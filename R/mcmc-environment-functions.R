@@ -98,8 +98,8 @@ build_pbe <- function(phybreak.obj) {
   ### calculate the other log-likelihoods
   logLiksam <- lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes)
   logLikgen <- lik_gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors)
-  logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, v$infectors, d$distances)
   logLikcoal <- lik_coaltimes(le)
+  logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, v$infectors, d$distances)
   
   ### copy everything into pbe0
   copy2pbe0("d", le)
@@ -191,8 +191,7 @@ propose_pbe <- function(f) {
     copy2pbe1("logLikcoal", le)
   }
   
-  if (!is.null(d$distances) && 
-      (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean")) {
+  if (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {
     logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean,
                                 v$infectors, d$distances)
     copy2pbe1("logLikdist", le)
@@ -228,8 +227,7 @@ accept_pbe <- function(f) {
     copy2pbe0("logLikgen", pbe1)
   }
   
-  if (!is.null(pbe0$d$distances) && 
-      (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean")) {
+  if (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {
     copy2pbe0("logLikdist", pbe1)
   }
   
