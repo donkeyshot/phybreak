@@ -8,6 +8,8 @@
 #'   an \code{obsize} can severely increase the simulation time, depending on \code{R0}.
 #' @param samplesperhost Number of samples to be taken per host, either a vector or a single number.
 #' @param R0 The basic reproduction ratio used for simulation. The offspring distribution is Poisson.
+#' @param spatial If \code{TRUE}, the hosts are placed on a square with density 1, and a distance kernel is used to 
+#'   model transmission probabilities between the hosts.
 #' @param gen.shape The shape parameter of the gamma-distributed generation interval.
 #' @param gen.mean The mean generation interval.
 #' @param sample.shape The shape parameter of the gamma-distributed sampling interval.
@@ -30,10 +32,15 @@
 #' @param wh.exponent Within-host exponent, used if \code{wh.model = "exponential"}
 #' @param wh.level Within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "wide"}
 #'   (if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})
+#' @param dist.model The distance kernel to use if \code{spatial = TRUE}. Options are:
+#'   \enumerate{
+#'     \item "power": a power law function pr(dist) ~ 1 / (1 + (dist/dist.scale) ^ dist.exponent)
+#'     \item "exponential": an exponential function pr(dist) ~ exp(-dist.exponent * dist)
+#'   }
+#' @param dist.exponent Distance model exponent.
+#' @param dist.scale Distance model scale, only with power law distance model.
 #' @param mu Expected number of mutations per nucleotide per unit of time along each lineage. 
 #' @param sequence.length Number of available nucleotides for mutations.
-#' @param output.class Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
-#'  class \code{'obkData'}
 #' @param ... If arguments from previous versions of this function are used, they may be interpreted correctly through 
 #'   this argument, but it is better to provide the correct argument names.
 #' @return The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
@@ -57,11 +64,13 @@
 #' simulation <- sim_phybreak()
 #' @export
 sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
-                         R0 = 1.5, gen.shape = 10, gen.mean = 1, 
+                         R0 = 1.5, spatial = FALSE,
+                         gen.shape = 10, gen.mean = 1, 
                          sample.shape = 10, sample.mean = 1,
                          additionalsampledelay = 0,
                          wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
-                         mu = 0.0001, sequence.length = 10000, output.class = c("phybreakdata", "obkData"), ...) {
+                         dist.model = "power", dist.exponent = 2, dist.scale = 1,
+                         mu = 0.0001, sequence.length = 10000, ...) {
   ### parameter name compatibility 
   old_arguments <- list(...)
   if(exists("old_arguments$shape.gen")) gen.shape <- old_arguments$shape.gen
@@ -71,15 +80,6 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
 
   
   ### tests
-  output.class <- match.arg(output.class)
-  if(output.class == "obkData" && !("OutbreakTools" %in% .packages(TRUE))) {
-    warning("package 'OutbreakTools' not installed: output.class is \"phybreakdata\"")
-    output.class <- "phybreakdata"
-  }
-  if(output.class == "obkData" && !("OutbreakTools" %in% .packages(FALSE))) {
-#    warning("package 'OutbreakTools' is not attached")
-    requireNamespace("OutbreakTools")
-  }
   if(all(is.na(c(obsize, popsize)))) {
     stop("give an outbreak size (obsize) and/or a population size (popsize)")
   }
@@ -102,13 +102,23 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   
   ### simulate step by step
   if(is.na(obsize)) {
-     res <- sim_outbreak(popsize, R0, gen.shape, gen.mean,
-                                      sample.shape, sample.mean)
+    if(spatial) {
+      res <- sim_outbreak_spatial(popsize, R0, gen.shape, gen.mean,
+                          sample.shape, sample.mean, dist.model, dist.exponent, dist.scale)
+    } else {
+      res <- sim_outbreak(popsize, R0, gen.shape, gen.mean,
+                          sample.shape, sample.mean)
+    }
      obsize <- res$obs
      if(obsize == 1) return(c("Outbreak size = 1"))
   } else {
-    res <- sim_outbreak_size(obsize, popsize, R0, gen.shape, gen.mean,
-                              sample.shape, sample.mean)
+    if(spatial) {
+      res <- sim_outbreak_size_spatial(obsize, popsize, R0, gen.shape, gen.mean,
+                               sample.shape, sample.mean, dist.model, dist.exponent, dist.scale)
+    } else {
+      res <- sim_outbreak_size(obsize, popsize, R0, gen.shape, gen.mean,
+                               sample.shape, sample.mean)
+    }
   }
   if(any(samplesperhost < 1)) stop("samplesperhost should be positive")
   if(any(additionalsampledelay < 0)) stop("additionalsampledelay cannot be negative")
@@ -118,24 +128,28 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   hostnames <- paste0("host.", 1:obsize)
   samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples], ".", nthsample(res))
   names(res$sequences) <- samplenames
-  
+  if(spatial) {
+    rownames(res$locations) <- hostnames
+  }
+
   ### make a phylo tree
   treesout <- vector('list',1)
   treesout[[1]] <- phybreak2phylo(vars = environment2phybreak(res), samplenames = samplenames, simmap = FALSE)
   class(treesout) <- "multiPhylo"
   
 
-  if(output.class == "obkData") {
-    toreturn <- with(res, new("obkData",
-                    individuals = data.frame(
-                      infector = c("index", hostnames)[1 + infectors],
-                      date = as.Date(inftimes, origin = "2000-01-01"),
-                      row.names = hostnames),
-                    dna = list(SNPs = ape::as.DNAbin(sequences)), 
-                    dna.individualID = hostnames[c(1:obs, addsamplehosts)], 
-                    dna.date = as.Date(c(samtimes, addsampletimes), origin = "2000-01-01"),
-                    sample = samplenames,
-                    trees = treesout))
+  if(spatial) {
+    toreturn <- with(res,
+                      phybreakdata(
+                        sequences = sequences,
+                        sample.times = c(samtimes, addsampletimes),
+                        spatial = locations,
+                        sample.names = samplenames,
+                        host.names = hostnames[c(1:obs, addsamplehosts)],
+                        sim.infection.times = inftimes,
+                        sim.infectors = infectors,
+                        sim.tree = treesout[[1]]
+                      ))
   } else {
     toreturn <- with(res,
                      phybreakdata(
@@ -175,6 +189,22 @@ sim_outbreak_size <- function(obsize, Npop, R0, aG, mG, aS, mS) {
   
   return(sim)
 }
+
+sim_outbreak_size_spatial <- function(obsize, Npop, R0, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale) {
+  if(is.na(Npop)) {
+    Npop <- obsize
+    while(1 - obsize/Npop < exp(-R0* obsize/Npop)) {Npop <- Npop + 1}
+  } 
+  
+  sim <- sim_outbreak_spatial(Npop, R0, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale)
+  
+  while(sim$obs != obsize) {
+    sim <- sim_outbreak_spatial(Npop, R0, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale)
+  }
+  
+  return(sim)
+}
+
 
 ### simulate an outbreak
 sim_outbreak <- function(Npop, R0, aG, mG, aS, mS) {
@@ -227,6 +257,77 @@ sim_outbreak <- function(Npop, R0, aG, mG, aS, mS) {
       samtimes = samtimes[1:obs],
       inftimes = inftimes[1:obs],
       infectors = infectors
+    )
+  )
+}
+
+### simulate a spatial outbreak
+sim_outbreak_spatial <- function(Npop, R0, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale) {
+  ### initialize spatial population model
+  x <- runif(Npop, 0, sqrt(Npop))
+  y <- runif(Npop, 0, sqrt(Npop))
+  distances <- as.matrix(dist(cbind(x, y)))
+  dist_densities <- if(dist.model == "exponential") {
+    dist.exponent * exp(-dist.exponent * distances)
+  } else {
+    dist.exponent * sin(pi/dist.exponent) / (pi * dist.scale * (1 + (distances/dist.scale) ^ dist.exponent))
+  }
+  dist_densities[cbind(1:Npop, 1:Npop)] <- 0
+  # matrixR0 <- max(eigen(dist_densities)$values)
+  matrixR0 <- sum(dist_densities)/Npop
+  R0_matrix <- R0 * dist_densities / matrixR0
+
+  ### initialize outbreak
+  inftimes <- c(0, rep(10000, Npop-1))
+  sources <- rep(0, Npop)
+  nrcontacts <- rpois(Npop, rowSums(R0_matrix))
+  nth.infection <- 1
+  currentID <- 1
+  
+  ### by order of infection, sample secondary infections
+  # currentID is the infected host under consideration
+  while(nth.infection <= Npop & inftimes[currentID] != 10000) {
+    #when does currentID make infectious contacts?
+    #reverse sorting so that with double contacts, the earliest will be used last
+    whencontacts <- sort(inftimes[currentID] + rgamma(nrcontacts[currentID], aG, aG/mG),decreasing = TRUE)
+    
+    #who are these contacts made with?
+    whocontacted <- sample(Npop, nrcontacts[currentID], replace = TRUE, prob = R0_matrix[currentID, ])
+    
+    #are these contacts successful, i.e. earlier than the existing contacts with these hosts?
+    successful <- whencontacts < inftimes[whocontacted]
+    
+    #change infectors and infection times of successful contactees
+    sources[whocontacted[successful]] <- currentID
+    inftimes[whocontacted[successful]] <- whencontacts[successful]
+    
+    #go to next infected host in line
+    nth.infection <- nth.infection + 1
+    currentID <- order(inftimes)[nth.infection]
+  }
+  
+  ### determine outbreaksize and sampling times
+  obs <- sum(inftimes<10000)
+  samtimes <- inftimes + rgamma(Npop, aS, aS/mS)
+  
+  ### order hosts by sampling times, and renumber hostIDs
+  ### so that the uninfected hosts can be discarded
+  orderbysamtimes <- order(samtimes)
+  sources <- sources[orderbysamtimes]
+  infectors <- match(sources,orderbysamtimes)[1:obs]
+  infectors[is.na(infectors)] <- 0
+  inftimes <- inftimes[orderbysamtimes]
+  samtimes <- samtimes[orderbysamtimes]
+  locations <- cbind(x, y)[orderbysamtimes, ]
+
+  ### return the outbreak
+  return(
+    list(
+      obs = obs,
+      samtimes = samtimes[1:obs],
+      inftimes = inftimes[1:obs],
+      infectors = infectors,
+      locations = locations[1:obs, ]
     )
   )
 }
