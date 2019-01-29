@@ -32,23 +32,11 @@
 #'   (if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})
 #' @param mu Expected number of mutations per nucleotide per unit of time along each lineage. 
 #' @param sequence.length Number of available nucleotides for mutations.
-#' @param output.class Class of the simulation output. If package \pkg{OutbreakTools} is available, it is possible to choose
-#'  class \code{'obkData'}
 #' @param ... If arguments from previous versions of this function are used, they may be interpreted correctly through 
 #'   this argument, but it is better to provide the correct argument names.
-#' @return The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
+#' @return The simulation output as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
 #'   sampling times (which would be the observations), and infection times, infectors, and phylogenetic tree 
-#'   of class \code{\link[ape]{phylo}}; 
-#'   or as an object of class \code{'obkData'} (package \pkg{OutbreakTools}), containing the outbreak data in the following slots:
-#'   \describe{
-#'     \item{individuals}{a \code{data.frame} with individual labels as row names, a vector \code{infector},
-#'       and a vector \code{date} containing the infection times (starting 01-01-2000)
-#'     }
-#'     \item{dna}{an object of class \code{'obkSequences'}, with SNP data in \code{dna} and sampling times
-#'       in \code{meta$date}
-#'     }
-#'     \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{\link[ape]{phylo}}}
-#'   }
+#'   of class \code{\link[ape]{phylo}}.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
 #'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
@@ -61,7 +49,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
                          sample.shape = 10, sample.mean = 1,
                          additionalsampledelay = 0,
                          wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
-                         mu = 0.0001, sequence.length = 10000, output.class = c("phybreakdata", "obkData"), ...) {
+                         mu = 0.0001, sequence.length = 10000, ...) {
   ### parameter name compatibility 
   old_arguments <- list(...)
   if(exists("old_arguments$shape.gen")) gen.shape <- old_arguments$shape.gen
@@ -71,15 +59,6 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
 
   
   ### tests
-  output.class <- match.arg(output.class)
-  if(output.class == "obkData" && !("OutbreakTools" %in% .packages(TRUE))) {
-    warning("package 'OutbreakTools' not installed: output.class is \"phybreakdata\"")
-    output.class <- "phybreakdata"
-  }
-  if(output.class == "obkData" && !("OutbreakTools" %in% .packages(FALSE))) {
-#    warning("package 'OutbreakTools' is not attached")
-    requireNamespace("OutbreakTools")
-  }
   if(all(is.na(c(obsize, popsize)))) {
     stop("give an outbreak size (obsize) and/or a population size (popsize)")
   }
@@ -120,34 +99,20 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   names(res$sequences) <- samplenames
   
   ### make a phylo tree
-  treesout <- vector('list',1)
-  treesout[[1]] <- phybreak2phylo(vars = environment2phybreak(res), samplenames = samplenames, simmap = FALSE)
-  class(treesout) <- "multiPhylo"
-  
+  treeout <- phybreak2phylo(vars = environment2phybreak(res), samplenames = samplenames, simmap = FALSE)
 
-  if(output.class == "obkData") {
-    toreturn <- with(res, new("obkData",
-                    individuals = data.frame(
-                      infector = c("index", hostnames)[1 + infectors],
-                      date = as.Date(inftimes, origin = "2000-01-01"),
-                      row.names = hostnames),
-                    dna = list(SNPs = ape::as.DNAbin(sequences)), 
-                    dna.individualID = hostnames[c(1:obs, addsamplehosts)], 
-                    dna.date = as.Date(c(samtimes, addsampletimes), origin = "2000-01-01"),
-                    sample = samplenames,
-                    trees = treesout))
-  } else {
-    toreturn <- with(res,
-                     phybreakdata(
-      sequences = sequences,
-      sample.times = c(samtimes, addsampletimes),
-      sample.names = samplenames,
-      host.names = hostnames[c(1:obs, addsamplehosts)],
-      sim.infection.times = inftimes,
-      sim.infectors = infectors,
-      sim.tree = treesout[[1]]
-    ))
-  }
+
+  toreturn <- with(res,
+                   phybreakdata(
+                     sequences = sequences,
+                     sample.times = c(samtimes, addsampletimes),
+                     sample.names = samplenames,
+                     host.names = hostnames[c(1:obs, addsamplehosts)],
+                     sim.infection.times = inftimes,
+                     sim.infectors = infectors,
+                     sim.tree = treeout
+                   ))
+  
   return(toreturn)
 }
 
