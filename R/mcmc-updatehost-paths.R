@@ -449,8 +449,8 @@ update_host_phylotrans <- function(hostID, which_protocol) {
 
     if(pbe1$logLiktoporatio > -Inf) {
       propose_pbe("phylotrans")
-      logacceptanceprob <- pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLiktoporatio -
-        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam + pbe1$logproposalratio
+      logacceptanceprob <- pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikdist + pbe1$logLiktoporatio -
+        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikdist + pbe1$logproposalratio
       if (runif(1) < exp(logacceptanceprob)) {
         accept_pbe("phylotrans")
       }
@@ -557,8 +557,8 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     propose_pbe("trans")
     
     ### calculate acceptance probability
-    logaccprob <- pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikcoal - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikcoal + 
-      logproposalratio
+    logaccprob <- pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikcoal + pbe1$logLikdist - 
+      pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikcoal - pbe0$logLikdist + logproposalratio
     
     ### accept or reject
     if (runif(1) < exp(logaccprob)) {
