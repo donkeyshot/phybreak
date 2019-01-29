@@ -150,6 +150,7 @@ phybreak <- function(dataset, times = NULL,
   testargumentsclass_phybreak(environment())
   wh.model <- choose_whmodel(wh.model)
   wh.bottleneck <- choose_whbottleneck(wh.bottleneck, wh.model)
+  dist.model <- choose_distmodel(dist.model, dataset$distances)
 
   ### outbreak parameters ###
   
@@ -163,6 +164,7 @@ phybreak <- function(dataset, times = NULL,
   dataslot$hostnames <- dataset$sample.hosts
   dataslot$sequences <- dataset$sequences
   dataslot$sample.times <- dataset$sample.times
+  dataslot$locations <- dataset$locations
   dataslot$distances <- dataset$distances
   
   #SNP count
@@ -231,9 +233,9 @@ phybreak <- function(dataset, times = NULL,
                      est.wh.s = est.wh.slope && wh.model == "linear",
                      est.wh.e = est.wh.exponent && wh.model == "exponential",
                      est.wh.0 = est.wh.level && wh.bottleneck == "wide",
-                     est.dist.e = est.dist.exponent && dist.model %in% c("power", "exponential") && !is.null(dataslot$distances),
-                     est.dist.s = est.dist.scale && dist.model == "power" && !is.null(dataslot$distances),
-                     est.dist.m = est.dist.mean && dist.model == "poisson" && !is.null(dataslot$distances),
+                     est.dist.e = est.dist.exponent && dist.model %in% c("power", "exponential"),
+                     est.dist.s = est.dist.scale && dist.model == "power",
+                     est.dist.m = est.dist.mean && dist.model == "poisson",
                      mG.av = prior.gen.mean.mean,
                      mG.sd = prior.gen.mean.sd,
                      mS.av = prior.sample.mean.mean,
@@ -400,6 +402,15 @@ choose_whbottleneck <- function(x, wh.model) {
       return("complete")
     } else return(x)
   }
+}
+
+### set distance model from possible input values
+choose_distmodel <- function(x, distances) {
+  x <- match.arg(x, c("power", "exponential", "poisson"))
+  if(is.null(distances)) {
+    x <- "none"
+  }
+  return(x)
 }
 
 
