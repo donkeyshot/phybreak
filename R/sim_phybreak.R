@@ -43,19 +43,9 @@
 #' @param sequence.length Number of available nucleotides for mutations.
 #' @param ... If arguments from previous versions of this function are used, they may be interpreted correctly through 
 #'   this argument, but it is better to provide the correct argument names.
-#' @return The simulation output, either as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
+#' @return The simulation output as an object of class \code{'phybreakdata'} with sequences (class \code{'phyDat'}) and 
 #'   sampling times (which would be the observations), and infection times, infectors, and phylogenetic tree 
-#'   of class \code{\link[ape]{phylo}}; 
-#'   or as an object of class \code{'obkData'} (package \pkg{OutbreakTools}), containing the outbreak data in the following slots:
-#'   \describe{
-#'     \item{individuals}{a \code{data.frame} with individual labels as row names, a vector \code{infector},
-#'       and a vector \code{date} containing the infection times (starting 01-01-2000)
-#'     }
-#'     \item{dna}{an object of class \code{'obkSequences'}, with SNP data in \code{dna} and sampling times
-#'       in \code{meta$date}
-#'     }
-#'     \item{trees}{an object of class \code{\link[ape]{multiphylo}}, containing a single tree of class \code{\link[ape]{phylo}}}
-#'   }
+#'   of class \code{\link[ape]{phylo}}.
 #' @author Don Klinkenberg \email{don@@xs4all.nl}
 #' @references \href{http://dx.doi.org/10.1371/journal.pcbi.1005495}{Klinkenberg et al. (2017)} Simultaneous 
 #'   inference of phylogenetic and transmission trees in infectious disease outbreaks. 
@@ -133,10 +123,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   }
 
   ### make a phylo tree
-  treesout <- vector('list',1)
-  treesout[[1]] <- phybreak2phylo(vars = environment2phybreak(res), samplenames = samplenames, simmap = FALSE)
-  class(treesout) <- "multiPhylo"
-  
+  treeout <- phybreak2phylo(vars = environment2phybreak(res), samplenames = samplenames, simmap = FALSE)
 
   if(spatial) {
     toreturn <- with(res,
@@ -148,7 +135,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
                         host.names = hostnames[c(1:obs, addsamplehosts)],
                         sim.infection.times = inftimes,
                         sim.infectors = infectors,
-                        sim.tree = treesout[[1]]
+                        sim.tree = treeout
                       ))
   } else {
     toreturn <- with(res,
@@ -159,9 +146,10 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
       host.names = hostnames[c(1:obs, addsamplehosts)],
       sim.infection.times = inftimes,
       sim.infectors = infectors,
-      sim.tree = treesout[[1]]
+      sim.tree = treeout
     ))
   }
+  
   return(toreturn)
 }
 

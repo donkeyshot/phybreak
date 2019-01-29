@@ -4,28 +4,25 @@
 \alias{phybreak}
 \title{Create a phybreak-object from data and prior distributions.}
 \usage{
-phybreak(dataset, times = NULL, mu = NULL, gen.shape = 3, gen.mean = 1,
-  sample.shape = 3, sample.mean = 1, wh.model = "linear",
-  wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
-  est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
+phybreak(dataset, times = NULL, mu = NULL, gen.shape = 3,
+  gen.mean = 1, sample.shape = 3, sample.mean = 1,
+  wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1,
+  wh.exponent = 1, wh.level = 0.1, est.gen.mean = TRUE,
+  prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
   est.sample.mean = TRUE, prior.sample.mean.mean = 1,
   prior.sample.mean.sd = Inf, est.wh.slope = TRUE,
   prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
   est.wh.exponent = TRUE, prior.wh.exponent.shape = 1,
   prior.wh.exponent.mean = 1, est.wh.level = TRUE,
-  prior.wh.level.shape = 1, prior.wh.level.mean = 0.1, use.tree = FALSE,
-  ...)
+  prior.wh.level.shape = 1, prior.wh.level.mean = 0.1,
+  use.tree = FALSE, ...)
 }
 \arguments{
 \item{dataset}{An object with sequences plus additional data.
-(class \code{'obkData'} or \code{'phybreakdata'}). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
+(class \code{'phybreakdata'}). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
 or \code{'t'}, will be turned into \code{'n'}.  
 
-If the data are provided as an object of class \code{'obkData'}, these should contain sequences and sampling times 
-as metadata with these sequences. The object may also contain \code{infector} and infection \code{date} vectors in the
-\code{individuals} slot, plus (at least) one tree in the \code{'trees'} slot (class \code{'multiPhylo'}).
-
-Data provided as an object of class \code{'phybreakdata'} contain \code{sequences} and \code{sampling.times},
+Data contain \code{sequences} and \code{sampling.times},
 and potentially \code{sim.infection.times}, \code{sim.infectors}, and \code{sim.tree}. Prepare your data in this format
 by \code{\link{phybreakdata}} or by simulation with \code{\link{sim.phybreak}}.
 

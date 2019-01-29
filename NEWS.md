@@ -1,3 +1,9 @@
+# phybreak 0.3.2
+
+### Minor changes
+* Removed the possibility to simulate obkData-objects
+* Updata documentation with some functions
+
 # phybreak 0.3.1
 
 ### Minor changes
