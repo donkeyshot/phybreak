@@ -18,12 +18,9 @@ phybreak(dataset, times = NULL, mu = NULL, gen.shape = 3,
   use.tree = FALSE, ...)
 }
 \arguments{
-\item{dataset}{An object with sequences plus additional data.
-(class \code{'phybreakdata'}). All nucleotides that are not \code{'a'}, \code{'c'}, \code{'g'}, 
-or \code{'t'}, will be turned into \code{'n'}.  
-
-Data contain \code{sequences} and \code{sampling.times},
-and potentially \code{sim.infection.times}, \code{sim.infectors}, and \code{sim.tree}. Prepare your data in this format
+\item{dataset}{An object with sequences plus additional data (class \code{'phybreakdata'}). 
+Data contain \code{sequences} and \code{sampling.times}, and potentially \code{sim.infection.times}, 
+\code{sim.infectors}, and \code{sim.tree}. Prepare your data in this format
 by \code{\link{phybreakdata}} or by simulation with \code{\link{sim.phybreak}}.
 
 It is also possible to provide only sequences as data, (class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
@@ -136,12 +133,11 @@ An object of class \code{phybreak} with the following elements
   }
 }
 \description{
-phybreak takes as data either an \code{'obkData'}-object or a \code{\link{phybreakdata}}-object with sequences 
-(individuals in rows, nucleotides in columns). Both \code{'obkData'} and \code{\link{phybreakdata}} 
-contain at least sequences and sampling times, and potentially more. Parameter values are used as initial values in the MCMC-chain 
-or kept fixed. All variables are initialized by random samples from the prior distribution, 
-unless a complete tree is given in the data and should be used (\code{use.tree = TRUE}).
-It is also possible to provide only sequences as data, and sampling times separately.
+phybreak takes as data a \code{\link{phybreakdata}}-object with sequences (individuals in rows, 
+nucleotides in columns) and sampling times, and potentially more. Parameter values are used as 
+initial values in the MCMC-chain or kept fixed. All variables are initialized by random samples 
+from the prior distribution, unless a complete tree is given in the data and should be used 
+(\code{use.tree = TRUE}). It is also possible to provide only sequences as data, and sampling times separately.
 }
 \examples{
 simulation <- sim_phybreak(obsize = 10)
