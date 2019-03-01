@@ -6,10 +6,12 @@
 \title{Outbreak simulation.}
 \usage{
 sim_phybreak(obsize = 50, popsize = NA, samplesperhost = 1,
-  R0 = 1.5, gen.shape = 10, gen.mean = 1, sample.shape = 10,
-  sample.mean = 1, additionalsampledelay = 0, wh.model = "linear",
-  wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1,
-  wh.level = 0.1, mu = 1e-04, sequence.length = 10000, ...)
+  R0 = 1.5, spatial = FALSE, gen.shape = 10, gen.mean = 1,
+  sample.shape = 10, sample.mean = 1, additionalsampledelay = 0,
+  wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1,
+  wh.exponent = 1, wh.level = 0.1, dist.model = "power",
+  dist.exponent = 2, dist.scale = 1, mu = 1e-04,
+  sequence.length = 10000, ...)
 
 sim.phybreak(...)
 }
@@ -23,6 +25,9 @@ an \code{obsize} can severely increase the simulation time, depending on \code{R
 \item{samplesperhost}{Number of samples to be taken per host, either a vector or a single number.}
 
 \item{R0}{The basic reproduction ratio used for simulation. The offspring distribution is Poisson.}
+
+\item{spatial}{If \code{TRUE}, the hosts are placed on a square with density 1, and a distance kernel is used to 
+model transmission probabilities between the hosts.}
 
 \item{gen.shape}{The shape parameter of the gamma-distributed generation interval.}
 
@@ -55,6 +60,16 @@ Options are:
 
 \item{wh.level}{Within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "wide"}
 (if \code{wh.model = "exponential"} or \code{"constant"}, and optional if \code{wh.model = "linear"})}
+
+\item{dist.model}{The distance kernel to use if \code{spatial = TRUE}. Options are:
+\enumerate{
+  \item "power": a power law function pr(dist) ~ 1 / (1 + (dist/dist.scale) ^ dist.exponent)
+  \item "exponential": an exponential function pr(dist) ~ exp(-dist.exponent * dist)
+}}
+
+\item{dist.exponent}{Distance model exponent.}
+
+\item{dist.scale}{Distance model scale, only with power law distance model.}
 
 \item{mu}{Expected number of mutations per nucleotide per unit of time along each lineage.}
 

@@ -83,7 +83,7 @@ lik_sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
 ### calculate the log-likelihood of distances 
 lik_distances <- function(dist.model, dist.exponent, dist.scale, dist.mean, infectors, distances) {
   if(dist.model == "none") return(0)
-  distancevector <- distances[cbind(1:10, infectors)]
+  distancevector <- distances[cbind(1:length(infectors), infectors)]
   switch(dist.model,
          power = sum(log(
            dist.exponent * sin(pi/dist.exponent) / 

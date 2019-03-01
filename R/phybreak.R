@@ -402,7 +402,7 @@ choose_whbottleneck <- function(x, wh.model) {
 
 ### set distance model from possible input values
 choose_distmodel <- function(x, distances) {
-  x <- match.arg(x, c("power", "exponential", "poisson"))
+  x <- match.arg(x, c("power", "exponential", "poisson", "none"))
   if(is.null(distances)) {
     x <- "none"
   }

@@ -13,6 +13,8 @@
 #'  nucleotides or ambiguity codes will be turned into \code{'n'}. 
 #' @param sample.times A vector of sampling times (\code{numerical} or \code{Date}).
 #' @param sample.names A vector with sample names.
+#' @param spatial Either a distance matrix (\code{matrix} or \code{dist}), or locations as (x, y) or (lon, lat) 
+#'  coordinates (two-column \code{matrix} or \code{data.frame}).
 #' @param host.names A vector with host names. The vector identifies the host for each sample, so should be of the same
 #'  length as \code{sample.times}. 
 #' @param sim.infection.times A vector with infection times (\code{numerical} or \code{Date}).

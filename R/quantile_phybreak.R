@@ -28,7 +28,10 @@ quantile.phybreak <- function(x, whichpars = "posterior", probs = c(0.025, 0.5, 
                    if(x$h$est.mS) "sample.mean",
                    if(x$h$est.wh.s) "wh.slope",
                    if(x$h$est.wh.e) "wh.exponent",
-                   if(x$h$est.wh.0) "wh.level")
+                   if(x$h$est.wh.0) "wh.level",
+                   if(x$h$est.dist.e) "dist.exponent",
+                   if(x$h$est.dist.s) "dist.scale",
+                   if(x$h$est.dist.m) "dist.mean")
   } else if(whichpars == "all") {
     whichpars <- setdiff(names(x$p), c("obs", "wh.model"))
   } else if(!all(whichpars %in% names(x$p))) {
@@ -45,6 +48,9 @@ quantile.phybreak <- function(x, whichpars = "posterior", probs = c(0.025, 0.5, 
   if("wh.slope" %in% whichpars) pars["wh.slope", ] <- quantile(x$s$wh.s, probs = probs, type = type)
   if("wh.exponent" %in% whichpars) pars["wh.exponent", ] <- quantile(x$s$wh.e, probs = probs, type = type)
   if("wh.level" %in% whichpars) pars["wh.level", ] <- quantile(x$s$wh.0, probs = probs, type = type)
+  if("dist.exponent" %in% whichpars) pars["dist.exponent", ] <- quantile(x$s$dist.e, probs = probs, type = type)
+  if("dist.scale" %in% whichpars) pars["dist.scale", ] <- quantile(x$s$dist.s, probs = probs, type = type)
+  if("dist.mean" %in% whichpars) pars["dist.mean", ] <- quantile(x$s$dist.m, probs = probs, type = type)
   
   return(pars)
 }  
