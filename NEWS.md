@@ -1,3 +1,10 @@
+# phybreak 0.4.0
+
+### Major changes
+* Added distance models, to work with location data and a distance kernel
+    * three distance models, two for euclidean distance (power and exponential), one to work with a genetic distance matrix (poisson)
+    * simulation with the euclidean distance models, analysis with all three (see help(phybreak) for more info)
+
 # phybreak 0.3.2
 
 ### Minor changes
