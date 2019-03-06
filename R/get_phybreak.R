@@ -266,7 +266,7 @@ get_bottlenecks <- function(x) {
   res <- 1L + with(v,
                    tabulate(nodehosts[which(nodeparents %in% which(nodetypes %in% "b"))], x$p$obs))
   
-  names(res) <- x$d$hostnames
+  names(res) <- x$d$hostnames[1:x$p$obs]
   
   return(res)
 }

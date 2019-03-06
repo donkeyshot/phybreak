@@ -1,3 +1,8 @@
+# phybreak 0.4.1
+
+### BUG FIXES
+* get_bottlenecks now also works if there are multiple samples per host
+
 # phybreak 0.4.0
 
 ### Major changes
