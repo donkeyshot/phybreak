@@ -1,3 +1,8 @@
+# phybreak 0.4.2
+
+### BUG FIXES
+* make burnin_phybreak and sample_phybreak work with old phybreak objects (without distance model)
+
 # phybreak 0.4.1
 
 ### BUG FIXES

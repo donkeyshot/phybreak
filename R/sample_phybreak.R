@@ -52,6 +52,19 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
     } 
   }
   
+  ### add distance model if not present
+  if(is.null(x$p$dist.model)) {
+    x$p$dist.model <- "none"
+    x$p$dist.exponent <- 2
+    x$p$dist.scale <- 1
+    x$p$dist.mean <- 1
+    x$s$dist.e <- c()
+    x$s$dist.s <- c()
+    x$s$dist.m <- c()
+    x$h$est.dist.s <- FALSE
+    x$h$est.dist.e <- FALSE
+    x$h$est.dist.m <- FALSE
+  }
   
   protocoldistribution <- c(1 - classic - keepphylo - withinhost_only, classic, keepphylo, withinhost_only)
   
