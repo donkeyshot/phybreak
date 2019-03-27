@@ -38,9 +38,15 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
                             distance = TRUE, ...) {
   res <- 0
   if (genetic) {
-    res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$nsamples), 
-                                      attr(d$sequences, "weight"), 
-                                      v$nodeparents, v$nodetimes, p$mu, d$nsamples))
+    if(object$p$wh.model == "no_coalescent") {
+      res <- res + with(object, lik_genetic(v$infectors, d$sequences, 
+                                            v$nodehosts[1:d$nsamples], 
+                                            p$mu, p$wh.level))
+    } else {
+      res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$nsamples), 
+                                        attr(d$sequences, "weight"), 
+                                        v$nodeparents, v$nodetimes, p$mu, d$nsamples))
+    }
   }
   if (generation) {
     res <- res + with(object, lik_gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors))
@@ -100,7 +106,7 @@ lik_distances <- function(dist.model, dist.exponent, dist.scale, dist.mean, infe
 
 ### calculate the log-likelihood of coalescent intervals 
 lik_coaltimes <- function(phybreakenv) {
-  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
+  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite", "no_coalescent")) 
     return(0)
   
   if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "wide") {
@@ -150,7 +156,7 @@ lik_coaltimes <- function(phybreakenv) {
 
 ### calculate the log-likelihood of coalescent intervals in a single host
 lik_coaltimes_host <- function(phybreakenv, hostID) {
-  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
+  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite", "no_coalescent")) 
     return(0)
   
   if(phybreakenv$p$wh.model == "linear" && phybreakenv$p$wh.bottleneck == "wide") {
@@ -197,7 +203,7 @@ lik_coaltimes_host <- function(phybreakenv, hostID) {
 
 ### calculate the log-likelihood of the within-host topology
 lik_topology_host <- function(phybreakenv, hostID) {
-  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite")) 
+  if (phybreakenv$p$wh.model %in% c(1, 2, "single", "infinite", "no_coalescent")) 
     return(0)
   
   selecthostnodes <- phybreakenv$v$nodehosts == hostID

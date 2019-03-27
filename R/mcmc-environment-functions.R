@@ -92,7 +92,13 @@ build_pbe <- function(phybreak.obj) {
   v <- phybreak2environment(v)
   
   ### complete likarray and calculate log-likelihood of sequences
-  .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
+  if(p$wh.model == "no_coalescent") {
+    logLikseq <- lik_genetic(v$infectors, d$sequences, 
+                             v$nodehosts[1:d$nsamples], 
+                             p$mu, p$wh.level)
+  } else {
+    .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
+  }
   
   
   ### calculate the other log-likelihoods
@@ -172,7 +178,14 @@ propose_pbe <- function(f) {
   
   
   if (!is.null(chnodes)) {
-    .likseqenv(pbe1, chnodes, nodetips)
+    if(p$wh.model == "no_coalescent") {
+      logLikseq <- lik_genetic(v$infectors, d$sequences, 
+                               v$nodehosts[1:d$nsamples], 
+                               p$mu, p$wh.level)
+      copy2pbe1("logLikseq", le)
+    } else {
+      .likseqenv(pbe1, chnodes, nodetips)
+    }
   }
   
   
@@ -189,6 +202,12 @@ propose_pbe <- function(f) {
   if (f == "trans" || (f == "mS" && p$wh.bottleneck == "wide") || f == "wh.slope" || f == "wh.exponent" || f == "wh.level") {
     logLikcoal <- lik_coaltimes(le)
     copy2pbe1("logLikcoal", le)
+    if(p$wh.model == "no_coalescent") {
+      logLikseq <- lik_genetic(v$infectors, d$sequences, 
+                               v$nodehosts[1:d$nsamples], 
+                               p$mu, p$wh.level)
+      copy2pbe1("logLikseq", le)
+    }
   }
   
   if (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {
@@ -214,7 +233,7 @@ accept_pbe <- function(f) {
     copy2pbe0("p", pbe1)
   }
   
-  if(f == "phylotrans" || f == "withinhost" || f == "mu") {
+  if(f == "phylotrans" || f == "withinhost" || f == "mu" || (f == "wh.level" && pbe0$p$wh.model == "no_coalescent")) {
     copy2pbe0("likarray", pbe1)
     copy2pbe0("logLikseq", pbe1)
   }

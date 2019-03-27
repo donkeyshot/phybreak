@@ -36,9 +36,11 @@
 #'     \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or wide bottleneck; if complete, \code{wh.level = 0})
 #'     \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (wide bottleneck)
 #'     \item "constant": effective size = wh.level (wide bottleneck)
+#'     \item "no_coalescent": mu is the per-generation mutation probability, wh.level = wide-bottleneck probability (complete or wide bottleneck)
 #'   }
 #' @param wh.bottleneck Whether the bottleneck should be complete or wide, which is only an option if \code{wh.model = "linear"} 
-#'   (in that case, \code{"auto"} defaults to \code{"complete"}).
+#'   or \code{wh.model = "no_coalescent"}. In the first case, \code{"auto"} defaults to \code{"complete"}, in the second
+#'   case to \code{"wide"}.
 #' @param wh.slope Initial value for the within-host slope, used if \code{wh.model = "linear"}.
 #' @param wh.exponent Initial value for the within-host exponent, used if \code{wh.model = "exponential"}
 #' @param wh.level Initial value for the within-host effective pathogen size at transmission, used if \code{wh.bottleneck = "wide"}
@@ -372,7 +374,7 @@ testargumentsclass_phybreak <- function(env) {
 
 ### set within-host model from possible input values
 choose_whmodel <- function(x) {
-  whoptions <- c("single", "infinite", "linear", "exponential", "constant")
+  whoptions <- c("single", "infinite", "linear", "exponential", "constant", "no_coalescent")
   if(is.numeric(x)) {
     if(floor(x) %in% 1:5) {
       return(whoptions[x])
@@ -395,7 +397,9 @@ choose_whbottleneck <- function(x, wh.model) {
     return("wide")
   } else {
     if(x == "auto") {
-      return("complete")
+      if(wh.model == "no_coalescent") {
+        return("wide")
+      } else return("complete")
     } else return(x)
   }
 }
