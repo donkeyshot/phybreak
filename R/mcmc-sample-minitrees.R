@@ -11,6 +11,7 @@ sample_coaltimes <- function(tiptimes, inftime, parameters) {
     parameters$wh.model,
     #coalescence at transmission
     single = head(sort(tiptimes), -1),
+    no_coalescent = head(sort(tiptimes), -1),
     #coalescence at infection
     infinite = inftime + 0*tiptimes[-1],
     #linear increase
@@ -78,6 +79,7 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime
     parameters$wh.model,
     #coalescence at transmission
     single = return(min(newtiptime, max(oldtiptimes))),
+    no_coalescent = return(min(newtiptime, max(oldtiptimes))),
     #coalescence at infection
     infinite = return(inftime),
     linear = {
@@ -118,7 +120,7 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime
   
   # transform to real time
   switch(
-    parameters$wh.model, single =, infinite = ,
+    parameters$wh.model, single =, no_coalescent = , infinite = ,
     linear = {
       res <- min(c(10^-5, (oldcoaltimes[-1] - inftime)/2))
       res <- max(res, exp(parameters$wh.slope * transreturntime))

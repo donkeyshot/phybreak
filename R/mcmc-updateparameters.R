@@ -179,7 +179,8 @@ update_wh_level <- function() {
   propose_pbe("wh.level")
   
   ### calculate acceptance probability
-  logaccprob <- pbe1$logLikcoal - pbe0$logLikcoal + logproposalratio + 
+  logaccprob <- pbe1$logLikseq + pbe1$logLikcoal - 
+    pbe0$logLikseq - pbe0$logLikcoal + logproposalratio + 
     dgamma(pbe1$p$wh.level, shape = h$wh.0.sh, scale = h$wh.0.av/h$wh.0.sh, log = TRUE) - 
     dgamma(pbe0$p$wh.level, shape = h$wh.0.sh, scale = h$wh.0.av/h$wh.0.sh, log = TRUE)
   

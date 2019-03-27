@@ -51,6 +51,9 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
       warning("model incompatible with keepphylo-updates: they will not be used", immediate. = TRUE)
     } 
   }
+  if(x$p$wh.model %in% c("single", "infinity", "no_coalescent")) {
+    classic <- 1
+  }
   
   ### add distance model if not present
   if(is.null(x$p$dist.model)) {

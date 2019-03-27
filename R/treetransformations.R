@@ -220,7 +220,8 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     )
     list2env(list(v = res, p = resamplepars, d = list(nsamples = nsamples)), pbe1)
 
-    if(resamplepars$wh.bottleneck == "wide") {
+    if(resamplepars$wh.bottleneck == "wide" && 
+       resamplepars$wh.model != "no_coalescent") {
       invisible(sapply(1:nhosts, rewire_pullnodes_wide))
     } else {
       invisible(sapply(0:nhosts, rewire_pullnodes_complete))

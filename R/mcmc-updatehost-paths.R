@@ -193,7 +193,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     
     ### propose minitrees and accept or reject
     if(which_protocol == "classic") {
-      if(p$wh.bottleneck == "complete") {
+      if(p$wh.bottleneck == "complete" || p$wh.model == "no_coalescent") {
         rewire_function <- "rewire_pathA_complete_classic"
       } else {
         rewire_function <- "rewire_pathA_wide_classic"
@@ -236,7 +236,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     
     ### propose minitrees and accept or reject
     if(which_protocol == "classic") {
-      if(p$wh.bottleneck == "complete") {
+      if(p$wh.bottleneck == "complete" || p$wh.model == "no_coalescent") {
         rewire_function <- "rewire_pathB_complete_classic"
       } else {
         rewire_function <- "rewire_pathB_wide_classic"
@@ -288,7 +288,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     if(logproposalratio > -Inf) {
       ### propose minitrees and accept or reject
       if(which_protocol == "classic") {
-        if(p$wh.bottleneck == "complete") {
+        if(p$wh.bottleneck == "complete" || p$wh.model == "no_coalescent") {
           rewire_function <- c("rewire_pathCF1_complete_classic", "rewire_pathCF2_complete_classic")[1 + exchange]
         } else {
           rewire_function <- c("rewire_pathCF1_wide_classic", "rewire_pathCF2_wide_classic")[1 + exchange]
@@ -332,7 +332,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     
     ### propose minitrees and accept or reject
     if(which_protocol == "classic") {
-      if(p$wh.bottleneck == "complete") {
+      if(p$wh.bottleneck == "complete" || p$wh.model == "no_coalescent") {
         rewire_function <- "rewire_pathD_complete_classic"
       } else {
         rewire_function <- "rewire_pathD_wide_classic"
@@ -384,7 +384,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     
     ### propose minitrees and accept or reject
     if(which_protocol == "classic") {
-      if(p$wh.bottleneck == "complete") {
+      if(p$wh.bottleneck == "complete" || p$wh.model == "no_coalescent") {
         rewire_function <- "rewire_pathE_complete_classic"
       } else {
         rewire_function <- "rewire_pathE_wide_classic"
@@ -427,7 +427,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
       ### propose minitrees and accept or reject
       if(which_protocol == "classic") {
         exchange <- runif(1) < 0.5
-        if(p$wh.bottleneck == "complete") {
+        if(p$wh.bottleneck == "complete" || p$wh.model == "no_coalescent") {
           rewire_function <- c("rewire_pathCF1_complete_classic", "rewire_pathCF2_complete_classic")[1 + exchange]
         } else {
           rewire_function <- c("rewire_pathCF1_wide_classic", "rewire_pathCF2_wide_classic")[1 + exchange]
