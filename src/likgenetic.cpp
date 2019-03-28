@@ -36,7 +36,7 @@ double likgenetic(IntegerVector SNPs, IntegerVector SNPfreqs,
   // transition matrix (from row to column)
   transitmatrix = transitmatrixC(mutrate, bnsize);
    
-  
+
   
  // nextnode = 0;
  // while(nodeparents[nextnode] - 1 != rootnode) {
