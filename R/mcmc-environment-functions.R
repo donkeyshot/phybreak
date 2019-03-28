@@ -73,6 +73,11 @@ build_pbe <- function(phybreak.obj) {
   }
   likarrayfreq <- snpfrreduced
   
+  obssamplearray <- obsarrayC(t(snpreduced), d$nsamples)
+  
+  probleavesobserved <- obshostarrayC(obssamplearray, v$nodehosts[1:d$nsamples], p$obs)
+  
+  transitmatrix <- transitmatrixC(1 - exp(-p$mu), 1 - exp(-p$wh.level))
   
   ### initialize all dimensions of likarray
   likarray <- array(1, dim = c(4, length(snpfrreduced), 2 * d$nsamples - 1))
@@ -96,6 +101,8 @@ build_pbe <- function(phybreak.obj) {
     logLikseq <- lik_genetic(v$infectors, d$sequences, 
                              v$nodehosts[1:d$nsamples], 
                              p$mu, p$wh.level)
+    logLikseqenv <- likgeneticCenv(le, FALSE)
+    probleavesobserved <- obshostarrayC(obssamplearray, v$nodehosts[1:d$nsamples], p$obs)
   } else {
     .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
   }
@@ -114,6 +121,8 @@ build_pbe <- function(phybreak.obj) {
   copy2pbe0("p", le)
   copy2pbe0("likarrayfreq", le)
   copy2pbe0("likarray", le)
+  copy2pbe0("probleavesobserved", le)
+  copy2pbe0("transitmatrix", le)
   copy2pbe0("logLikseq", le)
   copy2pbe0("logLiksam", le)
   copy2pbe0("logLikgen", le)
@@ -141,6 +150,8 @@ prepare_pbe <- function() {
   copy2pbe1("h", pbe0)
   pbe1$likarray <- pbe0$likarray + 0  #make a true copy, not a pointer
   copy2pbe1("likarrayfreq", pbe0)
+  pbe1$probleavesobserved <- pbe0$probleavesobserved + 0
+  pbe1$transitmatrix <- pbe0$transitmatrix + 0
   pbe1$logLikseq <- pbe0$logLikseq + 0 #make a true copy, not a pointer
   pbe1$logLiktoporatio <- 0
 }
@@ -155,7 +166,11 @@ propose_pbe <- function(f) {
   v <- pbe1$v
   p <- pbe1$p
   
-  if (f == "phylotrans" || f == "withinhost") {
+  if(f == "phylotrans" && p$wh.model == "no_coalescent") {
+    chnodes <- 1
+  } else if(f == "mu" && p$wh.model == "no_coalescent") {
+    chnodes <- 2
+  } else if (f == "phylotrans" || f == "withinhost") {
     # identify changed nodes
     chnodes <- c(which((v$nodeparents != pbe0$v$nodeparents[1:length(v$nodeparents)]) | 
                          (v$nodetimes != pbe0$v$nodetimes[1:length(v$nodetimes)])),
@@ -179,10 +194,7 @@ propose_pbe <- function(f) {
   
   if (!is.null(chnodes)) {
     if(p$wh.model == "no_coalescent") {
-      logLikseq <- lik_genetic(v$infectors, d$sequences, 
-                               v$nodehosts[1:d$nsamples], 
-                               p$mu, p$wh.level)
-      copy2pbe1("logLikseq", le)
+      likgeneticCenv(pbe1, c(FALSE, TRUE)[chnodes])
     } else {
       .likseqenv(pbe1, chnodes, nodetips)
     }
@@ -203,9 +215,7 @@ propose_pbe <- function(f) {
     logLikcoal <- lik_coaltimes(le)
     copy2pbe1("logLikcoal", le)
     if(p$wh.model == "no_coalescent") {
-      logLikseq <- lik_genetic(v$infectors, d$sequences, 
-                               v$nodehosts[1:d$nsamples], 
-                               p$mu, p$wh.level)
+      logLikseq <- likgeneticCenv(pbe1, TRUE)
       copy2pbe1("logLikseq", le)
     }
   }
@@ -236,6 +246,7 @@ accept_pbe <- function(f) {
   if(f == "phylotrans" || f == "withinhost" || f == "mu" || (f == "wh.level" && pbe0$p$wh.model == "no_coalescent")) {
     copy2pbe0("likarray", pbe1)
     copy2pbe0("logLikseq", pbe1)
+    copy2pbe0("transitmatrix", pbe1)
   }
   
   if(f == "phylotrans" || f == "trans" || f == "mS") {

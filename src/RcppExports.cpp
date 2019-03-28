@@ -5,6 +5,107 @@
 
 using namespace Rcpp;
 
+// CCtranstree2
+std::vector<double> CCtranstree2(const std::vector<int>& pars, const std::vector<double>& tims, std::vector<int> dims);
+RcppExport SEXP _phybreak_CCtranstree2(SEXP parsSEXP, SEXP timsSEXP, SEXP dimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type pars(parsSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type tims(timsSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(CCtranstree2(pars, tims, dims));
+    return rcpp_result_gen;
+END_RCPP
+}
+// obsarrayC
+NumericVector obsarrayC(IntegerVector SNPs, int Nsamples);
+RcppExport SEXP _phybreak_obsarrayC(SEXP SNPsSEXP, SEXP NsamplesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type SNPs(SNPsSEXP);
+    Rcpp::traits::input_parameter< int >::type Nsamples(NsamplesSEXP);
+    rcpp_result_gen = Rcpp::wrap(obsarrayC(SNPs, Nsamples));
+    return rcpp_result_gen;
+END_RCPP
+}
+// obshostarrayC
+NumericVector obshostarrayC(NumericVector obssamplearray, IntegerVector samplehosts, int Nhosts);
+RcppExport SEXP _phybreak_obshostarrayC(SEXP obssamplearraySEXP, SEXP samplehostsSEXP, SEXP NhostsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type obssamplearray(obssamplearraySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type samplehosts(samplehostsSEXP);
+    Rcpp::traits::input_parameter< int >::type Nhosts(NhostsSEXP);
+    rcpp_result_gen = Rcpp::wrap(obshostarrayC(obssamplearray, samplehosts, Nhosts));
+    return rcpp_result_gen;
+END_RCPP
+}
+// facultyC
+double facultyC(double x);
+RcppExport SEXP _phybreak_facultyC(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(facultyC(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// chooseC
+double chooseC(double a, double b);
+RcppExport SEXP _phybreak_chooseC(SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(chooseC(a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// transitmatrixC
+NumericVector transitmatrixC(double mutrate, double bnsize);
+RcppExport SEXP _phybreak_transitmatrixC(SEXP mutrateSEXP, SEXP bnsizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type mutrate(mutrateSEXP);
+    Rcpp::traits::input_parameter< double >::type bnsize(bnsizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(transitmatrixC(mutrate, bnsize));
+    return rcpp_result_gen;
+END_RCPP
+}
+// likgeneticC
+double likgeneticC(IntegerVector SNPs, IntegerVector SNPfreqs, IntegerVector infectors, IntegerVector samplehosts, double mutrate, double bnsize);
+RcppExport SEXP _phybreak_likgeneticC(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP infectorsSEXP, SEXP samplehostsSEXP, SEXP mutrateSEXP, SEXP bnsizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type SNPs(SNPsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type SNPfreqs(SNPfreqsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type infectors(infectorsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type samplehosts(samplehostsSEXP);
+    Rcpp::traits::input_parameter< double >::type mutrate(mutrateSEXP);
+    Rcpp::traits::input_parameter< double >::type bnsize(bnsizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(likgeneticC(SNPs, SNPfreqs, infectors, samplehosts, mutrate, bnsize));
+    return rcpp_result_gen;
+END_RCPP
+}
+// likgeneticCenv
+double likgeneticCenv(Environment pbenv, bool newpar);
+RcppExport SEXP _phybreak_likgeneticCenv(SEXP pbenvSEXP, SEXP newparSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Environment >::type pbenv(pbenvSEXP);
+    Rcpp::traits::input_parameter< bool >::type newpar(newparSEXP);
+    rcpp_result_gen = Rcpp::wrap(likgeneticCenv(pbenv, newpar));
+    return rcpp_result_gen;
+END_RCPP
+}
 // likseq
 double likseq(IntegerVector SNPs, IntegerVector SNPfreqs, IntegerVector nodeparents, NumericVector nodetimes, double mutrate, int Nsamples);
 RcppExport SEXP _phybreak_likseq(SEXP SNPsSEXP, SEXP SNPfreqsSEXP, SEXP nodeparentsSEXP, SEXP nodetimesSEXP, SEXP mutrateSEXP, SEXP NsamplesSEXP) {
@@ -85,6 +186,14 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_phybreak_CCtranstree2", (DL_FUNC) &_phybreak_CCtranstree2, 3},
+    {"_phybreak_obsarrayC", (DL_FUNC) &_phybreak_obsarrayC, 2},
+    {"_phybreak_obshostarrayC", (DL_FUNC) &_phybreak_obshostarrayC, 3},
+    {"_phybreak_facultyC", (DL_FUNC) &_phybreak_facultyC, 1},
+    {"_phybreak_chooseC", (DL_FUNC) &_phybreak_chooseC, 2},
+    {"_phybreak_transitmatrixC", (DL_FUNC) &_phybreak_transitmatrixC, 2},
+    {"_phybreak_likgeneticC", (DL_FUNC) &_phybreak_likgeneticC, 6},
+    {"_phybreak_likgeneticCenv", (DL_FUNC) &_phybreak_likgeneticCenv, 2},
     {"_phybreak_likseq", (DL_FUNC) &_phybreak_likseq, 6},
     {"_phybreak_likseqenv", (DL_FUNC) &_phybreak_likseqenv, 3},
     {"_phybreak_CCphylotree", (DL_FUNC) &_phybreak_CCphylotree, 3},

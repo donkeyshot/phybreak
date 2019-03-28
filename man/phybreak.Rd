@@ -61,10 +61,12 @@ Options are:
   \item "linear": effective size at time t after infection = \code{wh.level + wh.slope * t} (complete or wide bottleneck; if complete, \code{wh.level = 0})
   \item "exponential": effective size at time t after infection = \code{wh.level * exp(wh.exponent * t)} (wide bottleneck)
   \item "constant": effective size = wh.level (wide bottleneck)
+  \item "no_coalescent": mu is the per-generation mutation probability, wh.level = wide-bottleneck probability (complete or wide bottleneck)
 }}
 
 \item{wh.bottleneck}{Whether the bottleneck should be complete or wide, which is only an option if \code{wh.model = "linear"} 
-(in that case, \code{"auto"} defaults to \code{"complete"}).}
+or \code{wh.model = "no_coalescent"}. In the first case, \code{"auto"} defaults to \code{"complete"}, in the second
+case to \code{"wide"}.}
 
 \item{wh.slope}{Initial value for the within-host slope, used if \code{wh.model = "linear"}.}
 

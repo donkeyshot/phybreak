@@ -15,7 +15,7 @@ NumericVector obsarrayC(IntegerVector SNPs, int Nsamples) {
   double gpres;
   double tpres;
   NumericVector obsarray(Nsamples * nSNPs * 15);
-  
+
   for(int i = 0; i < Nsamples; ++i) {
     for(int j = 0; j < nSNPs; ++j) {
       obsarray[(i * nSNPs + j) * 15] = 0;
@@ -88,7 +88,7 @@ NumericVector obsarrayC(IntegerVector SNPs, int Nsamples) {
             for(double nuct = 0; nuct < 2; ++nuct) {
               if(nuca + nucc + nucg + nuct > 0) {
                 obsarray[(i * nSNPs + j) * 15 +
-                  nuca * 8 + nucc * 4 + nucg * 2 + nuct - 1] = 
+                  nuca * 8 + nucc * 4 + nucg * 2 + nuct - 1] =
                   (nuca * apres + nucc * cpres + nucg * gpres +
                   nuct * tpres) / (nuca + nucc + nucg + nuct);
               }
@@ -98,17 +98,17 @@ NumericVector obsarrayC(IntegerVector SNPs, int Nsamples) {
       }
     }
   }
-  
+
   return obsarray;
 }
 
 // [[Rcpp::export]]
-NumericVector obshostarrayC(NumericVector obssamplearray, 
+NumericVector obshostarrayC(NumericVector obssamplearray,
                             IntegerVector samplehosts, int Nhosts) {
   int Nsamples = samplehosts.size();
   int nSNPs = obssamplearray.size() / Nsamples / 15;
   NumericVector obshostarray(Nhosts * nSNPs * 15);
-  
+
   for(int i = 0; i < obshostarray.size(); ++i) {
     obshostarray[i] = 1;
   }
@@ -118,34 +118,34 @@ NumericVector obshostarrayC(NumericVector obssamplearray,
         obssamplearray[sample * nSNPs * 15 + nuc];
     }
   }
-  
+
   return obshostarray;
 }
 
 
 // [[Rcpp::export]]
 double facultyC(double x) {
-  double res; 
-  
+  double res;
+
   if(x == 0) {
     res = 1;
   } else {
     res = x * facultyC(x - 1);
   }
-  
+
   return res;
 }
 
 // [[Rcpp::export]]
 double chooseC(double a, double b) {
   double res;
-  
+
   if(b > a) {
     res = 0;
   } else {
     res = facultyC(a) / (facultyC(b) * (facultyC(a - b)));
   }
-  
+
   return res;
 }
 
@@ -158,7 +158,7 @@ NumericVector transitmatrixC(double mutrate, double bnsize) {
   double nstart;
   double nfinish;
   double nsame;
-  
+
   for(int as = 0; as < 2; ++as) {
     for(int cs = 0; cs < 2; ++cs) {
       for(int gs = 0; gs < 2; ++gs) {
@@ -193,7 +193,7 @@ NumericVector transitmatrixC(double mutrate, double bnsize) {
                         std::pow(mutrate,(nfinish-i-1)) * std::pow((1-mutrate),(4-nfinish));
 
                     }
-                  } 
+                  }
                   // else {
                   //   if(nstart * nfinish > 0) {
                   //     transitmatrix[8*as + 4*cs + 2*gs + ts - 1 +

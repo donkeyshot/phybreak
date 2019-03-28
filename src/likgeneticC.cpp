@@ -8,7 +8,7 @@ using namespace Rcpp;
 // given a phylo-transmission tree
 
 // [[Rcpp::export]]
-double likgenetic(IntegerVector SNPs, IntegerVector SNPfreqs,
+double likgeneticC(IntegerVector SNPs, IntegerVector SNPfreqs,
               IntegerVector infectors, IntegerVector samplehosts,
               double mutrate, double bnsize) {
   int Nsamples = samplehosts.size();
@@ -18,14 +18,17 @@ double likgenetic(IntegerVector SNPs, IntegerVector SNPfreqs,
   NumericVector probleaves(Nhosts * nSNPs * 15);
   NumericVector transitmatrix(15 * 15);
   NumericVector likarray(Nhosts * nSNPs * 15);
+  mutrate = 1 - exp(-mutrate);
+  bnsize = 1 - exp(-bnsize);
   
   NumericVector SNPsums(nSNPs);
   NumericVector leavestogo(Nhosts);
-  NumericVector priorprobs(15 * 4);
+  NumericVector priorprobs(15);
   int curhost;
   int nexthost;
   int indexhost = 0;
   double result;
+  
   
   // conditional observation probabilities per sample
   obssamplearray = obsarrayC(SNPs, Nsamples);
@@ -36,8 +39,7 @@ double likgenetic(IntegerVector SNPs, IntegerVector SNPfreqs,
   // transition matrix (from row to column)
   transitmatrix = transitmatrixC(mutrate, bnsize);
    
-  
-  
+
  // nextnode = 0;
  // while(nodeparents[nextnode] - 1 != rootnode) {
  //   ++nextnode;
@@ -58,23 +60,26 @@ double likgenetic(IntegerVector SNPs, IntegerVector SNPfreqs,
   for(int i = 0; i < Nhosts; ++i) {
     curhost = i;
     nexthost = infectors[i] - 1;
-    while(leavestogo[curhost] == 0 && nexthost != -1) {
+    while(curhost != -1 && leavestogo[curhost] == 0) {
       for(int j = 0; j < nSNPs; ++j) {
         for(int k = 0; k < 15; ++k) {
           for(int l = 0; l < 15; ++l) {
             likarray[curhost * nSNPs * 15 + j * 15 + k] +=
-              transitmatrix[15 * k + l] * 
+              transitmatrix[15 * l + k] * 
               probleaves[curhost * nSNPs * 15 + j * 15 + l];
           }
         }
       }
-      for(int nuc = 0; nuc < nSNPs * 15; ++nuc) {
-        probleaves[nexthost * nSNPs * 15 + nuc] *=
-          likarray[curhost * nSNPs * 15 + nuc];
+      if(nexthost != -1) {
+        for(int nuc = 0; nuc < nSNPs * 15; ++nuc) {
+          probleaves[nexthost * nSNPs * 15 + nuc] *=
+            likarray[curhost * nSNPs * 15 + nuc];
+        }
       }
+      leavestogo[curhost]--;
       curhost = nexthost;
-      nexthost = infectors[i] - 1;
-      leavestogo[nexthost]--;
+      nexthost = infectors[curhost] - 1;
+      leavestogo[curhost]--;
     }
   }
 

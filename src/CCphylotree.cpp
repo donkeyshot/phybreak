@@ -8,11 +8,11 @@
 // 
 // 
 // // [[Rcpp::export(name=".CCphylotree")]]
-// std::vector<double> CCphylotree(const std::vector<int> &pars, 
+// std::vector<double> CCphylotree(const std::vector<int> &pars,
 //                                 const std::vector<double> &tims,
 //                                std::vector<int> dims) {
 // 
-//   
+// 
 //   //The ss*n vector with n parents in each of ss trees is transformed into
 //   //a n_clade*n uniquecladearray, an ss*(n-1) vector indicating which n-1 clades
 //   //are in each of the ss trees, and an n_clade long vector with clade frequencies
@@ -22,8 +22,8 @@
 //   int n_clade = 0;
 //   buildphyloclades(uniq_clades, clade_freqs, which_clades, n_clade,
 //               pars, dims[0], dims[1]);
-//   
-//   
+// 
+// 
 //   //For each clade, its log(frequency)
 //   std::vector<double> cladescores((dims[0] - 1) * dims[1]);
 //   for(int i = 0; i < (dims[0]-1)*dims[1]; ++i) {
@@ -41,20 +41,20 @@
 //       posttree = i;
 //     }
 //   }
-//   
+// 
 //   //Determine the posterior clades
 //   std::vector<int> postclades(dims[0] - 1);
 //   for(int i = 0; i < dims[0] - 1; ++i) {
 //     postclades[i] = which_clades[posttree * (dims[0] - 1) + i];
 //   }
-//   
+// 
 //   //For each posterior clade, the sums and sums-of-squares of the infection
 //   //times of the root hosts are calculated
 //   std::vector<double> cladetimesums(dims[0] - 1);
 //   std::vector<double> cladetimesumsqs(dims[0] - 1);
 //   phylocladetimestats(cladetimesums, cladetimesumsqs, tims,
 //                  postclades, which_clades, uniq_clades, dims[0], dims[1]);
-//   
+// 
 // 
 //   //Make vector with results: parents, clade support,
 //   //mean node time, SD(node time)
@@ -74,15 +74,15 @@
 //       cladetimesums[i] / result[i + dims[0] + 2*dims[0] - 1]);
 //     result[i + dims[0] + 3*(2*dims[0] - 1)] = std::sqrt((
 //       cladetimesumsqs[i] -
-//         result[i + dims[0] + 2*(2*dims[0] - 1)] * 
-//         result[i + dims[0] + 2*(2*dims[0] - 1)] * 
+//         result[i + dims[0] + 2*(2*dims[0] - 1)] *
+//         result[i + dims[0] + 2*(2*dims[0] - 1)] *
 //         result[i + dims[0] + 2*dims[0] - 1]
 //     ) / (result[i + dims[0] + 2*dims[0] - 1] - 1) );
 //     result[i + dims[0] + 4*(2*dims[0] - 1)] = tims[(dims[0]-1) * posttree + i];
-//     
+// 
 //   }
-//       
-//       
+// 
+// 
 // 
 // 
 //   return result;
