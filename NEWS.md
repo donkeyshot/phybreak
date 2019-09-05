@@ -1,3 +1,8 @@
+# phybreak 0.5.0
+
+### Major changes
+* Added plotting function plotPhyloTrans to plot transmission trees with phylogenetic minitrees in each host
+
 # phybreak 0.4.2
 
 ### BUG FIXES

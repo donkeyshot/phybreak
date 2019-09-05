@@ -1,9 +1,10 @@
 #' Plotting a phybreak object.
 #' 
-#' Plots a \code{phybreak}-object twice: (1) as transmission tree and (2) as phylogenetic tree, using the default graphical parameters
-#'   of \code{\link{plotTrans}} and \code{\link{plotPhylo}}. The default 
+#' Plots a \code{phybreak}-object three times: (1) as transmission tree, (2) as phylogenetic tree,
+#'   and (3) as transmission tree with phylogenetic trees for each host using the default graphical parameters
+#'   of \code{\link{plotTrans}},  \code{\link{plotPhylo}}, and \code{\link{plotPhyloTrans}}. The default 
 #'   is to plot the current state, but any posterior sample can be chosen, as well as various consensus trees. Consensus tree "edmonds"
-#'   plots only a transmission tree, consensus tree "mcc" only a phylogenetic tree.
+#'   plots only a transmission tree, consensus tree "mcc" only a phylogenetic tree and a combined tree.
 #' 
 #' @param x An object of class \code{phybreak}.
 #' @param plot.which Either \code{"sample"} to plot the current state or a selected posterior sample, 
@@ -41,6 +42,9 @@ plot.phybreak <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc", 
   } 
   if(plot.which != "edmonds") {
     plotPhylo(x, plot.which, samplenr)
+  }
+  if(plot.which != "edmonds") {
+    plotPhyloTrans(x, plot.which, samplenr)
   }
   
 }

@@ -2,10 +2,18 @@
 % Please edit documentation in R/plotPhyloTrans.R
 \name{plotPhyloTrans}
 \alias{plotPhyloTrans}
-\title{Plotting a phybreak object phylogenetic tree.}
+\title{Plotting a phybreak object transmission and phylogenetic tree.}
 \usage{
 plotPhyloTrans(x, plot.which = c("sample", "mpc", "mtcc", "mcc"),
-  samplenr = 0, ...)
+  samplenr = 0, mar = 0.1 + c(4, 0, 0, 0), tree.lwd = 1,
+  tree.col = NULL, hostlabel = TRUE, hostlabel.cex = NULL,
+  hostlabel.pos = "adjacent", hostlabel.col = tree.col,
+  samplelabel = FALSE, samplelabel.cex = NULL,
+  samplelabel.pos = "right", samplelabel.col = tree.col,
+  label.space = 0.15, host.col = tree.col, host.alpha = 0.2,
+  cline.lty = 3, cline.lwd = 1, cline.col = "black",
+  cpoint.pch = 20, cpoint.cex = 1, cpoint.col = tree.col,
+  xlab = "Time", axis.cex = 1, title.cex = 1, ...)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}
@@ -17,12 +25,76 @@ to plot the maximum clade credibility tree (see \code{\link{phylotree}}).}
 \item{samplenr}{If \code{plot.which = "sample"}, this indicates which posterior tree should be plotted: 
 \code{samplenr = 0} to plot the current state.}
 
-\item{...}{Additional options for \code{\link[phytools]{plotSimmap}}.}
+\item{mar}{Plot margins.}
+
+\item{tree.lwd}{Line width of phylogenetic trees.}
+
+\item{tree.col}{Colours of the host phylogenetic trees. Defaults to evenly spaced hues in \code{hcl}, 
+with \code{c = 100} and \code{l = 65}.}
+
+\item{hostlabel}{Whether to print the host names.}
+
+\item{hostlabel.cex}{Size of host names. Defaults to a value between 0.5 and 1
+depending on outbreak size.}
+
+\item{hostlabel.pos}{Position of host names, either just right from the host's phylogenetic tree,
+or aligned at the right hand side of the plot (\code{"right"}).}
+
+\item{hostlabel.col}{Colours of the host names. Defaults to same as tree colours.}
+
+\item{samplelabel}{Whether to print the sample names.}
+
+\item{samplelabel.cex}{Size of sample names. Defaults to a value between 0.4 and 0.8
+depending on outbreak size.}
+
+\item{samplelabel.pos}{Position of sample names, either just right from the host's phylogenetic tree,
+or aligned at the right hand side of the plot (\code{"right"}).}
+
+\item{samplelabel.col}{Colours of the sample names. Defaults to same as tree colours, matching the host.}
+
+\item{label.space}{Scales the space at the right-hand side to place the host and sample names.}
+
+\item{host.col}{Colour of shading behind the host phylogenetic trees. Defaults to same as tree colours.}
+
+\item{host.alpha}{Transparancy of shading behind the host phylogenetic trees.}
+
+\item{cline.lty}{Line type of vertical lines showing the transmission contacts.}
+
+\item{cline.lwd}{Line width of vertical lines showing the transmission contacts.}
+
+\item{cline.col}{Colour of vertical lines showing the transmission contacts. If \code{NULL}, the tree colours are used.}
+
+\item{cpoint.pch}{Character \code{par("pch")} used for points indicating the transmission contacts, 
+both at the tips and roots of the phylogenetic trees.}
+
+\item{cpoint.cex}{Size of transmission contact points.}
+
+\item{cpoint.col}{Colour of points indicating the transmission contacts, associated with the secondary case,
+both at the tips and roots of the phylogenetic trees. Defaults to same as tree colours.}
+
+\item{xlab}{X-axis title.}
+
+\item{axis.cex}{Size of tick labels.}
+
+\item{title.cex}{Size of X-axis title.}
+
+\item{...}{Further graphical parameters (see details).}
 }
 \description{
-Plots a \code{phybreak}-object as phylogenetic tree with coloured branches indicating hosts. The default 
+Plots a \code{phybreak}-object as a transmission tree with coloured phylogenetic trees for each host. The default 
   is to plot the current state, but any posterior sample can be chosen, as well as various consensus trees.
 }
+\section{Details}{
+ 
+  Graphical parameters can be added by using names in the format \code{prefix.parameter} for the
+  different parts of the plot. The \code{parameter} will then be passed on to the appropriate 
+  graphics function, e.g. \code{tree.lty} to change the line type of the phylogenetic tree. The following 
+  prefixes can be used: \code{tree} for the phylogenetic trees, \code{hostlabel} for the host names,
+  \code{samplelabel} for the sample names, \code{host} for the host's shading areas, \code{cline} for 
+  the vertical contact lines, \code{cpoint} for the transmission contact points, \code{axis} for 
+  the X-axis, and \code{title} for the X-axis title.
+}
+
 \examples{
 #First build a phybreak-object containing samples.
 simulation <- sim_phybreak(obsize = 5)

@@ -20,10 +20,11 @@ to plot the maximum clade credibility tree (see \code{\link{phylotree}}).}
 \item{...}{Some methods for this generic require additional arguments. None are used in this method.}
 }
 \description{
-Plots a \code{phybreak}-object twice: (1) as transmission tree and (2) as phylogenetic tree, using the default graphical parameters
-  of \code{\link{plotTrans}} and \code{\link{plotPhylo}}. The default 
+Plots a \code{phybreak}-object three times: (1) as transmission tree, (2) as phylogenetic tree,
+  and (3) as transmission tree with phylogenetic trees for each host using the default graphical parameters
+  of \code{\link{plotTrans}},  \code{\link{plotPhylo}}, and \code{\link{plotPhyloTrans}}. The default 
   is to plot the current state, but any posterior sample can be chosen, as well as various consensus trees. Consensus tree "edmonds"
-  plots only a transmission tree, consensus tree "mcc" only a phylogenetic tree.
+  plots only a transmission tree, consensus tree "mcc" only a phylogenetic tree and a combined tree.
 }
 \examples{
 #First build a phybreak-object containing samples.
