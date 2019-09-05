@@ -124,9 +124,9 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
       # plot.which == "sample" && samplenr > 0
       
       vars <- list(
-        nodetimes = c(x$v$nodetimes[x$v$nodetypes == "s"], x$s$nodetimes[, samplenr]),
+        nodetimes = c(x$v$nodetimes[x$v$nodetypes %in% c("s", "x")], x$s$nodetimes[, samplenr]),
         nodeparents = x$s$nodeparents[, samplenr],
-        nodehosts = c(x$v$nodehosts[x$v$nodetypes == "s"], x$s$nodehosts[, samplenr]),
+        nodehosts = c(x$v$nodehosts[x$v$nodetypes %in% c("s", "x")], x$s$nodehosts[, samplenr]),
         nodetypes = x$v$nodetypes,
         inftimes = x$s$inftimes[, samplenr],
         infectors = x$s$infectors[, samplenr]
@@ -149,7 +149,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
                 xlab = xlab, axis.cex = axis.cex, title.cex = title.cex, ...)
 }
 
-maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0, 4), label.cex = NULL, 
+maketransplot <- function(x, tg.mean = NA, tg.shape = NA, mar = 0.1 + c(4, 0, 0, 0), label.cex = NULL, 
                           label.space = 0.15, label.adj = 0,
                           arrow.lwd = 1, arrow.length = NULL, arrow.col = par("fg"), sample.pch = 4,
                           sample.lwd = NULL, sample.cex = label.cex, polygon.col = "gray", 
@@ -318,7 +318,7 @@ rankhostsforplot <- function(hosts, infectors) {
                                                                             hosts))
   for(i in hosts) {
     curhost <- infectors[i]
-    while(curhost != "index") {
+    while(curhost != "index" && curhost != 0) {
       infectormatrix[i, curhost] <- infectormatrix[i, curhost] + 1
       curhost <- infectors[curhost]
     }
@@ -337,7 +337,7 @@ rankhostsforplot <- function(hosts, infectors) {
   plotrank <- 1
   for(i in 2:Nhosts) {
     ior <- which(hosts == infectors[i])
-    if(infectors[ior] == "index") {
+    if(infectors[ior] == "index" || infectors[ior] == 0) {
       plotrank[i] <- plotrank[ior] + insideYN[hosts[i]] - 0.5
     } else if(plotrank[ior] == 1) {
       plotrank[i] <- insideYN[hosts[i]] + 0.5
