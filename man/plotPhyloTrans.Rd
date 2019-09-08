@@ -5,15 +5,16 @@
 \title{Plotting a phybreak object transmission and phylogenetic tree.}
 \usage{
 plotPhyloTrans(x, plot.which = c("sample", "mpc", "mtcc", "mcc"),
-  samplenr = 0, mar = 0.1 + c(4, 0, 0, 0), tree.lwd = 1,
-  tree.col = NULL, hostlabel = TRUE, hostlabel.cex = NULL,
-  hostlabel.pos = "adjacent", hostlabel.col = tree.col,
-  samplelabel = FALSE, samplelabel.cex = NULL,
-  samplelabel.pos = "right", samplelabel.col = tree.col,
-  label.space = 0.15, host.col = tree.col, host.alpha = 0.2,
-  cline.lty = 3, cline.lwd = 1, cline.col = "black",
-  cpoint.pch = 20, cpoint.cex = 1, cpoint.col = tree.col,
-  xlab = "Time", axis.cex = 1, title.cex = 1, ...)
+  samplenr = 0, select.how = "trees", select.who = "index",
+  mar = 0.1 + c(4, 0, 0, 0), tree.lwd = 1, tree.col = NULL,
+  hostlabel = TRUE, hostlabel.cex = NULL, hostlabel.pos = "adjacent",
+  hostlabel.col = tree.col, samplelabel = FALSE,
+  samplelabel.cex = NULL, samplelabel.pos = "right",
+  samplelabel.col = tree.col, label.space = 0.15,
+  host.col = tree.col, host.alpha = 0.2, cline.lty = 3,
+  cline.lwd = 1, cline.col = "black", cpoint.pch = 20,
+  cpoint.cex = 1, cpoint.col = tree.col, xlab = "Time",
+  axis.cex = 1, title.cex = 1, ...)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}
@@ -24,6 +25,21 @@ to plot the maximum clade credibility tree (see \code{\link{phylotree}}).}
 
 \item{samplenr}{If \code{plot.which = "sample"}, this indicates which posterior tree should be plotted: 
 \code{samplenr = 0} to plot the current state.}
+
+\item{select.how}{Method to select subset of hosts to plot, in combination with \code{select.who}. 
+Options are \code{"trees"}, in which case subtrees are plotted with index cases defined in \code{select.who}.  
+Options are:
+\enumerate{
+  \item "trees": subtrees starting with cases defined in \code{select.who}, with all progeny. This is the default, starting with \code{"index"},
+    so that all cases are selected.
+  \item "pruned": prunes the complete transmission tree to the minimum fully connected subtree containing all cases in 
+    \code{select.who}, plus all cases needed to link them. Include \code{"index"} for the index case.
+  \item "leaves": plot only the hosts in \code{select.who}. Here, including \code{"index"} has no effect.
+}}
+
+\item{select.who}{Vector of hosts used to select subset of hosts to plot, in combination with \code{select.how} (explained above).
+Can be given as named hosts, where \code{"index"} can be used to plot the index host with selection methods \code{"trees"} and \code{"pruned"},
+or as numbers, where \code{0} indicates the index host.}
 
 \item{mar}{Plot margins.}
 
