@@ -1,3 +1,11 @@
+# phybreak 0.5.1
+
+### Minor changes
+* Added possibility to show the numbers of mutations along the phylogenetic minitrees with plotPhyloTrans
+
+### BUG FIXES
+* shows all transmission links in plotPhyloTrans
+
 # phybreak 0.5.0
 
 ### Major changes

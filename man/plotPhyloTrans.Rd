@@ -6,11 +6,13 @@
 \usage{
 plotPhyloTrans(x, plot.which = c("sample", "mpc", "mtcc", "mcc"),
   samplenr = 0, select.how = "trees", select.who = "index",
-  mar = 0.1 + c(4, 0, 0, 0), tree.lwd = 1, tree.col = NULL,
-  hostlabel = TRUE, hostlabel.cex = NULL, hostlabel.pos = "adjacent",
-  hostlabel.col = tree.col, samplelabel = FALSE,
-  samplelabel.cex = NULL, samplelabel.pos = "right",
-  samplelabel.col = tree.col, label.space = 0.15,
+  showmutations = FALSE, mar = 0.1 + c(4, 0, 0, 0), tree.lwd = 1,
+  tree.col = NULL, hostlabel = TRUE, hostlabel.cex = NULL,
+  hostlabel.pos = "adjacent", hostlabel.col = tree.col,
+  samplelabel = FALSE, samplelabel.cex = NULL,
+  samplelabel.pos = "right", samplelabel.col = tree.col,
+  mutationlabel = FALSE, mutationlabel.cex = NULL,
+  mutationlabel.pos = "right", label.space = 0.15,
   host.col = tree.col, host.alpha = 0.2, cline.lty = 3,
   cline.lwd = 1, cline.col = "black", cpoint.pch = 20,
   cpoint.cex = 1, cpoint.col = tree.col, xlab = "Time",
@@ -67,6 +69,15 @@ depending on outbreak size.}
 or aligned at the right hand side of the plot (\code{"right"}).}
 
 \item{samplelabel.col}{Colours of the sample names. Defaults to same as tree colours, matching the host.}
+
+\item{mutationlabel}{Whether to print the number of mutations on each edge in the phylogenetic trees, 
+calculated with parsimony reconstruction using \code{\link[phangorn]{ancestral.pars}}. 
+Only for edges with > 0 mutations.}
+
+\item{mutationlabel.cex}{Size of mutation labels. Defaults to same as sample label.}
+
+\item{mutationlabel.pos}{Position of mutation label on edge. Default is \code{"right"}, which is on the
+node to the right, otherwise it is centered.}
 
 \item{label.space}{Scales the space at the right-hand side to place the host and sample names.}
 

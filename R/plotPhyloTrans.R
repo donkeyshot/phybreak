@@ -38,6 +38,12 @@
 #' @param samplelabel.pos Position of sample names, either just right from the host's phylogenetic tree,
 #'   or aligned at the right hand side of the plot (\code{"right"}).
 #' @param samplelabel.col Colours of the sample names. Defaults to same as tree colours, matching the host.
+#' @param mutationlabel Whether to print the number of mutations on each edge in the phylogenetic trees, 
+#'   calculated with parsimony reconstruction using \code{\link[phangorn]{ancestral.pars}}. 
+#'   Only for edges with > 0 mutations.
+#' @param mutationlabel.cex Size of mutation labels. Defaults to same as sample label.
+#' @param mutationlabel.pos Position of mutation label on edge. Default is \code{"right"}, which is on the
+#'   node to the right, otherwise it is centered.
 #' @param label.space Scales the space at the right-hand side to place the host and sample names.
 #' @param host.col Colour of shading behind the host phylogenetic trees. Defaults to same as tree colours.
 #' @param host.alpha Transparancy of shading behind the host phylogenetic trees.
@@ -75,13 +81,15 @@
 #' plot(MCMCstate, plot.which = "mpc")
 #' @export
 plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplenr = 0, 
-                           select.how = "trees", select.who = "index", 
+                           select.how = "trees", select.who = "index", showmutations = FALSE,
                            mar = 0.1 + c(4, 0, 0, 0), 
                            tree.lwd = 1, tree.col = NULL, 
                            hostlabel = TRUE, hostlabel.cex = NULL, 
                            hostlabel.pos = "adjacent", hostlabel.col = tree.col,
                            samplelabel = FALSE, samplelabel.cex = NULL, 
                            samplelabel.pos = "right", samplelabel.col = tree.col,
+                           mutationlabel = FALSE, mutationlabel.cex = NULL,
+                           mutationlabel.pos = "right",
                            label.space = 0.15, 
                            host.col = tree.col, host.alpha = 0.2,
                            cline.lty = 3, cline.lwd = 1, cline.col = "black", 
@@ -100,9 +108,11 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
     if(exists("sim.infection.times", x) && exists("sim.infectors", x) && exists("sim.tree", x)) {
       samplenames <- names(x$sample.times)
       sampletimes <- x$sample.times
+      sequences <- x$sequences
       x <- transphylo2phybreak(x)
       x$d$names <- samplenames
       x$d$sample.times <- sampletimes
+      x$d$sequences <- sequences
       plot.which <- "sample"
       samplenr <- 0
     } else {
@@ -147,16 +157,20 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
   plotinput <- list(d = list(names = x$d$names,
                              hostnames = x$d$hostnames[1:length(x$v$inftimes)],
                              sample.times = x$d$sample.times,
-                             reference.date = x$d$reference.date), 
-                    v = phybreak2environment(x$v))
+                             reference.date = x$d$reference.date,
+                             sequences = x$d$sequences), 
+                    v = phybreak2environment(x$v),
+                    t = phybreak2phylo(x$v))
   plotinput$v$nodetimes <- plotinput$v$nodetimes
 
-  makephylotransplot(plotinput, select.how, select.who, mar = mar, 
-                     tree.lwd = tree.lwd, tree.col = tree.col, 
+  makephylotransplot(plotinput, select.how, select.who, 
+                     mar = mar, tree.lwd = tree.lwd, tree.col = tree.col, 
                      hostlabel = hostlabel, hostlabel.cex = hostlabel.cex, 
                      hostlabel.pos = hostlabel.pos, hostlabel.col = hostlabel.col,
                      samplelabel = samplelabel, samplelabel.cex = samplelabel.cex, 
                      samplelabel.pos = samplelabel.pos, samplelabel.col = samplelabel.col,
+                     mutationlabel = mutationlabel, mutationlabel.cex = mutationlabel.cex,
+                     mutationlabel.pos = mutationlabel.pos,
                      label.space = label.space, 
                      host.col = host.col, host.alpha = host.alpha,
                      cline.lty = cline.lty, cline.lwd = cline.lwd, cline.col = cline.col, 
@@ -172,6 +186,8 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
                                hostlabel.pos = "adjacent", hostlabel.col = tree.col,
                                samplelabel = FALSE, samplelabel.cex = NULL, 
                                samplelabel.pos = "right", samplelabel.col = tree.col,
+                               mutationlabel = FALSE, mutationlabel.cex = NULL,
+                               mutationlabel.pos = "right",
                                label.space = 0.15, 
                                host.col = tree.col, host.alpha = 0.2,
                                cline.lty = 3, cline.lwd = 1, cline.col = "black", 
@@ -183,6 +199,19 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   obs <- length(plotinput$v$inftimes)
   hosts2plot <- cuttree(select.how, select.who, plotinput$d$hostnames, plotinput$v$infectors)
 
+  mutationcount <- rep(0, length(plotinput$v$nodeparents))
+  if(mutationlabel) {
+    ancestralstates <- phangorn::ancestral.pars(plotinput$t, plotinput$d$sequences)
+    for(i in 1:length(ancestralstates)) {
+      edgepos <- which(plotinput$t$edge[, 2] == i)
+      if(length(edgepos) == 1) {
+        parentnode <- plotinput$t$edge[edgepos, 1]
+        samechars <- ancestralstates[[i]] - ancestralstates[[parentnode]]
+        mutationcount[i] <- sum(apply(samechars, 1, max))
+      }
+    }
+  } 
+  
   ### determine order for plotting hosts ###
   inputhosts <- plotinput$d$hostnames
   inputinfectors <- c("index", plotinput$d$hostnames)[1 + plotinput$v$infectors]
@@ -420,26 +449,6 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   yphylo2 <- completetree$y2vec 
   colphylo <- completetree$hostvec + 1
   
-  ### input for transmission links ###
-  links2plot <- setdiff(hosts2plot, plotinput$v$infectors == 0)
-  xtrans <- plotinput$v$inftimes[links2plot]
-  ytrans <- suppressWarnings(
-    sapply(xtrans,
-           function(xx) c(
-             min(completetree$y1vec[completetree$x1vec == xx]),
-             max(completetree$y1vec[completetree$x1vec == xx]),
-             min(completetree$y2vec[completetree$x2vec == xx]),
-             max(completetree$y2vec[completetree$x2vec == xx])))
-    ) 
-  xtrans <- xtrans + plotinput$d$reference.date
-  ytrans1 <- apply(ytrans, 2, min)
-  ytrans2 <- apply(ytrans, 2, max)
-  keeptranslinks <- ytrans1 > -Inf
-  links2plot <- links2plot[keeptranslinks]
-  xtrans <- xtrans[keeptranslinks]
-  ytrans1 <- ytrans1[keeptranslinks]
-  ytrans2 <- ytrans2[keeptranslinks]
-  
   ### input for transmission nodes ###
   xnodes <- c(
     completetree$x2vec[completetree$nodevec %in%
@@ -460,6 +469,18 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
     plotinput$v$nodehosts[infecteenodes], 
     unlist(sapply(hosttrees, function(xx) rep(xx$host, sum(xx$x1vec == min(xx$x1vec) & xx$x1vec >= min(plotinput$v$inftimes))))))
   
+  ### input for transmission links ###
+  links2plot <- hosts2plot[plotinput$v$infectors[hosts2plot] %in% hosts2plot]
+  xtrans <- plotinput$v$inftimes[links2plot] + plotinput$d$reference.date
+  ytrans1 <- sapply(links2plot,
+                    function(xx) c(
+                      min(ynodes[infecteehosts == xx]))
+  ) 
+  ytrans2 <- sapply(links2plot,
+                    function(xx) c(
+                      max(ynodes[infecteehosts == xx]))
+  ) 
+
   ### input for hosts ###
   xhost1 <- plotinput$v$inftimes[hosts2plot] + plotinput$d$reference.date
   xhost2 <- sapply(hosts2plot, function(xx) max(completetree$x2vec[xx == completetree$hostvec])) + plotinput$d$reference.date
@@ -486,6 +507,18 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   hostsamplename <- colphylo[samplenodes] - 1
   labelsamplename <- paste0(" ", plotinput$d$names[completetree$nodevec[samplenodes]])
     
+  ### input for mutation count labels ###
+  if(mutationlabel.pos == "right") {
+    xmutation <- xphylo2[yphylo1 == yphylo2]
+  } else {
+    xmutation <- (xphylo1 + xphylo2)[yphylo1 == yphylo2]/2
+  }
+  ymutation <- yphylo2[yphylo1 == yphylo2]
+  labelmutation <- mutationcount[completetree$nodevec][yphylo1 == yphylo2]
+  xmutation <- xmutation[labelmutation > 0]
+  ymutation <- ymutation[labelmutation > 0]
+  labelmutation <- labelmutation[labelmutation > 0]
+  
   ### colours ###
   sqrtobs <- floor(sqrt(obs))
   if(is.null(tree.col)) {
@@ -515,7 +548,7 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   if(is.null(cline.col)) {
     clinecolours <- tail(treecolours, -1)
   } else {
-    clinecolours <- rep_len(cline.col, length.out = obs)[plotinput$v$infectors > 0]
+    clinecolours <- rep_len(cline.col, length.out = obs)
   }
   if(is.null(cpoint.col)) {
     cpointcolours <- tail(treecolours, -1)
@@ -526,6 +559,7 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   ### some smart graphical parameters
   if(is.null(hostlabel.cex)) hostlabel.cex <- max(0.5, min(1, 30/obs))
   if(is.null(samplelabel.cex)) samplelabel.cex <- 0.8 * hostlabel.cex
+  if(is.null(mutationlabel.cex)) mutationlabel.cex <- 0.8 * hostlabel.cex
   tmin <- min(xphylo1)
   tmax <- max(xphylo2)
   
@@ -619,6 +653,16 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
                    cex = samplelabel.cex,
                    adj = 0),
               graphicalparameters("samplelabel", 1:obs, ...)))
+  }
+  
+  ### mutation labels
+  if(mutationlabel) {
+    do.call(text,
+            c(list(x = xmutation,
+                   y = ymutation,
+                   label = labelmutation,
+                   cex = mutationlabel.cex),
+              graphicalparameters("mutationlabel", 1, ...)))
   }
   
 }
