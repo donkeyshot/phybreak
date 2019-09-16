@@ -207,7 +207,8 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
       if(length(edgepos) == 1) {
         parentnode <- plotinput$t$edge[edgepos, 1]
         samechars <- ancestralstates[[i]] - ancestralstates[[parentnode]]
-        mutationcount[i] <- sum(apply(samechars, 1, max))
+        mutationcount[i] <- sum(apply(samechars, 1, max) * 
+                                  attr(plotinput$d$sequences, "weight"))
       }
     }
   } 

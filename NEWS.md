@@ -1,3 +1,8 @@
+# phybreak 0.5.2
+
+### BUG FIXES
+* Correct calculation of numbers of mutations in plotPhyloTrans (counting haplotypes according to correct frequency of occurrence)
+
 # phybreak 0.5.1
 
 ### Minor changes
