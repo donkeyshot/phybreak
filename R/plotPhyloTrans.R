@@ -153,6 +153,12 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
       nodehosts = c(x$v$nodehosts[x$v$nodetypes %in% c("s", "x")], x$s$nodehosts[, samplenr]),
       nodetypes = x$v$nodetypes
     )
+    
+    x$v <- lapply(x$v, function(xx) {
+      nas <- which(is.na(xx))
+      if (length(nas) > 0) return(xx[-nas])
+      else return(xx)
+    })
   }
   plotinput <- list(d = list(names = x$d$names,
                              hostnames = x$d$hostnames[1:length(x$v$inftimes)],
@@ -247,7 +253,7 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
             # line coordinates of tree
             x1vec = if(parentnode > 0) {
               plotinput$v$nodetimes[parentnode]
-            } else min(plotinput$v$inftimes),
+            } else plotinput$v$inftimes[plotinput$v$nodehosts[i]],
             x2vec = plotinput$v$nodetimes[i],
             y1vec = 0,
             y2vec = 0,
@@ -296,7 +302,12 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
     # if trees are complete: collect them and add to hosttrees
     if(trees2join[[1]]$completeYN) {
       # finalize host
-      hosttrees <- c(hosttrees, list(trees2join))
+      if (length(trees2join) > 1){
+        hosttrees <- c(hosttrees, lapply(trees2join, list))
+      } else {
+        hosttrees <- c(hosttrees, list(trees2join))
+      }
+      
       # pass yscores on to transmission nodes in infector
       trnodes <- unlist(sapply(trees2join, 
                                function(xx) 
@@ -326,7 +337,8 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
       # root of complete phylotree inside index case (root branch)
       newxroot <- if(newrootnode > 0) {
         plotinput$v$nodetimes[newrootnode]
-      } else min(c(trees2join[[1]]$xroot, plotinput$v$inftimes))
+      } else min(c(trees2join[[1]]$xroot, 
+                   plotinput$v$inftimes[trees2join[[1]]$host]))
       
       newyscore <- trees2join[[1]]$yscore + trees2join[[2]]$yscore
       newcompleteYN <- 
@@ -365,9 +377,17 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   
   hosttrees2 <- hosttrees
   hosttrees <- hosttrees2
+  
+  # number of disjoint trees
+  ntrees <- length(which(sapply(hosttrees, function(xx) xx[[1]]$rootnode == 0)))
+  if (ntrees > 1){
+    rootnodes <- unlist(sapply(hosttrees, function(xx) xx[[1]]$rootnode))
+    hosttrees <- hosttrees[order(rootnodes, decreasing = TRUE)]
+  }
+  
   ### join the trees per host ###
   # final hosttree is index case and is already one tree
-  for(i in (length(hosttrees)-1):1) {
+  for(i in (length(hosttrees)-ntrees):1) {
     # order trees as transmission nodes in infector
     infector <- plotinput$v$infectors[hosttrees[[i]][[1]]$host]
     infectorhosttree <- 
@@ -613,15 +633,17 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
                  lwd = tree.lwd),
             graphicalparameters("tree", 1 + (colphylo + obs - 1) %% (1 + obs), ...)))
   
-  ### contact lines
-  do.call(segments,
-          c(list(x0 = xtrans, 
-                 y0 = ytrans1, 
-                 y1 = ytrans2,
-                 lty = cline.lty,
-                 lwd = cline.lwd,
-                 col = clinecolours[links2plot]),
-            graphicalparameters("cline", which(plotinput$v$infectors > 0, ...))))
+  ### contact lines (if more than one host)
+  if (length(xtrans) > 0){
+    do.call(segments,
+            c(list(x0 = xtrans, 
+                   y0 = ytrans1, 
+                   y1 = ytrans2,
+                   lty = cline.lty,
+                   lwd = cline.lwd,
+                   col = clinecolours[links2plot]),
+              graphicalparameters("cline", which(plotinput$v$infectors > 0, ...))))
+  }
   
   ### contact points
   do.call(points,

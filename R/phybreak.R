@@ -112,14 +112,14 @@
 #' ### but only with single samples per host and not with additional data (future implementation)
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
-phybreak <- function(dataset, times = NULL,
+phybreak <- function(dataset, times = NULL, introductions = 1,
          mu = NULL, gen.shape = 3, gen.mean = 1,
          sample.shape = 3, sample.mean = 1, 
-         wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
+         wh.model = "linear", wh.bottleneck = "auto", wh.history = 1, wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
          dist.model = "power", dist.exponent = 2, dist.scale = 1, dist.mean = 1,
          est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
          est.sample.mean = TRUE, prior.sample.mean.mean = 1, prior.sample.mean.sd = Inf,
-         est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
+         est.wh.history = TRUE, est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
          est.wh.exponent = TRUE, prior.wh.exponent.shape = 1, prior.wh.exponent.mean = 1,
          est.wh.level = TRUE, prior.wh.level.shape = 1, prior.wh.level.mean = 0.1,
          est.dist.exponent = TRUE, prior.dist.exponent.shape = 1, prior.dist.exponent.mean = 1,
@@ -189,6 +189,7 @@ phybreak <- function(dataset, times = NULL,
     gen.shape = gen.shape,
     wh.model = wh.model,
     wh.bottleneck = wh.bottleneck,
+    wh.history = wh.history,
     wh.slope = wh.slope,
     wh.exponent = wh.exponent,
     wh.level = wh.level * (wh.bottleneck == "wide"),
@@ -201,7 +202,10 @@ phybreak <- function(dataset, times = NULL,
   ##############################
   ### second slot: variables ###
   ##############################
-  phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot)
+  if(length(dataset$sim.infectors) > 0 & use.tree == TRUE)
+    introductions = sum(grepl("index",dataset$sim.infectors))
+  phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot,
+                                           introductions)
   variableslot <- phybreakvariables$v
   dataslot$reference.date <- phybreakvariables$d$reference.date
   
@@ -226,6 +230,7 @@ phybreak <- function(dataset, times = NULL,
                      dist = distmatrix_phybreak(subset(dataslot$sequences, subset = 1:parameterslot$obs)),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
+                     est.wh.h = est.wh.history,
                      est.wh.s = est.wh.slope && wh.model == "linear",
                      est.wh.e = est.wh.exponent && wh.model == "exponential",
                      est.wh.0 = est.wh.level && wh.bottleneck == "wide",

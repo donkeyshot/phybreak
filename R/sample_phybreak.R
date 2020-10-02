@@ -73,7 +73,8 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                    infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
                    nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                    nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
-                   nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))), 
+                   nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
+                   introductions = c(sum(x$s$infectors==0), rep(NA, nsample)),
                    mu = c(x$s$mu, rep(NA, nsample)), 
                    mG = c(x$s$mG, rep(NA, nsample)), 
                    mS = c(x$s$mS, rep(NA, nsample)), 
@@ -99,7 +100,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           print_screen_log(sa)
           curtime <- Sys.time()
         }
-        for(i in  sample(c(rep(-(1:9), parameter_frequency), 1:x$p$obs))) {
+        for(i in  sample(c(rep(-(1:10), parameter_frequency), 2:x$p$obs))) {
           if(i > 0) {
             which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                      1,
@@ -110,6 +111,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           if (i == -1)  update_mu()
           if (i == -2 && x$h$est.mG)  update_mG()
           if (i == -3 && x$h$est.mS)  update_mS()
+          if (i == -10 && x$h$est.wh.h) update_wh_history()
           if (i == -4 && x$h$est.wh.s)  update_wh_slope()
           if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
           if (i == -6 && x$h$est.wh.0)  update_wh_level()
@@ -118,12 +120,17 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           if (i == -9 && x$h$est.dist.m)  update_dist_mean()
         }
       }
-      vars_to_log <- environment2phybreak(pbe0$v)
+      remove_history(keepenv = TRUE)
+      vars_to_log <- environment2phybreak(pbe0_2$v)
       s.post$inftimes[, sa] <- vars_to_log$inftimes
       s.post$infectors[, sa] <- vars_to_log$infectors
-      s.post$nodetimes[, sa] <- vars_to_log$nodetimes[vars_to_log$nodetypes == "c"]
-      s.post$nodehosts[, sa] <- vars_to_log$nodehosts[vars_to_log$nodetypes == "c"]
-      s.post$nodeparents[, sa] <- vars_to_log$nodeparents
+      s.post$nodetimes[, sa] <- c(vars_to_log$nodetimes[vars_to_log$nodetypes == "c"],
+                                  rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c"))))
+      s.post$nodehosts[, sa] <- c(vars_to_log$nodehosts[vars_to_log$nodetypes == "c"],
+                                  rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c"))))
+      s.post$nodeparents[, sa] <- c(vars_to_log$nodeparents,
+                                    rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c"))))
+      s.post$introductions[sa] <- sum(vars_to_log$infectors == 0)
       s.post$mu[sa] <- pbe0$p$mu
       s.post$mG[sa] <- pbe0$p$gen.mean
       s.post$mS[sa] <- pbe0$p$sample.mean

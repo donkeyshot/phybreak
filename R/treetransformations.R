@@ -1,11 +1,13 @@
 phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   ### extract variables
+  if (sum(vars$infectors==0)==1) introductions <- 1L
+  else introductions <- as.integer(sum(vars$infectors==0)-1)
   nodetimes <- vars$nodetimes
   nodeparents <- as.integer(vars$nodeparents)
-  nodehosts <- as.integer(vars$nodehosts) + 1L
+  nodehosts <- as.integer(vars$nodehosts) + introductions
   nodetypes <- vars$nodetypes
-  inftimes <- c(-Inf, vars$inftimes)
-  infectors <- c(0, vars$infectors + 1)
+  inftimes <- c(rep(-Inf,introductions), vars$inftimes)
+  infectors <- c(rep(0,introductions), vars$infectors + introductions)
   nhosts <- length(inftimes)
   nsamples <- sum(nodetypes %in% c("s", "x"))
   if(is.null(samplenames)) samplenames <- 1:nsamples
@@ -16,24 +18,46 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   
   ### give first coalescent node number nsamples + 1 for compatibility with phylo
   currentrootnode <- which(nodeparents == 0)
-  if(currentrootnode != nsamples + 1) {
-    #swap hosts and times
-    nodehosts[c(nsamples + 1, currentrootnode)] <- nodehosts[c(currentrootnode, nsamples + 1)]
-    nodetimes[c(nsamples + 1, currentrootnode)] <- nodetimes[c(currentrootnode, nsamples + 1)]
+  if (length(currentrootnode) == 1) {
+    if(currentrootnode != nsamples + 1) {
+      #swap hosts and times
+      nodehosts[c(nsamples + 1, currentrootnode)] <- nodehosts[c(currentrootnode, nsamples + 1)]
+      nodetimes[c(nsamples + 1, currentrootnode)] <- nodetimes[c(currentrootnode, nsamples + 1)]
+      
+      #swap parents
+      nodeparents[c(nsamples + 1, currentrootnode)] <- nodeparents[c(currentrootnode, nsamples + 1)]
+      
+      #change parents of all nodes
+      tooldroot <- nodeparents == currentrootnode
+      tonewroot <- nodeparents == nsamples + 1
+      nodeparents[tooldroot] <- nsamples + 1
+      nodeparents[tonewroot] <- currentrootnode
+    }
     
-    #swap parents
-    nodeparents[c(nsamples + 1, currentrootnode)] <- nodeparents[c(currentrootnode, nsamples + 1)]
-
-    #change parents of all nodes
-    tooldroot <- nodeparents == currentrootnode
-    tonewroot <- nodeparents == nsamples + 1
-    nodeparents[tooldroot] <- nsamples + 1
-    nodeparents[tonewroot] <- currentrootnode
+    edges <- cbind(nodeparents, 1:(2*nsamples - 1))[-(nsamples + 1), ]
+  } else {
+    # artificial host
+    nodehosts <- c(nodehosts[1:nsamples], 1:introductions, nodehosts[nodetypes == "c"])
+    
+    # artificial times
+    nodetimes <- c(nodetimes[1:nsamples], 
+                   min(nodetimes)-(1+((introductions-1):0)*1e-3), 
+                   nodetimes[nodetypes == "c"])
+    
+    # artificial parents
+    nodeparents[currentrootnode] <- nsamples
+    if (introductions == 1)
+      nodeparents <- c(nodeparents[1:nsamples]+1L, 0, nodeparents[nodetypes == "c"]+1L)
+    else 
+      nodeparents <- c(nodeparents[1:nsamples]+introductions, 
+                       c(0,nsamples+(1:(introductions-1))),
+                       nodeparents[nodetypes == "c"]+introductions)
+    
+    edges <- cbind(nodeparents, 1:length(nodeparents))[-(nsamples + 1), ]
   }
   
   ### topology for phylo
-  edges <- cbind(nodeparents, 1:(2*nsamples - 1))[-(nsamples + 1), ]
- 
+  
   edgelengths <- apply(edges, 1, function(x) nodetimes[x[2]] - nodetimes[x[1]])
   
   rootedge <- max(0, min(nodetimes) - min(inftimes[-1]))
@@ -44,7 +68,7 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
     hostcolors <- c("red", "blue", "black")[1 + sapply(1:nhosts, whichgeneration, infectors = infectors) %% 3]
     tipstates <- hostcolors[nodehosts[nodetypes %in% c("s", "x")]]
     nodestates <- apply(edges, 1:2, function(x) hostcolors[nodehosts[x]])
-
+    
     edgemaps <- list()
     for(i in 1:nrow(edges)) {
       starthost <- nodehosts[edges[i, 1]]
@@ -56,7 +80,7 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
       names(edgemaps[[i]]) <- hostcolors[edgehosts]
     }
     
-
+    
     mappededge <- matrix(nrow = nrow(edges), ncol = 3)
     for (i in 1:nrow(edges)) {
       mappededge[i, ] <- sapply(c("blue", "black", "red"), function(x) sum(edgemaps[[i]][names(edgemaps[[i]]) == x]))
@@ -67,12 +91,12 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   }
   
   
-
+  
   ### make preliminary result for ladderizing
   res_preladder <- list(edge = edges, 
-                       edge.length = edgelengths, 
-                       Nnode = nsamples - 1, 
-                       tip.label = samplenames)
+                        edge.length = edgelengths, 
+                        Nnode = nsamples - 1, 
+                        tip.label = samplenames)
   class(res_preladder) <- c("phylo")
   res_preladder <- ape::reorder.phylo(res_preladder)
   
@@ -87,7 +111,7 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
     for (i in 1:nrow(edges)) {
       reorderedmaps[[i]] <- edgemaps[[newedgeorder[i]]]
     }
-
+    
     res <- list(edge = edges[newedgeorder, ], 
                 edge.length = edgelengths[newedgeorder], 
                 Nnode = nsamples - 1L, 
@@ -149,7 +173,8 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
 }
 
 
-transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
+transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL, 
+                                introductions = 1) {
   
   ### extract and order samples
   refdate <- min(vars$sample.times)
@@ -197,7 +222,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
     resample <- TRUE
     inftimes <- .rinftimes(samtimes[1:nhosts], resamplepars$sample.mean, resamplepars$sample.shape)
-    infectors <- .rinfectors(inftimes, resamplepars$gen.mean, resamplepars$gen.shape)
+    infectors <- .rinfectors(inftimes, introductions, resamplepars$gen.mean, resamplepars$gen.shape)
   } else {
     inftimes <- as.numeric(vars$sim.infection.times - refdate)
     infectors <- match(vars$sim.infectors, hostnames)
@@ -212,18 +237,24 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     res <- list(
       inftimes = inftimes,
       infectors = infectors,
-      nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1), rep("t", nhosts)),  
+      nodetypes = c(rep("s", nhosts), 
+                    rep("x", nsamples - nhosts), 
+                    rep("c", nsamples - introductions), 
+                    rep("t", nhosts)),  
       #node type (primary sampling, extra sampling, coalescent)
-      nodetimes = c(samtimes, samtimes[-1], inftimes),
-      nodehosts = c(samhosts, rep(-1, length(samhosts) - 1), infectors),
-      nodeparents = rep(-1, 2 * nsamples + nhosts - 1)
+      nodetimes = c(samtimes, samtimes[-c(1:introductions)], inftimes),
+      nodehosts = c(samhosts, rep(-1, length(samhosts) - introductions), infectors),
+      nodeparents = rep(-1, 2 * nsamples + nhosts - introductions)
     )
     list2env(list(v = res, p = resamplepars, d = list(nsamples = nsamples)), pbe1)
 
     if(resamplepars$wh.bottleneck == "wide") {
       invisible(sapply(1:nhosts, rewire_pullnodes_wide))
     } else {
-      invisible(sapply(0:nhosts, rewire_pullnodes_complete))
+      if (introductions == 1)
+        invisible(sapply(0:nhosts, rewire_pullnodes_complete))
+      else 
+        invisible(sapply(1:nhosts, pullnodes_complete_multiple_introductions))
     }
     res <- environment2phybreak(pbe1$v)
     
@@ -231,15 +262,25 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL) {
     res <- list(
       inftimes = inftimes,
       infectors = infectors,
-      nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1)),  
+      nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - introductions)),  
       #node type (primary sampling, extra sampling, coalescent)
-      nodetimes = c(samtimes, samtimes[-1]),
-      nodehosts = c(samhosts, rep(-1, length(samhosts) - 1)),
-      nodeparents = rep(-1, 2 * nsamples - 1)
+      nodetimes = c(samtimes, samtimes[-c(1:introductions)]),
+      nodehosts = c(samhosts, rep(-1, length(samhosts) - introductions)),
+      nodeparents = rep(-1, 2 * nsamples - introductions)
     )
     phytree <- vars$sim.tree
     res$nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:nsamples]))
-    res$nodeparents <- c(0, phytree$edge[,1])[order(c(nsamples + 1, phytree$edge[, 2]))]
+    if (introductions == 1) {
+      res$nodeparents <- c(0, phytree$edge[,1])[order(c(nsamples + 1, phytree$edge[, 2]))]
+    } else {
+      res$nodetimes <- res$nodetimes[-(nsamples+(1:(introductions-1)))]
+      res$nodeparents <- phytree$edge[,1][order(phytree$edge[, 2])]
+      res$nodeparents <- unlist(sapply(res$nodeparents, function(x){
+        if (x < nsamples + introductions -1) return(NULL)
+        else if (x == nsamples + introductions - 1) return(0)
+        else return(x - introductions + 1)
+      }))
+    }
     list2env(list(v = res, p = list(wh.model = "single")), pbe1)
     make_nodehosts(pbe1)
     res <- pbe1$v
@@ -262,14 +303,16 @@ phybreak2environment <- function(vars) {
     curedge <- edge
     parentnode <- vars$nodeparents[curedge]
     endhost <- vars$nodehosts[curedge]
-    parenthost <- vars$nodehosts[parentnode]
-    while(endhost == parenthost) {
-      curedge <- parentnode
-      parentnode <- vars$nodeparents[curedge]
-      endhost <- vars$nodehosts[curedge]
-      parenthost <- max(vars$nodehosts[parentnode], 0)
+    if (parentnode > 0){
+      parenthost <- vars$nodehosts[parentnode]
+      while(endhost == parenthost) {
+        curedge <- parentnode
+        parentnode <- vars$nodeparents[curedge]
+        endhost <- vars$nodehosts[curedge]
+        parenthost <- max(vars$nodehosts[parentnode], 0)
+      }
     }
-    newnode <- 2L * nsamples + edge - 1L
+    newnode <- length(vars$nodehosts) + 1
     vars$nodetypes[newnode] <- "t"
     vars$nodetimes[newnode] <- vars$inftimes[endhost]
     vars$nodehosts[newnode] <- vars$infectors[endhost]
@@ -278,7 +321,7 @@ phybreak2environment <- function(vars) {
   }
   
   xthextra <- length(vars$nodetypes)
-  for(edge in (obs + 1):(2 * nsamples + obs - 1)) {
+  for(edge in (obs + 1):xthextra) {
     curedge <- edge
     parentnode <- max(vars$nodeparents[curedge], 1)
     if(vars$nodetypes[parentnode] == "c") {
@@ -341,7 +384,7 @@ whichgeneration <- function(infectors, hostID) {
 }
 
 ### random infectors times given infection times and generation interval distribution
-.rinfectors <- function(it, meanG, shapeG) {
+.rinfectors <- function(it, introductions, meanG, shapeG) {
   ### tests
   if(class(it) != "numeric" && class(it) != "integer") {
     stop(".rinfectors called with non-numeric infection times")
@@ -353,7 +396,7 @@ whichgeneration <- function(infectors, hostID) {
   ### function body
   res <- rep(0,length(it))
   for(i in 1:length(it)) {
-    if(it[i] > min(it)) {
+    if(it[i] > it[order(it)][introductions]) {
       dist <- dgamma(it[i] - it, shape = shapeG, scale = meanG/shapeG)
       dist[i] <- 0
       res[i] <- sample(length(it), 1, prob = dist)
@@ -378,3 +421,41 @@ make_nodehosts <- function(phybreakenv) {
   }
 }
 
+pullnodes_complete_multiple_introductions <- function(currentID) {
+  nodes <- which(pbe1$v$nodehosts == currentID)
+  transnodes <- which(pbe1$v$nodetypes == "t")
+  transnode.currentID <- transnodes[currentID]
+  if (any(pbe1$v$infectors == currentID)){
+    innodes <- pbe1$v$infectors == currentID
+    edgesin <- c(currentID, transnodes[innodes])
+    edgeintimes <- c(pbe1$v$nodetimes[currentID], pbe1$v$inftimes[innodes])
+    transnode.inftime <- pbe1$v$nodetimes[transnodes[currentID]]
+    coaltimes <- sample_coaltimes(edgeintimes, transnode.inftime, pbe1$p)
+    # print(coaltimes)
+    coalnodes <- which(pbe1$v$nodetypes == "c" &
+                         pbe1$v$nodehosts == -1)[1:length(coaltimes)]
+    pbe1$v$nodehosts[coalnodes] <- currentID
+    pbe1$v$nodetimes[coalnodes] <- coaltimes
+    
+    nodeorder <- order(c(coaltimes, edgeintimes))
+    edgeend <- c(coalnodes, edgesin)[nodeorder]
+    edgeendtimes <- c(coaltimes, edgeintimes)[nodeorder]
+    
+    # sample topology of minitree within hostID
+    edgestart <- sample_topology(edgeend,
+                                 edgeendtimes,
+                                 c(rep("c", length(coaltimes)),
+                                   rep("x", length(edgeintimes)))[nodeorder],
+                                 transnode.currentID)
+    
+    pbe1$v$nodeparents[edgeend] <- edgestart
+    if (pbe1$v$nodeparents[transnode.currentID] == -1 &
+        pbe1$v$infectors[currentID] == 0)
+      pbe1$v$nodeparents[transnode.currentID] <- 0
+  } else {
+    pbe1$v$nodeparents[currentID] <- transnodes[currentID]
+    if (pbe1$v$nodeparents[transnode.currentID] == -1 &
+        pbe1$v$infectors[currentID] == 0)
+      pbe1$v$nodeparents[transnode.currentID] <- 0
+  }
+}

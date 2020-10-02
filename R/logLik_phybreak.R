@@ -70,14 +70,15 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 
 ### calculate the log-likelihood of generation intervals 
 lik_gentimes <- function(shapeG, meanG, inftimes, infectors) {
-  sum(dgamma(inftimes[infectors > 0] - 
-               inftimes[infectors[infectors > 0]], 
+  0 + # force of infection from external source
+  sum(dgamma(inftimes[infectors > 1] - 
+               inftimes[infectors[infectors > 1]], 
              shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
 ### calculate the log-likelihood of sampling intervals 
 lik_sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
-  sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
+  sum(dgamma(nodetimes[1:obs] - inftimes[2:(obs+1)], shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
 ### calculate the log-likelihood of distances 
@@ -120,7 +121,10 @@ lik_coaltimes <- function(phybreakenv) {
   coalnodes <- coalnodes[orderednodes]
   orderedhosts <- nodehosts[orderednodes]
   
-  bottlenecks <- sapply(0:phybreakenv$p$obs, function(i) sum((orderedhosts == i) * (1 - 2 * coalnodes))) - 1
+  coalnodes.history <- which(coalnodes & orderedhosts == 1)
+  coalnodes.outbreak <- setdiff(which(coalnodes), coalnodes.history)
+  
+  bottlenecks <- sapply(0:(phybreakenv$p$obs+1), function(i) sum((orderedhosts == i) * (1 - 2 * coalnodes))) - 1
   dlineage <- 2 * c(FALSE, head(coalnodes, -1)) - 1
   dlineage[!duplicated(orderedhosts)] <- bottlenecks
   nrlineages <- 1 + cumsum(dlineage)
@@ -128,13 +132,24 @@ lik_coaltimes <- function(phybreakenv) {
   whtimes <- nodetimes[orderednodes] - inftimes[orderedhosts + 1]
   whtimes[c(!duplicated(orderedhosts)[-1], FALSE)] <- 0
   
-  logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
-                         linear = -log(phybreakenv$p$wh.level + phybreakenv$p$wh.slope * whtimes[coalnodes]),
-                         exponential = 
+  if (length(coalnodes.history) > 0){
+    logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
+                           linear = -log(phybreakenv$p$wh.level + c(rep(1, length(coalnodes.history)),
+                                           phybreakenv$p$wh.slope * whtimes[coalnodes.outbreak])),
+                           exponential = 
                            -log(phybreakenv$p$wh.level * 
-                                  exp(phybreakenv$p$wh.exponent * 
-                                        whtimes[coalnodes])),
-                         constant = -log(phybreakenv$p$wh.level) * coalnodes)
+                                exp(phybreakenv$p$wh.exponent * 
+                                    whtimes[coalnodes])),
+                           constant = -log(phybreakenv$p$wh.level) * coalnodes)
+  } else {
+    logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
+                           linear = -log(phybreakenv$p$wh.level + phybreakenv$p$wh.slope * whtimes[coalnodes]),
+                           exponential = 
+                             -log(phybreakenv$p$wh.level * 
+                                    exp(phybreakenv$p$wh.exponent * 
+                                          whtimes[coalnodes])),
+                           constant = -log(phybreakenv$p$wh.level) * coalnodes)
+  }
   cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite=,
                          linear = log(whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope + 
                                         ((whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) == 0)) / phybreakenv$p$wh.slope,

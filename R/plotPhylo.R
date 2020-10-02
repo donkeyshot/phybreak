@@ -68,6 +68,12 @@ plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplen
       nodehosts = c(x$v$nodehosts[x$v$nodetypes == "s"], x$s$nodehosts[, samplenr]),
       nodetypes = x$v$nodetypes
     )
+    x$v <- lapply(x$v, function(xx) {
+      nas <- which(is.na(xx))
+      if (length(nas) > 0) return(xx[-nas])
+      else return(xx)
+    })
+    
     simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE))
   }
 

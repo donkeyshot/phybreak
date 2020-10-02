@@ -131,6 +131,12 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         inftimes = x$s$inftimes[, samplenr],
         infectors = x$s$infectors[, samplenr]
       )
+      vars <- lapply(vars, function(xx) {
+        nas <- which(is.na(xx))
+        if (length(nas) > 0) return(xx[-nas])
+        else return(xx)
+      })
+      
       vars <- phybreak2trans(vars, unique(x$d$hostnames), x$d$reference.date)
       if(is.null(arrow.col)) {
         arrow.col <- "black"
@@ -334,24 +340,49 @@ rankhostsforplot <- function(hosts, infectors) {
   
   ### determine plot rank by placing hosts chronologically next to their infector,
   ### either at the side of the infector's infector (insideYN == Y) or at the other side
-  plotrank <- 1
-  for(i in 2:Nhosts) {
-    ior <- which(hosts == infectors[i])
-    if(infectors[ior] == "index" || infectors[ior] == 0) {
-      plotrank[i] <- plotrank[ior] + insideYN[hosts[i]] - 0.5
-    } else if(plotrank[ior] == 1) {
-      plotrank[i] <- insideYN[hosts[i]] + 0.5
-    } else if (plotrank[ior] == i - 1) {
-      plotrank[i] <- i - 0.5 - insideYN[hosts[i]]
-    } else {
-      iorior <- which(hosts == infectors[ior])
-      aboveYN <- xor((plotrank[iorior] < plotrank[ior]), insideYN[hosts[i]])
-      plotrank[i] <- plotrank[ior] + aboveYN - 0.5    
+  indices <- grep("index", infectors)
+  plotranklist <- lapply(indices, function(index){
+    subinfectors <- infectors[c(index,which(infectormatrix[,index]==1))]
+    subhosts <- hosts[c(index,which(infectormatrix[,index]==1))]
+    subYN <- insideYN[which(names(which(infectormatrix[,index]==1)) %in% names(insideYN))]
+    plotrank <- 1
+    for(i in which(!grepl("index", subinfectors))) {
+      ior <- which(subhosts == subinfectors[i])
+      if(subinfectors[ior] == "index" || subinfectors[ior] == 0) {
+        plotrank[i] <- plotrank[ior] + subYN[subhosts[i]] - 0.5
+      } else if(plotrank[ior] == 1) {
+        plotrank[i] <- subYN[subhosts[i]] + 0.5
+      } else if (plotrank[ior] == i - 1) {
+        plotrank[i] <- i - 0.5 - subYN[subhosts[i]]
+      } else {
+        iorior <- which(subhosts == subinfectors[ior])
+        aboveYN <- xor((plotrank[iorior] < plotrank[ior]), subYN[subhosts[i]])
+        plotrank[i] <- plotrank[ior] + aboveYN - 0.5    
+      }
+      plotrank[1:i] <- rank(plotrank)[1:i]
     }
-    plotrank[1:i] <- rank(plotrank)[1:i]
+    return(list("rank"=plotrank,
+                "tree"=c(index,which(infectormatrix[,index]==1))))
+  })
+  
+  if (length(plotranklist) > 1){
+    plotrank <- rep(NA, length(hosts))
+    for (i in rev(seq_along(plotranklist))){
+      plotrank[plotranklist[[i]]$tree] <- plotranklist[[i]]$rank
+      if (i < length(plotranklist)){
+        # plotrank[plotranklist[[i-1]]$tree] <- 
+        #   plotrank[plotranklist[[i-1]]$tree] + length(plotranklist[[i]]$tree)
+        plotrank[plotranklist[[i]]$tree] <- 
+          plotrank[plotranklist[[i]]$tree] + sum(!is.na(plotrank)) - length(plotranklist[[i]]$tree)
+        
+      }
+    }
+    return(plotrank)
+  } else {
+    return(plotranklist[[1]]$rank)
   }
   
-  return(plotrank)
+  
 }
 
 

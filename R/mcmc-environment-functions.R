@@ -17,14 +17,26 @@
 
 # The environments are used during MCMC-updating, and in sim_phybreak and phybreak to simulate the phylogenetic tree.
 pbe0 <- new.env()
+pbe0_2 <- new.env()
 pbe1 <- new.env()
+pbe1_2 <- new.env()
+pbe2 <- new.env()
 
 # Copy functions to phybreak environments
 copy2pbe0 <- function(var, env) {
   assign(var, get(var, env), pbe0)
 }
+copy2pbe0_2 <- function(var, env) {
+  assign(var, get(var, env), pbe0_2)
+}
 copy2pbe1 <- function(var, env) {
   assign(var, get(var, env), pbe1)
+}
+copy2pbe1_2 <- function(var, env) {
+  assign(var, get(var, env), pbe1_2)
+}
+copy2pbe2 <- function(var, env) {
+  assign(var, get(var, env), pbe2)
 }
 
 ### build the pbe0 at the start of an mcmc chain by copying the fixed parameters and phybreak object, and by
@@ -90,6 +102,33 @@ build_pbe <- function(phybreak.obj) {
   
   ### change the variables slot to an environmental variables slot (with transmission nodes in the tree)
   v <- phybreak2environment(v)
+  if(sum(v$nodetypes=="t") != length(v$infectors)){
+    v$nodehosts <- c(v$nodehosts[v$nodetypes!="t"],
+                     0,
+                     v$nodehosts[v$nodetypes=="t"])
+    v$nodetimes <- c(v$nodetimes[v$nodetypes!="t"],
+                     v$inftimes[1],
+                     v$nodetimes[v$nodetypes=="t"])
+    newcoalnode <- sum(v$nodetypes!="t")+1
+    coalnodes <- v$nodeparents[v$nodetypes=="c"][2:sum(v$nodetypes=="c")]
+    coalnodes <- sapply(coalnodes, function(xx){
+      if(xx >= newcoalnode) return(xx + 1)
+      else return(xx)
+    })
+    v$nodeparents <- c(sapply(v$nodeparents[v$nodetype=="s"], function(xx){
+      if(xx >= newcoalnode) return(xx + 1)
+      else return(xx)
+    }),
+    newcoalnode,
+    coalnodes,
+    0,
+    v$nodeparents[v$nodetypes=="t"])
+    v$nodetypes <- c(v$nodetypes, "t")
+  }
+  
+  history <- add_history(d, v, p, h, s, build = TRUE)
+  v <- history$v
+  h <- history$h
   
   ### complete likarray and calculate log-likelihood of sequences
   .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
@@ -119,6 +158,7 @@ build_pbe <- function(phybreak.obj) {
 ### take the elements d, v, p, and h from pbe0, and s from the function arguments, and make a new phybreak-object. Then
 ### empty the environments and return the new object.  
 destroy_pbe <- function(phybreak.obj.samples) {
+  remove_history()
   res <- list(d = pbe0$d, v = environment2phybreak(pbe0$v), p = pbe0$p, h = pbe0$h, s = phybreak.obj.samples)
   class(res) <- c("phybreak", "list")
   rm(list = ls(pbe0), envir = pbe0)

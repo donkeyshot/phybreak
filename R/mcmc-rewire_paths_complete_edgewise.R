@@ -4,6 +4,9 @@ rewire_change_infector_complete <- function(ID, newinfector) {
   if(pbe1$v$infectors[ID] == 0) {
     coalnodes <- c()
     pbe1$v$nodeparents[btnodes] <- -1L
+  } else if (pbe1$v$infectors[ID] == 1 & sum(pbe0$v$infectors == 1) == 1){
+    coalnodes <- c()
+    pbe1$v$nodeparents[btnodes] <- -1L
   } else {
     coalnodes <- take_cnode(btnodes)
   }
@@ -78,7 +81,11 @@ rewire_pathCF_complete_edgewise <- function() {
   }
   if(pbe1$logLiktoporatio > -Inf) {
     rewire_pullnodes_complete(newinfector)
-    rewire_pullnodes_complete(oldinfector)
+    if (oldinfector == 1 &
+        sum(pbe1$v$infectors==1)==1) {
+      pbe1$v$nodeparents[pbe1$v$nodeparents==-1] <- 2*pbe1$d$nsamples
+    } else 
+      rewire_pullnodes_complete(oldinfector)
   }
 }
 
@@ -97,5 +104,12 @@ rewire_pathD_complete_edgewise <- function() {
 rewire_pathE_complete_edgewise <- function() {
   rewire_change_infector_complete(pbe1$hostID, pbe1$infector.proposed.ID)
   rewire_within_complete_edgewise(pbe1$hostID, pbe1$tinf.prop)
-  if(pbe1$logLiktoporatio > -Inf) rewire_pullnodes_complete(pbe1$infector.proposed.ID)
+  if(pbe1$logLiktoporatio > -Inf) {
+    if (pbe1$v$infectors[pbe1$hostID] == 1 &
+        sum(pbe1$v$infectors==1)==1) {
+      pbe1$v$nodeparents[pbe1$v$nodeparents==-1] <- 2*pbe1$d$nsamples
+    } else {
+      rewire_pullnodes_complete(pbe1$infector.proposed.ID)  
+    }
+  }
 }

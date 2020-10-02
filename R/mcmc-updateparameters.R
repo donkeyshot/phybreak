@@ -41,7 +41,7 @@ update_mS <- function() {
     v <- pbe1$v
     
     ### change to proposal state
-    sumst <- sum(v$nodetimes[v$nodetypes == "s"] - v$inftimes)
+    sumst <- sum(v$nodetimes[v$nodetypes == "s"] - v$inftimes[2:length(v$inftimes)])
     p$sample.mean <- p$sample.shape/rgamma(1, shape = p$sample.shape * p$obs + 2 + (h$mS.av/h$mS.sd)^2, rate = sumst + (h$mS.av/p$sample.shape) * 
          (1 + (h$mS.av/h$mS.sd)^2))
 
@@ -73,8 +73,8 @@ update_mG <- function() {
     v <- pbe1$v
   
     ### change to proposal state
-    sumgt <- sum(v$inftimes[v$infectors != 0] - 
-                   v$inftimes[v$infectors])
+    sumgt <- sum(v$inftimes[v$infectors > 1] - 
+                   v$inftimes[v$infectors[v$infectors>1]])
     p$gen.mean <- p$gen.shape/rgamma(1, 
                                      shape = p$gen.shape * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2, 
                                      rate = sumgt + (h$mG.av/p$gen.shape) * (1 + (h$mG.av/h$mG.sd)^2))
@@ -87,6 +87,39 @@ update_mG <- function() {
     
     ### accept
     accept_pbe("mG")
+}
+
+update_wh_history <- function(){
+    ### create an up-to-date proposal-environment
+    prepare_pbe()
+    
+    ### making variables and parameters available within the function
+    le <- environment()
+    h <- pbe0$h
+    p <- pbe1$p
+    v <- pbe1$v
+    
+    ### change to proposal state
+    p$wh.history <- exp(log(p$wh.history) + rnorm(1, 0, h$si.wh))
+    
+    ### update proposal environment
+    copy2pbe1("p", le)
+    
+    ### calculate proposalratio
+    logproposalratio <- log(p$wh.history) - log(pbe0$p$wh.history)
+    
+    ### calculate likelihood
+    propose_pbe("wh.slope")
+    
+    ### calculate acceptance probability
+    logaccprob <- pbe1$logLikcoal - pbe0$logLikcoal + logproposalratio + 
+      dgamma(pbe1$p$wh.history, shape = h$wh.s.sh, scale = h$wh.s.av/h$wh.s.sh, log = TRUE) - 
+      dgamma(pbe0$p$wh.history, shape = h$wh.s.sh, scale = h$wh.s.av/h$wh.s.sh, log = TRUE)
+    
+    ### accept or reject
+    if (runif(1) < exp(logaccprob)) {
+      accept_pbe("wh.slope")
+    }
 }
 
 

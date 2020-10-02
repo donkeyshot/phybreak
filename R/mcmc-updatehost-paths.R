@@ -130,7 +130,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   v <- pbe0$v
   
   ### propose the new infection time
-  tinf.prop <- v$nodetimes[hostID] -
+  tinf.prop <- v$nodetimes[hostID-1] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
   # tinf.prop <- v$inftimes[hostID] + rnorm(1, 0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape))
   # tinf.prop <- min(tinf.prop, 2 * v$nodetimes[hostID] - tinf.prop)
@@ -156,7 +156,8 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     # N (hostID is not index case)
     if (tinf.prop < v$inftimes[v$infectors == 0]) {
       # NY (... & tinf.prop before infection of index case)
-      update_pathD(which_protocol)
+      # update_pathD(which_protocol)
+      return()
     } else {
       # NN (... & tinf.prop after infection of index case)
       if (tinf.prop < min(c(v$inftimes[v$infectors == hostID], Inf))) {
@@ -360,7 +361,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                     shape = p$gen.shape, scale = p$gen.mean/p$gen.shape) +
       (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorproposal[hostID] <- 0
-    infector.proposed.ID <- sample(p$obs, 1, prob = dens.infectorproposal)
+    infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
     copy2pbe1("infector.proposed.ID", environment())
     
     ### calculate proposal ratio 
@@ -374,10 +375,10 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     #                           (dens.infectorproposal[infector.proposed.ID] * sum(dens.infectorcurrent))) 
     logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
                               (dens.infectorproposal[infector.proposed.ID] * sum(dens.infectorcurrent))) +
-      dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
+      dgamma(v$nodetimes[hostID-1] - v$inftimes[hostID],
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
-      dgamma(v$nodetimes[hostID] - tinf.prop,
+      dgamma(v$nodetimes[hostID-1] - tinf.prop,
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
     copy2pbe1("logproposalratio", environment())
@@ -590,8 +591,8 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     nodeDC <- which(v$nodeparents == 2 * d$nsamples - 1 + hostID)
     v$nodeparents[nodeDC] <- nodeUC
     # second, place it between the proposed upstream and downstream nodes
-    nodeUP <- .ptr(v$nodeparents, hostID)[v$nodetimes[.ptr(v$nodeparents, hostID)] < tinf.prop][1]
-    nodeDP <- intersect(which(v$nodeparents == nodeUP), .ptr(v$nodeparents, hostID))
+    nodeUP <- .ptr(v$nodeparents, hostID-1)[v$nodetimes[.ptr(v$nodeparents, hostID-1)] < tinf.prop][1]
+    nodeDP <- intersect(which(v$nodeparents == nodeUP), .ptr(v$nodeparents, hostID-1))
     v$nodeparents[nodeDP] <- 2 * d$nsamples - 1 + hostID
     v$nodeparents[2 * d$nsamples - 1 + hostID] <- nodeUP
     
@@ -605,7 +606,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
       }
     }
     v$nodehosts[2 * p$obs - 1 + hostID] <- hostiorID
-    v$infectors <- tail(v$nodehosts, p$obs)
+    v$infectors <- tail(v$nodehosts, p$obs+1)
     
     ### update proposal environment
     copy2pbe1("v", le)

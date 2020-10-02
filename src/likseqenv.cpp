@@ -51,7 +51,7 @@ double likseqenv(Environment pbenv,
       rootnode = i;
     }
   }
-  if(rootnode >= 2 * nsamples - 1) {
+  while(rootnode >= 2 * nsamples - 1) {
     nextnode = 0;
     while(nodeparents[nextnode] - 1 != rootnode) {
       ++nextnode;

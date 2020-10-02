@@ -54,9 +54,9 @@
 #' simulation <- sim_phybreak()
 #' @export
 sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
-                         R0 = 1.5, spatial = FALSE,
+                         introductions = 1, R0 = 1.5, spatial = FALSE,
                          gen.shape = 10, gen.mean = 1, 
-                         sample.shape = 10, sample.mean = 1,
+                         sample.shape = 10, sample.mean = 1, seq.dist = NA,
                          additionalsampledelay = 0,
                          wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
                          dist.model = "power", dist.exponent = 2, dist.scale = 1,
@@ -96,7 +96,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
       res <- sim_outbreak_spatial(popsize, R0, gen.shape, gen.mean,
                           sample.shape, sample.mean, dist.model, dist.exponent, dist.scale)
     } else {
-      res <- sim_outbreak(popsize, R0, gen.shape, gen.mean,
+      res <- sim_outbreak(popsize, R0, introductions, gen.shape, gen.mean,
                           sample.shape, sample.mean)
     }
      obsize <- res$obs
@@ -106,7 +106,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
       res <- sim_outbreak_size_spatial(obsize, popsize, R0, gen.shape, gen.mean,
                                sample.shape, sample.mean, dist.model, dist.exponent, dist.scale)
     } else {
-      res <- sim_outbreak_size(obsize, popsize, R0, gen.shape, gen.mean,
+      res <- sim_outbreak_size(obsize, popsize, R0, introductions, gen.shape, gen.mean,
                                sample.shape, sample.mean)
     }
   }
@@ -114,7 +114,8 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(any(additionalsampledelay < 0)) stop("additionalsampledelay cannot be negative")
   res <- sim_additionalsamples(res, samplesperhost, additionalsampledelay)
   res <- sim_phylotree(res, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean)
-  res <- sim_sequences(res, mu, sequence.length)
+  res <- sim_sequences(res, mu, sequence.length, seq.dist)
+  res <- merge_trees(res)
   hostnames <- paste0("host.", 1:obsize)
   samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples], ".", nthsample(res))
   names(res$sequences) <- samplenames
@@ -163,16 +164,18 @@ sim.phybreak <- function(...) {
 
 ### simulate an outbreak of a particular size by repeating
 ### simulations until obsize is obtained
-sim_outbreak_size <- function(obsize, Npop, R0, aG, mG, aS, mS) {
+sim_outbreak_size <- function(obsize, Npop, R0, intro, aG, mG, aS, mS) {
   if(is.na(Npop)) {
     Npop <- obsize
     while(1 - obsize/Npop < exp(-R0* obsize/Npop)) {Npop <- Npop + 1}
   } 
   
-  sim <- sim_outbreak(Npop, R0, aG, mG, aS, mS)
+  sim <- sim_outbreak(Npop, R0, intro, aG, mG, aS, mS)
+  obs <- sum(unlist(lapply(sim, function(xx) xx$obs)))
   
-  while(sim$obs != obsize) {
-    sim <- sim_outbreak(Npop, R0, aG, mG, aS, mS)
+  while(obs != obsize) {
+    sim <- sim_outbreak(Npop, R0, intro, aG, mG, aS, mS)
+    obs <- sum(unlist(lapply(sim, function(xx) xx$obs)))
   }
   
   return(sim)
@@ -195,58 +198,73 @@ sim_outbreak_size_spatial <- function(obsize, Npop, R0, aG, mG, aS, mS, dist.mod
 
 
 ### simulate an outbreak
-sim_outbreak <- function(Npop, R0, aG, mG, aS, mS) {
+sim_outbreak <- function(Npop, R0, intro, aG, mG, aS, mS) {
   ### initialize
-  inftimes <- c(0, rep(10000, Npop-1))
-  sources <- rep(0,Npop)
+  inftimes <- c(0, rep(10000, Npop-intro))
+  #sources <- rep(0,Npop)
+  trees <- vector(mode = "list", length = intro)
+  trees <- lapply(seq_along(trees), function(i){
+    tree <- rep(0,Npop)
+    return(list("sources"=tree,
+                "inftimes"=c(0,rep(10000, Npop-1)),
+                "nth.inf" = 1))
+  })
   nrcontacts <- rpois(Npop, R0)
   nth.infection <- 1
   currentID <- 1
+  whichtree <- 1
   
   ### by order of infection, sample secondary infections
   # currentID is the infected host under consideration
   while(nth.infection <= Npop & inftimes[currentID] != 10000) {
     #when does currentID make infectious contacts?
     #reverse sorting so that with double contacts, the earliest will be used last
-    whencontacts <- sort(inftimes[currentID] + rgamma(nrcontacts[currentID], aG, aG/mG),decreasing = TRUE)
+    whencontacts <- sort(trees[[whichtree]]$inftimes[currentID] + 
+                           rgamma(nrcontacts[currentID], aG, aG/mG),decreasing = TRUE)
     
     #who are these contacts made with?
     whocontacted <- sample(Npop, nrcontacts[currentID], replace = TRUE)
     
     #are these contacts successful, i.e. earlier than the existing contacts with these hosts?
-    successful <- whencontacts < inftimes[whocontacted]
+    successful <- whencontacts < trees[[whichtree]][[2]][whocontacted]
     
     #change infectors and infection times of successful contactees
-    sources[whocontacted[successful]] <- currentID
+    trees[[whichtree]]$sources[whocontacted[successful]] <- currentID
+    # sources[whocontacted[successful]] <- currentID
+    trees[[whichtree]]$inftimes[whocontacted[successful]] <- whencontacts[successful]
     inftimes[whocontacted[successful]] <- whencontacts[successful]
+    
+    trees[[whichtree]]$nth.inf <- trees[[whichtree]]$nth.inf + 1
     
     #go to next infected host in line
     nth.infection <- nth.infection + 1
-    currentID <- order(inftimes)[nth.infection]
+    whichtree <- sample(intro, 1)
+    currentID <- order(trees[[whichtree]]$inftimes)[trees[[whichtree]]$nth.inf]
   }
   
-  ### determine outbreaksize and sampling times
-  obs <- sum(inftimes<10000)
-  samtimes <- inftimes + rgamma(Npop, aS, aS/mS)
+  trees <- lapply(trees, function(xx){
+    ### determine outbreaksize and sampling times
+    obs <- sum(xx$inftimes < 10000)
+    samtimes <- xx$inftimes + rgamma(Npop, aS, aS/mS)
+    
+    ### order hosts by sampling times, and renumber hostIDs
+    ### so that the uninfected hosts can be discarded
+    orderbysamtimes <- order(samtimes)
+    
+    sources <- xx$sources[orderbysamtimes]
+    infectors <- match(sources,orderbysamtimes)[1:obs]
+    infectors[is.na(infectors)] <- 0
+    inftimes <- xx$inftimes[orderbysamtimes]
+    samtimes <- samtimes[orderbysamtimes]
+    
+    return(list("obs" = obs,
+                "infectors" = infectors,
+                "inftimes" = inftimes[1:obs],
+                "samtimes" = samtimes[1:obs]))
+  })
   
-  ### order hosts by sampling times, and renumber hostIDs
-  ### so that the uninfected hosts can be discarded
-  orderbysamtimes <- order(samtimes)
-  sources <- sources[orderbysamtimes]
-  infectors <- match(sources,orderbysamtimes)[1:obs]
-  infectors[is.na(infectors)] <- 0
-  inftimes <- inftimes[orderbysamtimes]
-  samtimes <- samtimes[orderbysamtimes]
-  
-  ### return the outbreak
-  return(
-    list(
-      obs = obs,
-      samtimes = samtimes[1:obs],
-      inftimes = inftimes[1:obs],
-      infectors = infectors
-    )
-  )
+  ### Return the outbreak
+  return(trees)
 }
 
 ### simulate a spatial outbreak
@@ -323,99 +341,242 @@ sim_outbreak_spatial <- function(Npop, R0, aG, mG, aS, mS, dist.model, dist.expo
 
 ### simulate additional samples in a transmission tree
 sim_additionalsamples <- function(sim.object, samperh, addsamdelay) {
-  # recycle too short arguments
-  addsamplesizes <- rep_len(samperh - 1, sim.object$obs)
-  addsamplesizes[addsamplesizes < 0] <- 0
-  alldelays <- rep_len(addsamdelay, sum(addsamplesizes))
-  
-  # vectors with additional samplehosts and sample times
-  addsamplehosts <- rep(1:sim.object$obs, addsamplesizes)
-  addsampletimes <- sim.object$samtimes[addsamplehosts] + alldelays
-  addsampletimes <- addsampletimes[order(addsamplehosts, addsampletimes)]
-
-  return(within(sim.object, {
-    Nsamples <- sim.object$obs + sum(addsamplesizes)
-    addsamplehosts <- addsamplehosts
-    addsampletimes <- addsampletimes
+  sim.object <- lapply(sim.object, function(xx){
+    # recycle too short arguments
+    addsamplesizes <- rep_len(samperh - 1, xx$obs)
+    addsamplesizes[addsamplesizes < 0] <- 0
+    alldelays <- rep_len(addsamdelay, sum(addsamplesizes))
+    
+    # vectors with additional samplehosts and sample times
+    addsamplehosts <- rep(1:xx$obs, addsamplesizes)
+    addsampletimes <- xx$samtimes[addsamplehosts] + alldelays
+    addsampletimes <- addsampletimes[order(addsamplehosts, addsampletimes)]
+    
+    return(within(xx, {
+      Nsamples <- xx$obs + sum(addsamplesizes)
+      addsamplehosts <- addsamplehosts
+      addsampletimes <- addsampletimes
     }))
+  })
+  return(sim.object)
 }
 
 ### simulate a phylogenetic tree given a transmission tree
 sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean) {
-  list2env(list(v = sim.object, 
-                p = list(wh.model = wh.model, wh.bottleneck = wh.bottleneck, wh.slope = wh.slope, wh.exponent = wh.exponent,
-                         wh.level = wh.level, sample.mean = sample.mean),
-                d = list(nsamples = sim.object$Nsamples)), pbe1)
-  pbe1$v$nodeparents <- rep(-1, 2 * sim.object$Nsamples + sim.object$obs - 1)  #initialize nodes: will contain parent node in phylotree
-  pbe1$v$nodetimes <- c(sim.object$samtimes, sim.object$addsampletimes, 
-                        rep(0, sim.object$Nsamples - 1), sim.object$inftimes)   #initialize nodes: will contain time of node
-  pbe1$v$nodehosts <- c(1:sim.object$obs, sim.object$addsamplehosts, 
-                        rep(-1, sim.object$Nsamples - 1), sim.object$infectors)   #initialize nodes: will contain host carrying the node
-  pbe1$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
-                         rep("c", sim.object$Nsamples - 1), rep("t", sim.object$obs))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
-  if(wh.bottleneck == "wide") {
-    invisible(sapply(1:sim.object$obs, rewire_pullnodes_wide))
-  } else {
-    invisible(sapply(0:sim.object$obs, rewire_pullnodes_complete))
-  }
-  res <- as.list.environment(pbe1)$v
-  return(res)
-  
+  lapply(sim.object, function(xx){
+    list2env(list(v = xx, 
+                  p = list(wh.model = wh.model, wh.bottleneck = wh.bottleneck, wh.slope = wh.slope, wh.exponent = wh.exponent,
+                           wh.level = wh.level, sample.mean = sample.mean),
+                  d = list(nsamples = xx$Nsamples)), pbe1)
+    pbe1$v$nodeparents <- rep(-1, 2 * xx$Nsamples + xx$obs - 1)  #initialize nodes: will contain parent node in phylotree
+    pbe1$v$nodetimes <- c(xx$samtimes, xx$addsampletimes, 
+                          rep(0, xx$Nsamples - 1), xx$inftimes)   #initialize nodes: will contain time of node
+    pbe1$v$nodehosts <- c(1:xx$obs, xx$addsamplehosts, 
+                          rep(-1, xx$Nsamples - 1), xx$infectors)   #initialize nodes: will contain host carrying the node
+    pbe1$v$nodetypes <- c(rep("s", xx$obs), rep("x", xx$Nsamples - xx$obs), 
+                          rep("c", xx$Nsamples - 1), rep("t", xx$obs))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
+    if(wh.bottleneck == "wide") {
+      invisible(sapply(1:xx$obs, rewire_pullnodes_wide))
+    } else {
+      invisible(sapply(0:xx$obs, rewire_pullnodes_complete))
+    }
+    
+    res <- as.list.environment(pbe1)$v
+    return(res)
+  })
 }
 
-
 ### simulate sequences given a phylogenetic tree
-sim_sequences <- function (sim.object, mu, sequence.length) {
-  with(sim.object,{
-    ### simulate the mutations on the phylotree
-    #number of mutations
-    edgelengths <- nodetimes - c(0, nodetimes)[1 + nodeparents]
-    edgelengths[edgelengths < 0] <- 0  #rounding errors close to 0
-    nmutations <- rpois(1, mu * sequence.length * sum(edgelengths))
-    #place mutations on edges, order by time of edge (end)
-    mutedges <- sample(length(edgelengths), size = nmutations, replace = TRUE, prob = edgelengths)
-    mutedges <- mutedges[order(nodetimes[mutedges])]
-    #sample mutations: which locus, to which nucleotide
-    mutsites <- sample(sequence.length, size = nmutations, replace = TRUE)
-    mutsites <- match(mutsites, unique(mutsites))  #place mutations at front of sequence 
-    mutnucl <- sample(4, size = nmutations, replace = TRUE)
-    
-    ### construct the strains from the simulation by going backwards
-    ### through the phylotree from each tip and placing mutations
-    nodestrains <- matrix(data = rep(sample(4, nmutations, replace = TRUE), each = Nsamples), nrow = Nsamples)
-    for(i in 1:Nsamples) {
-      currentedge <- i
-      recentmutations <- rep(FALSE, nmutations) #keep more recent mutations on each locus
-      while(nodeparents[currentedge] != 0) {
-        nodestrains[i, mutsites[mutedges == currentedge & !recentmutations]] <-
-          mutnucl[mutedges == currentedge & !recentmutations]
-        recentmutations <- recentmutations | mutedges == currentedge
-        currentedge <- nodeparents[currentedge]
+sim_sequences <- function (sim.object, mu, sequence.length, distance) {
+  sim_sequences_inner <- function(sim.object, mu, sequence.length, distance) {
+    with(sim.object,{
+      ### simulate the mutations on the phylotree
+      #number of mutations
+      edgelengths <- nodetimes - c(0, nodetimes)[1 + nodeparents]
+      edgelengths[edgelengths < 0] <- 0  #rounding errors close to 0
+      nmutations <- rpois(1, mu * sequence.length * sum(edgelengths))
+      #place mutations on edges, order by time of edge (end)
+      mutedges <- sample(length(edgelengths), size = nmutations, replace = TRUE, prob = edgelengths)
+      mutedges <- mutedges[order(nodetimes[mutedges])]
+      #sample mutations: which locus, to which nucleotide
+      mutsites <- sample(sequence.length, size = nmutations, replace = TRUE)
+      mutsites <- match(mutsites, unique(mutsites))  #place mutations at front of sequence 
+      mutnucl <- sample(4, size = nmutations, replace = TRUE)
+
+      ### construct the strains from the simulation by going backwards
+      ### through the phylotree from each tip and placing mutations
+      nodestrains <- matrix(data = rep(sample(4, nmutations, replace = TRUE), each = Nsamples), nrow = Nsamples)
+      for(i in 1:Nsamples) {
+        currentedge <- i
+        recentmutations <- rep(FALSE, nmutations) #keep more recent mutations on each locus
+        while(nodeparents[currentedge] != 0) {
+          nodestrains[i, mutsites[mutedges == currentedge & !recentmutations]] <-
+            mutnucl[mutedges == currentedge & !recentmutations]
+          recentmutations <- recentmutations | mutedges == currentedge
+          currentedge <- nodeparents[currentedge]
+        }
       }
-    }
-    # place single unchanged acgt at front of sequence to force these at first positions in phyDat-object
-    nodestrains <- cbind(matrix(data = rep(1:4, each = Nsamples), ncol = 4), nodestrains)
-    
-    nodestrains[nodestrains == 1] <- "a"
-    nodestrains[nodestrains == 2] <- "c"
-    nodestrains[nodestrains == 3] <- "g"
-    nodestrains[nodestrains == 4] <- "t"
-    
-    rownames(nodestrains) <- 1:Nsamples
-    
-    # make phyDat-object and change attributes to get entire sequence, with single acgt at front removed
-    nodestrains <- phangorn::as.phyDat(nodestrains)
-    mutlocs <- sample(4, max(0, sequence.length - nmutations), replace = TRUE)
-    attr(nodestrains, "index") <- c(attr(nodestrains, "index")[-(1:4)], mutlocs)
-    attr(nodestrains, "weight")[1:4] <- attr(nodestrains, "weight")[1:4] + tabulate(mutlocs, 4) - 1
-    
-    return(
-      within(sim.object,{
-        sequences <- nodestrains
-      })
-    )
+      # place single unchanged acgt at front of sequence to force these at first positions in phyDat-object
+      nodestrains <- cbind(matrix(data = rep(1:4, each = Nsamples), ncol = 4), nodestrains)
+      
+      nodestrains[nodestrains == 1] <- "a"
+      nodestrains[nodestrains == 2] <- "c"
+      nodestrains[nodestrains == 3] <- "g"
+      nodestrains[nodestrains == 4] <- "t"
+      
+      rownames(nodestrains) <- 1:Nsamples
+      
+      # add artificial sequence if Nsamples = 1 to create phyDat object 
+      if (Nsamples == 1){
+        nodestrains <- rbind(nodestrains, nodestrains)
+        rownames(nodestrains) <- 1:2
+      }
+      
+      # make phyDat-object and change attributes to get entire sequence, with single acgt at front removed
+      nodestrains <- phangorn::as.phyDat(nodestrains)
+      if (Nsamples == 1) nodestrains <- subset(nodestrains, subset = 1)
+      
+      if (is.na(distance)){
+        mutlocs <- sample(4, max(0, sequence.length - nmutations), replace = TRUE)
+      } else {
+        firsttree.nodestrains <- attr(r[[1]]$sequences, "index")
+        mutlocs <- rep(0, max(0,sequence.length - nmutations))
+        firsttree.equal <- min(sequence.length - max(firsttree.nodestrains > 4), 
+                              floor((1-distance) * (sequence.length - nmutations)))
+        mutlocs <- tail(firsttree.nodestrains, firsttree.equal)
+        mutlocs <- c(sample(4, max(0, sequence.length - nmutations - firsttree.equal), replace = TRUE),
+                     mutlocs)
+      }
+      attr(nodestrains, "index") <- c(attr(nodestrains, "index")[-(1:4)], mutlocs)
+      attr(nodestrains, "weight")[1:4] <- attr(nodestrains, "weight")[1:4] + tabulate(mutlocs, 4) - 1
+      
+      return(
+        within(sim.object,{
+          sequences <- nodestrains
+        })
+      )
+    })
   }
-  )
+  
+  if (is.na(distance) | length(sim.object) == 1)
+    return(lapply(sim.object, sim_sequences_inner, mu, sequence.length, distance = NA))
+    
+  r <- list(sim_sequences_inner(sim.object[[1]], mu, sequence.length, distance = NA))
+  
+  if (length(sim.object) > 1){
+    for (i in 2:length(sim.object)){
+      r <- c(r, list(sim_sequences_inner(sim.object[[i]], mu, sequence.length, distance)))
+    }
+  } 
+  
+  return(r)
+}
+
+### merge simulated trees together in one list
+merge_trees <- function(sim.object) {
+  obs <- sum(unlist(lapply(sim.object, function(xx) return(xx$obs))))
+  Nsamples <- sum(unlist(lapply(sim.object, function(xx) return(xx$Nsamples))))
+  
+  sample.data <- do.call(rbind, lapply(sim.object, function(xx){
+    return(data.frame("samtimes"=xx$samtimes,
+                      "inftimes"=xx$inftimes,
+                      "old"=1:length(xx$inftimes)))
+  }))
+  sample.data$tree <- unlist(lapply(seq_along(sim.object), function(i)
+    return(rep(i, length(sim.object[[i]]$inftimes)))))
+  merged <- order(sample.data$samtimes)
+  sample.data <- sample.data[merged,]
+  sample.data$merged <- merged
+  sample.data$new <- 1:obs
+  sample.data$infectors <- unlist(lapply(seq_along(sim.object), function(i) {
+    inf <- sim.object[[i]]$infectors
+    inf <- unlist(sapply(inf, function(xx){
+      if (xx==0) return(0)
+      return(sample.data$new[sample.data$tree==i & sample.data$old == xx])
+    }))
+    return(inf)
+  }))[sample.data$merged]
+  
+  addsample.data <- do.call(rbind,lapply(seq_along(sim.object), function(i){
+    hosts <- sim.object[[i]]$addsamplehosts
+    hosts <- unlist(sapply(hosts, function(xx){
+      if (xx==0) return(0)
+      return(sample.data$new[sample.data$tree==i & sample.data$old == xx])
+    }))
+    return(data.frame("times"=sim.object[[i]]$addsampletimes,
+                      "hosts"=hosts))
+  }))
+  if (length(addsample.data$times)!=0){
+    addsample.data <- addsample.data[order(addsample.data$hosts),]
+  } else {
+    addsample.data <- list("times" = numeric(0),
+                           "hosts" = integer(0))
+  }
+  
+  nodehosts <- unlist(lapply(seq_along(sim.object), function(i) {
+    host <- sim.object[[i]]$nodehosts
+    host <- unlist(sapply(host, function(xx){
+      if (xx==0) return(0)
+      return(sample.data$new[sample.data$tree==i & sample.data$old == xx])
+    }))
+    return(host)
+  }))
+  
+  node.data <- do.call(rbind, lapply(sim.object, function(xx) 
+    return(data.frame("times"=xx$nodetimes, 
+                      "type"=factor(xx$nodetypes,levels=c("s","x","c","t")),
+                      "old"=1:length(xx$nodetypes)))))
+  tree <- c()
+  for (i in seq_along(sim.object)){
+    tree <- c(tree, rep(i, length(sim.object[[i]]$nodetypes)))
+  }
+  node.data$tree <- tree
+  node.data$hosts <- nodehosts
+  node.order <- order(node.data$type, node.data$hosts, node.data$times)
+  node.data <- node.data[node.order,]
+  node.data$merged <- node.order
+  node.data$new <- 1:nrow(node.data)
+  node.data$parent <- unlist(lapply(seq_along(sim.object), function(i){
+    xx <- sim.object[[i]]
+    parent <- c()
+    for (j in 1:length(xx$nodeparents)){
+      newparent <- node.data$new[node.data$tree==i & node.data$old == xx$nodeparents[j]]
+      if (length(newparent)==0) parent <- c(parent, 0)
+      else parent <- c(parent,newparent)
+    }
+    return(parent)
+  }))[node.order]
+  
+  sequences <- do.call(cbind,lapply(sim.object, function(xx) return(as.data.frame(xx$sequences))))
+  seq.data <- do.call(rbind,lapply(sim.object, function(xx) 
+    return(data.frame("times"=xx$nodetimes,
+                      "type"=xx$nodetypes))))
+  seq.data <- seq.data[seq.data$type == "s" | seq.data$type == "x",]
+  seq.order <- order(seq.data$type,seq.data$times)
+  sequences <- sequences[,seq.order,drop=FALSE]
+  colnames(sequences) <- 1:ncol(sequences)
+  if (Nsamples == 1){
+    sequences <- cbind(sequences, sequences)
+    colnames(sequences) <- 1:2
+    
+    sequences <- as.phyDat(sequences)
+    sequences <- subset(sequences, subset = 1)
+  } else {
+    sequences <- as.phyDat(sequences)
+  }
+  
+  return(list("obs"=obs,
+              "infectors"=sample.data$infectors,
+              "inftimes"=sample.data$inftimes,
+              "samtimes"=sample.data$samtimes,
+              "addsampletimes"=addsample.data$times,
+              "addsamplehosts"=addsample.data$hosts,
+              "Nsamples"=Nsamples,
+              "nodeparents"=node.data$parent,
+              "nodetimes"=node.data$times,
+              "nodehosts"=node.data$hosts,
+              "nodetypes"=as.character(node.data$type),
+              "sequences"=sequences))
 }
 
 
