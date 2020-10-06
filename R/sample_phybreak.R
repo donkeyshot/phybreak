@@ -78,6 +78,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                    mu = c(x$s$mu, rep(NA, nsample)), 
                    mG = c(x$s$mG, rep(NA, nsample)), 
                    mS = c(x$s$mS, rep(NA, nsample)), 
+                   wh.h = c(x$s$wh.h, rep(NA, nsample)), 
                    wh.s = c(x$s$wh.s, rep(NA, nsample)), 
                    wh.e = c(x$s$wh.e, rep(NA, nsample)), 
                    wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
@@ -134,6 +135,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
       s.post$mu[sa] <- pbe0$p$mu
       s.post$mG[sa] <- pbe0$p$gen.mean
       s.post$mS[sa] <- pbe0$p$sample.mean
+      s.post$wh.h[sa] <- pbe0$p$wh.history
       s.post$wh.s[sa] <- pbe0$p$wh.slope
       s.post$wh.e[sa] <- pbe0$p$wh.exponent
       s.post$wh.0[sa] <- pbe0$p$wh.level

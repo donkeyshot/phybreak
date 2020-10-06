@@ -218,6 +218,10 @@ get_mcmc <- function(x, thin = 1, nkeep = Inf) {
                        t(s$infectors[, tokeep])))
   parnames <- with(x,
                    c(paste0("tinf.", d$hostnames[1:p$obs]), paste0("infector.", d$hostnames[1:p$obs])))
+  if (x$h$est.wh.h) {
+    res <- cbind(x$s$wh.h[tokeep], res)
+    parnames <- c("wh.history", parnames)
+  }
   if (x$h$est.wh.s) {
     res <- cbind(x$s$wh.s[tokeep], res)
     parnames <- c("wh.slope", parnames)
@@ -238,8 +242,8 @@ get_mcmc <- function(x, thin = 1, nkeep = Inf) {
     res <- cbind(x$s$mG[tokeep], res)
     parnames <- c("mG", parnames)
   }
-  res <- cbind(x$s$mu[tokeep], res, x$s$logLik[tokeep])
-  parnames <- c("mu", parnames, "logLik")
+  res <- cbind(x$s$mu[tokeep], x$s$introductions[tokeep], res, x$s$logLik[tokeep])
+  parnames <- c("mu", "introductions", parnames, "logLik")
   colnames(res) <- parnames
   
   return(coda::mcmc(res))

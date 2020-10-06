@@ -22,7 +22,7 @@ add_history <- function(d, vars, pars, h, s, build = FALSE){
   nodeparents <- as.integer(vars$nodeparents)
   nodehosts <- as.integer(vars$nodehosts) + 1
   nodetypes <- vars$nodetypes
-  inftimes <- c(-1e10, vars$inftimes)
+  inftimes <- c(-1e3, vars$inftimes)
   infectors <- c(0, vars$infectors + 1)
   nhosts <- length(inftimes)
   nsamples <- sum(nodetypes %in% c("s", "x"))

@@ -134,7 +134,7 @@ lik_coaltimes <- function(phybreakenv) {
   
   if (length(coalnodes.history) > 0){
     logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
-                           linear = -log(phybreakenv$p$wh.level + c(rep(1, length(coalnodes.history)),
+                           linear = -log(phybreakenv$p$wh.level + c(rep(phybreakenv$p$wh.history, length(coalnodes.history)),
                                            phybreakenv$p$wh.slope * whtimes[coalnodes.outbreak])),
                            exponential = 
                            -log(phybreakenv$p$wh.level * 
