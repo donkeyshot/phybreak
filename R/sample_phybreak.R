@@ -34,7 +34,7 @@
 #' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
 sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, withinhost_only = 0, 
-                            parameter_frequency = 1, status_interval = 10) {
+                            parameter_frequency = 1, status_interval = 10, histtime = -1e5) {
     ### tests
     if(nsample < 1) stop("nsample should be positive")
     if(thin < 1) stop("thin should be positive")
@@ -87,9 +87,9 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                    dist.m = c(x$s$dist.m, rep(NA, nsample)), 
                    logLik = c(x$s$logLik, rep(NA, nsample)))
     
-    build_pbe(x)
+    build_pbe(x, histtime)
 
-    message(paste0("  sample      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+    message(paste0("  sample      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
     print_screen_log(length(x$s$mu))
     
     curtime <- Sys.time()

@@ -32,7 +32,7 @@
 #' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 50)
 #' @export
 burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_only = 0, 
-                            parameter_frequency = 1, status_interval = 10) {
+                            parameter_frequency = 1, status_interval = 10, histtime = -1e5) {
   ### tests
   if(ncycles < 1) stop("ncycles should be positive")
   if(is.null(x$p$wh.bottleneck)) {
@@ -65,9 +65,9 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
   
   protocoldistribution <- c(1 - classic - keepphylo - withinhost_only, classic, keepphylo, withinhost_only)
   
-  build_pbe(x)
+  build_pbe(x, histtime)
 
-  message(paste0("   cycle      logLik         mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+  message(paste0("   cycle      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
   print_screen_log(0)
   
   curtime <- Sys.time()
@@ -116,7 +116,8 @@ print_screen_log <- function(iteration) {
   message(paste0(
     stringr::str_pad(iteration, 8),
     stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
-    stringr::str_pad(signif(pbe0$p$mu, 3), 11),
+    stringr::str_pad(signif(sum(pbe0$v$infectors==1), 1), 15),
+    stringr::str_pad(signif(pbe0$p$mu, 3), 9),
     stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
     stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
     stringr::str_pad(phangorn::parsimony(

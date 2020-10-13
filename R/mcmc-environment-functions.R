@@ -41,7 +41,7 @@ copy2pbe2 <- function(var, env) {
 
 ### build the pbe0 at the start of an mcmc chain by copying the fixed parameters and phybreak object, and by
 ### calculating likarray and the log-likelihoods 
-build_pbe <- function(phybreak.obj) {
+build_pbe <- function(phybreak.obj, histtime) {
   ### Making everything available within the function
   le <- environment()
   d <- phybreak.obj$d
@@ -126,7 +126,7 @@ build_pbe <- function(phybreak.obj) {
     v$nodetypes <- c(v$nodetypes, "t")
   }
   
-  history <- add_history(d, v, p, h, s, build = TRUE)
+  history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
   v <- history$v
   h <- history$h
   
