@@ -77,7 +77,7 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
       print_screen_log(rep)
       curtime <- Sys.time()
     }
-    for(i in sample(c(rep(-(1:10), parameter_frequency), 1:x$p$obs+1))) {
+    for(i in sample(c(rep(-(1:10), parameter_frequency), 1:(x$p$obs+1)))) {
       # print(i)
       if(i > 0) {
         which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),

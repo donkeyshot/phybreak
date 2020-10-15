@@ -130,7 +130,10 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   v <- pbe0$v
   
   ### propose the new infection time
-  tinf.prop <- v$nodetimes[hostID-1] -
+  if (hostID == 1)
+    tinf.prop <- v$inftimes[hostID] - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 1e3)
+  else 
+    tinf.prop <- v$nodetimes[hostID-1] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
   # tinf.prop <- v$inftimes[hostID] + rnorm(1, 0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape))
   # tinf.prop <- min(tinf.prop, 2 * v$nodetimes[hostID] - tinf.prop)
@@ -142,16 +145,16 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     if (tinf.prop < min(c(v$inftimes[v$infectors == hostID], Inf))) {
       # YY (... & tinf.prop before hostID's first transmission node)
       update_pathA(which_protocol)
-    } else {
+    }#$else {
       # YN (... & tinf.prop after hostID's first transmission node)
-      if (tinf.prop < sort(c(v$inftimes[v$infectors == hostID], Inf))[2]) {
-        # YNY (... & tinf.prop before hostID's second transmission node)
-        update_pathB(which_protocol)
-      } else {
-        # YNN (... & tinf.prop after hostID's second transmission node)
-        update_pathC(which_protocol) 
-      }
-    }
+    #   if (tinf.prop < sort(c(v$inftimes[v$infectors == hostID], Inf))[2]) {
+    #     # YNY (... & tinf.prop before hostID's second transmission node)
+    #     update_pathB(which_protocol)
+    #   } else {
+    #     # YNN (... & tinf.prop after hostID's second transmission node)
+    #     update_pathC(which_protocol) 
+    #   }
+    # }
   } else {
     # N (hostID is not index case)
     if (tinf.prop < v$inftimes[v$infectors == 0]) {
@@ -180,16 +183,17 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     p <- pbe0$p
     v <- pbe0$v
     hostID <- pbe1$hostID
+    
     tinf.prop <- pbe1$tinf.prop
     
     ### calculate proposal ratio
-    # logproposalratio <- 0
-    logproposalratio <- dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
-                               shape = tinf.prop.shape.mult * p$sample.shape,
-                               scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
-      dgamma(v$nodetimes[hostID] - tinf.prop,
-             shape = tinf.prop.shape.mult * p$sample.shape,
-             scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
+     logproposalratio <- 0
+    # logproposalratio <- dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
+    #                            shape = tinf.prop.shape.mult * p$sample.shape,
+    #                            scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
+    #   dgamma(v$nodetimes[hostID] - tinf.prop,
+    #          shape = tinf.prop.shape.mult * p$sample.shape,
+    #          scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
     copy2pbe1("logproposalratio", environment())
     
     ### propose minitrees and accept or reject
