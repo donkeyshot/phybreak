@@ -101,7 +101,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           print_screen_log(sa)
           curtime <- Sys.time()
         }
-        for(i in  sample(c(rep(-(1:10), parameter_frequency), 2:x$p$obs))) {
+        for(i in  sample(c(rep(-(1:10), parameter_frequency), 1:(x$p$obs+1)))) {
           if(i > 0) {
             which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                      1,
