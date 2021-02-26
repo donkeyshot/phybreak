@@ -38,7 +38,8 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
                  0, nodehosts[nodetypes == "t"])
   
   # artificial types
-  nodetypes <- c(rep("s", nsamples),
+  nodetypes <- c(rep("s", nhosts-1),
+                 rep("x", nsamples-nhosts+1),
                  rep("c", nsamples - 1),
                  rep("t", ntransnodes + 1))
     

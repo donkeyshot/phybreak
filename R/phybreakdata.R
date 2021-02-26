@@ -118,6 +118,7 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
   orderedhosts <- host.names[allfirsttimes][outputorderhosts]
   outputordersamples <- order(!allfirsttimes, match(host.names, orderedhosts), sample.times)
   sequences <- sequences[outputordersamples, ]
+  sequences <- matrix(sapply(sequences, tolower), nrow = nrow(sequences))
   sample.times <- sample.times[outputordersamples]
   sample.names <- sample.names[outputordersamples]
   host.names <- host.names[outputordersamples]

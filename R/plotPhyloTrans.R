@@ -375,45 +375,44 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
     }
   }
   
-  hosttrees2 <- hosttrees
-  hosttrees <- hosttrees2
-  
   # number of disjoint trees
-  ntrees <- length(which(sapply(hosttrees, function(xx) xx[[1]]$rootnode == 0)))
+  ntrees <- sum(sapply(hosttrees, function(xx) xx[[1]]$rootnode == 0))
   if (ntrees > 1){
     rootnodes <- unlist(sapply(hosttrees, function(xx) xx[[1]]$rootnode))
     hosttrees <- hosttrees[order(rootnodes, decreasing = TRUE)]
   }
-  
+
   ### join the trees per host ###
   # final hosttree is index case and is already one tree
-  for(i in (length(hosttrees)-ntrees):1) {
-    # order trees as transmission nodes in infector
-    infector <- plotinput$v$infectors[hosttrees[[i]][[1]]$host]
-    infectorhosttree <- 
-      which(sapply(hosttrees, function(x) x[[1]]$host) == infector)
-    reorderhosttree <-
-      order(match(sapply(hosttrees[[i]], function(xx) xx$rootnode),
-                  hosttrees[[infectorhosttree]][[1]]$nodevec))
-    hosttrees[[i]] <- hosttrees[[i]][reorderhosttree]
-    
-    # create room vertically by moving higher trees upwards
-    yshifts <- cumsum(c(0, 
-                        sapply(hosttrees[[i]], function(xx) 1 + max(xx$y1vec))))
-    for(j in 1:length(hosttrees[[i]])) {
-      hosttrees[[i]][[j]]$y1vec <- hosttrees[[i]][[j]]$y1vec + yshifts[j]
-      hosttrees[[i]][[j]]$y2vec <- hosttrees[[i]][[j]]$y2vec + yshifts[j]
+  if (ntrees != length(hosttrees)){
+    for(i in (length(hosttrees)-ntrees):1) {
+      # order trees as transmission nodes in infector
+      infector <- plotinput$v$infectors[hosttrees[[i]][[1]]$host]
+      infectorhosttree <- 
+        which(sapply(hosttrees, function(x) x[[1]]$host) == infector)
+      reorderhosttree <-
+        order(match(sapply(hosttrees[[i]], function(xx) xx$rootnode),
+                    hosttrees[[infectorhosttree]][[1]]$nodevec))
+      hosttrees[[i]] <- hosttrees[[i]][reorderhosttree]
+      
+      # create room vertically by moving higher trees upwards
+      yshifts <- cumsum(c(0, 
+                          sapply(hosttrees[[i]], function(xx) 1 + max(xx$y1vec))))
+      for(j in 1:length(hosttrees[[i]])) {
+        hosttrees[[i]][[j]]$y1vec <- hosttrees[[i]][[j]]$y1vec + yshifts[j]
+        hosttrees[[i]][[j]]$y2vec <- hosttrees[[i]][[j]]$y2vec + yshifts[j]
+      }
+      
+      # combine all trees into a single list
+      hosttrees[[i]] <- list(list(
+        x1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x1vec))),
+        x2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x2vec))),
+        y1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y1vec))),
+        y2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y2vec))),
+        nodevec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$nodevec))),
+        host = hosttrees[[i]][[1]]$host
+      ))
     }
-    
-    # combine all trees into a single list
-    hosttrees[[i]] <- list(list(
-      x1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x1vec))),
-      x2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x2vec))),
-      y1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y1vec))),
-      y2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y2vec))),
-      nodevec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$nodevec))),
-      host = hosttrees[[i]][[1]]$host
-    ))
   }
   
   ### finalize complete tree ###

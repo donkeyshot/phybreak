@@ -41,7 +41,7 @@ update_mS <- function() {
     v <- pbe1$v
     
     ### change to proposal state
-    sumst <- sum(v$nodetimes[v$nodetypes == "s"] - v$inftimes[2:length(v$inftimes)])
+    sumst <- sum(v$nodetimes[v$nodetypes == "s"] - v$inftimes[v$nodehosts[v$nodetypes == "s"]])
     p$sample.mean <- p$sample.shape/rgamma(1, shape = p$sample.shape * p$obs + 2 + (h$mS.av/h$mS.sd)^2, rate = sumst + (h$mS.av/p$sample.shape) * 
          (1 + (h$mS.av/h$mS.sd)^2))
 

@@ -344,7 +344,7 @@ rankhostsforplot <- function(hosts, infectors) {
   plotranklist <- lapply(indices, function(index){
     subinfectors <- infectors[c(index,which(infectormatrix[,index]==1))]
     subhosts <- hosts[c(index,which(infectormatrix[,index]==1))]
-    subYN <- insideYN[which(names(which(infectormatrix[,index]==1)) %in% names(insideYN))]
+    subYN <- insideYN[match(names(which(infectormatrix[,index]==1)),names(insideYN))]
     plotrank <- 1
     for(i in which(!grepl("index", subinfectors))) {
       ior <- which(subhosts == subinfectors[i])
