@@ -28,7 +28,6 @@ update_mu <- function() {
     }
 }
 
-
 update_mS <- function() {
     ### create an up-to-date proposal-environment
     prepare_pbe()
@@ -60,7 +59,6 @@ update_mS <- function() {
     }
 }
 
-
 update_mG <- function() {
     ### create an up-to-date proposal-environment
     prepare_pbe()
@@ -87,6 +85,66 @@ update_mG <- function() {
     
     ### accept
     accept_pbe("mG")
+}
+
+update_tG <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  d <- pbe0$d
+  h <- pbe0$h
+  p <- pbe1$p
+  v <- pbe1$v
+  
+  ### change to proposal state
+  sumgt <- sum(v$inftimes[v$infectors > 1] -
+                 v$inftimes[v$infectors[v$infectors>1]])
+  thalf <- p$gen.shape/rgamma(1,
+                                   shape = p$gen.shape * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2,
+                                   rate = sumgt + (h$mG.av/p$gen.shape) * (1 + (h$mG.av/h$mG.sd)^2))
+  
+  p$trans.growth <- rnorm(1, mean = log(sumgt)/10, sd = 0.1)#log((1-p$trans.init)/p$trans.init)/rexp(1, rate = 15/sumgt)
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate likelihood
+  propose_pbe("mG")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikgen - pbe0$logLikgen
+  
+  ### accept
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("mG")
+  }
+}
+
+update_tS <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  p <- pbe1$p
+  
+  p$trans.sample <- runif(1, 0, 1)
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate likelihood
+  propose_pbe("mG")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikgen - pbe0$logLikgen
+  
+  ### accept
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("mG")
+  }
 }
 
 update_wh_history <- function(){
@@ -121,7 +179,6 @@ update_wh_history <- function(){
       accept_pbe("wh.slope")
     }
 }
-
 
 update_wh_slope <- function() {
     ### create an up-to-date proposal-environment

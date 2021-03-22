@@ -4,9 +4,16 @@
 \alias{infectorsets}
 \title{Sampled infectors for each host in a phybreak-object.}
 \usage{
-infectorsets(x, which.hosts = "all", percentile = 0.95,
-  minsupport = 0, samplesize = Inf, infector.name = TRUE,
-  support = c("proportion", "count"), output = c("list", "matrix"))
+infectorsets(
+  x,
+  which.hosts = "all",
+  percentile = 0.95,
+  minsupport = 0,
+  samplesize = Inf,
+  infector.name = TRUE,
+  support = c("proportion", "count"),
+  output = c("list", "matrix")
+)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}

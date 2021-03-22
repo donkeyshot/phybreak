@@ -140,7 +140,8 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   
 }
 
-phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
+phybreak2trans <- function(vars, hostnames = c(), reference.date = 0,
+                           culling.times = NULL) {
   ### extract variables
   nodetimes <- vars$nodetimes
   nodehosts <- vars$nodehosts
@@ -167,6 +168,7 @@ phybreak2trans <- function(vars, hostnames = c(), reference.date = 0) {
   ### return result
   return(list(
     sample.times = samtimes,
+    culling.times = culling.times,
     sim.infection.times = inftimes,
     sim.infectors = infectors
   ))
@@ -179,6 +181,10 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
   ### extract and order samples
   refdate <- min(vars$sample.times)
   samtimes <- vars$sample.times - refdate
+  if(exists("culling.times", vars))
+    cultimes <- vars$culling.times - refdate
+  else 
+    cultimes <- NULL
   nsamples <- length(samtimes)
   if(exists("sample.hosts", vars)) {
     samhosts <- vars$sample.hosts
@@ -213,6 +219,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
     }
   }
   samtimes <- as.numeric(samtimes)
+  cultimes <- as.numeric(cultimes)
   samplenames <- names(samhosts)
   hostnames <- unique(samhosts)
   samhosts <- match(samhosts, hostnames)
@@ -237,6 +244,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
     res <- list(
       inftimes = inftimes,
       infectors = infectors,
+      cultimes = cultimes,
       nodetypes = c(rep("s", nhosts), 
                     rep("x", nsamples - nhosts), 
                     rep("c", nsamples - introductions), 
@@ -262,6 +270,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
     res <- list(
       inftimes = inftimes,
       infectors = infectors,
+      cultimes = cultimes,
       nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - introductions)),  
       #node type (primary sampling, extra sampling, coalescent)
       nodetimes = c(samtimes, samtimes[-c(1:introductions)]),

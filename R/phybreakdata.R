@@ -17,6 +17,8 @@
 #'  coordinates (two-column \code{matrix} or \code{data.frame}).
 #' @param host.names A vector with host names. The vector identifies the host for each sample, so should be of the same
 #'  length as \code{sample.times}. 
+#' @param culling.times A vector with culling dates. The vector identifies the culling date for each sample, so should be of
+#'  of the same length as \code{sample.times}.
 #' @param sim.infection.times A vector with infection times (\code{numerical} or \code{Date}).
 #' @param sim.infectors A vector with infectors, either by name or by position (use 0 for the index case).
 #' @param sim.tree A tree of class \code{'phylo'}, with tip names identifying the hosts.
@@ -25,6 +27,7 @@
 #'     \item{sequences}{a \code{'phyDat'}-object with the sequence data.}
 #'     \item{sample.times}{a named \code{vector} with the sample times.}
 #'     \item{sample.hosts}{a named \code{vector} with the hosts from whom the samples have been taken.}
+#'     \item{culling.timese}{a named \code{vector} with the dates of culling of the hosts.}
 #'     \item{distances}{a named distance matrix (class \code{dist}) with the mutual distances.}
 #'     \item{sim.infection.times}{a named \code{vector} with the (simulated) infection times (if provided).}
 #'     \item{sim.infectors}{a named \code{vector} with the (simulated) infectors (if provided).}
@@ -43,6 +46,7 @@
 #' dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 #' @export
 phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names = NULL, host.names = sample.names, 
+                         culling.times = NULL,
                          sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL) {
   
   ##########################################################
@@ -63,6 +67,10 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
   if(!inherits(sample.times, c("Date", "numeric", "integer"))) {
     stop("sample.times should be numeric or of class \"Date\"")
   }
+  if(!is.null(culling.times))
+    if(!inherits(culling.times, c("Date", "numeric", "integer"))) {
+      stop("culling.times shoud be numeric or of class \"Date")
+    }
   if(nrow(sequences) != length(sample.times)) {
     stop("numbers of sequences and sample.times don't match")
   }
@@ -107,7 +115,7 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
     warning("names in host.names don't match sample.names and are therefore overwritten")
     names(host.names) <- sample.names
   }
-
+  
   ##########################################################################
   ### order the input host by host, hosts ordered by first sampling time ###
   ##########################################################################
@@ -223,7 +231,28 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
                          distances = distances[orderedhosts, orderedhosts]))
     }
   }
-
+  
+  ### culling data ###
+  
+  if(!is.null(culling.times)){
+    if(class(culling.times) != class(sample.times)) {
+      stop("culling.times should be of same class as sample.times")
+    }
+    
+    culling.times <- culling.times[allfirsttimes][outputorderhosts]
+    
+    if(is.null(names(culling.times))) {
+      names(culling.times) <- orderedhosts
+    } else if (all(names(culling.times) %in% orderedhosts)) {
+      culling.times <- culling.times[orderedhosts]
+    } else {
+      warning("names in culling.times don't match host.names and are therefore overwritten")
+      culling.times <- culling.times[outputorderhosts]
+      names(culling.times) <- orderedhosts
+    }
+    res <- c(res, list(culling.times = culling.times))
+  }
+  
   ### infection times ###
   if(!is.null(sim.infection.times)) {
     if(class(sim.infection.times) != class(sample.times)) {

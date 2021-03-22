@@ -67,7 +67,7 @@ infectorsets <- function(x, which.hosts = "all", percentile = 0.95, minsupport =
   } else if (any(which.hosts == "all")) {
     which.hosts <- 1:obs
   } else {
-    which.hosts <- arg.match(which.hosts, hostnames, several.ok = TRUE)
+    which.hosts <- match.arg(which.hosts, hostnames, several.ok = TRUE)
     which.hosts <- unique(which.hosts)
     which.hosts <- match(which.hosts, hostnames)
   } 

@@ -4,8 +4,12 @@
 \alias{plot.phybreak}
 \title{Plotting a phybreak object.}
 \usage{
-\method{plot}{phybreak}(x, plot.which = c("sample", "edmonds", "mpc",
-  "mtcc", "mcc"), samplenr = 0, ...)
+\method{plot}{phybreak}(
+  x,
+  plot.which = c("sample", "edmonds", "mpc", "mtcc", "mcc"),
+  samplenr = 0,
+  ...
+)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}

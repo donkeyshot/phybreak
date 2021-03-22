@@ -4,9 +4,17 @@
 \alias{phybreakdata}
 \title{Create a phybreakdata-object from raw data.}
 \usage{
-phybreakdata(sequences, sample.times, spatial = NULL,
-  sample.names = NULL, host.names = sample.names,
-  sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL)
+phybreakdata(
+  sequences,
+  sample.times,
+  spatial = NULL,
+  sample.names = NULL,
+  host.names = sample.names,
+  culling.times = NULL,
+  sim.infection.times = NULL,
+  sim.infectors = NULL,
+  sim.tree = NULL
+)
 }
 \arguments{
 \item{sequences}{Sequence data of class \code{'DNAbin'}, \code{'phyDat'}, or a \code{matrix} with nucleotides, 
@@ -23,6 +31,9 @@ coordinates (two-column \code{matrix} or \code{data.frame}).}
 \item{host.names}{A vector with host names. The vector identifies the host for each sample, so should be of the same
 length as \code{sample.times}.}
 
+\item{culling.times}{A vector with culling dates. The vector identifies the culling date for each sample, so should be of
+of the same length as \code{sample.times}.}
+
 \item{sim.infection.times}{A vector with infection times (\code{numerical} or \code{Date}).}
 
 \item{sim.infectors}{A vector with infectors, either by name or by position (use 0 for the index case).}
@@ -35,6 +46,7 @@ An object of class \code{phybreakdata} with the following elements
     \item{sequences}{a \code{'phyDat'}-object with the sequence data.}
     \item{sample.times}{a named \code{vector} with the sample times.}
     \item{sample.hosts}{a named \code{vector} with the hosts from whom the samples have been taken.}
+    \item{culling.timese}{a named \code{vector} with the dates of culling of the hosts.}
     \item{distances}{a named distance matrix (class \code{dist}) with the mutual distances.}
     \item{sim.infection.times}{a named \code{vector} with the (simulated) infection times (if provided).}
     \item{sim.infectors}{a named \code{vector} with the (simulated) infectors (if provided).}

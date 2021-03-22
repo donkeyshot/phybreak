@@ -5,8 +5,17 @@
 \alias{sample.phybreak}
 \title{Sampling from a phybreak MCMC-chain.}
 \usage{
-sample_phybreak(x, nsample, thin = 1, classic = 0, keepphylo = 0,
-  withinhost_only = 0, parameter_frequency = 1, status_interval = 10)
+sample_phybreak(
+  x,
+  nsample,
+  thin = 1,
+  classic = 0,
+  keepphylo = 0,
+  withinhost_only = 0,
+  parameter_frequency = 1,
+  status_interval = 10,
+  histtime = -1e+05
+)
 
 sample.phybreak(...)
 }

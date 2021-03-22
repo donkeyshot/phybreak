@@ -4,8 +4,13 @@
 \alias{quantile.phybreak}
 \title{Quantiles of sampled parameter values.}
 \usage{
-\method{quantile}{phybreak}(x, whichpars = "posterior",
-  probs = c(0.025, 0.5, 0.975), type = 7, ...)
+\method{quantile}{phybreak}(
+  x,
+  whichpars = "posterior",
+  probs = c(0.025, 0.5, 0.975),
+  type = 7,
+  ...
+)
 }
 \arguments{
 \item{whichpars}{Which parameters to return. Either a vector with parameter names, or \code{"all"} for all parameters, or 

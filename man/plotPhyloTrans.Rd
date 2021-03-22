@@ -4,19 +4,41 @@
 \alias{plotPhyloTrans}
 \title{Plotting a phybreak object transmission and phylogenetic tree.}
 \usage{
-plotPhyloTrans(x, plot.which = c("sample", "mpc", "mtcc", "mcc"),
-  samplenr = 0, select.how = "trees", select.who = "index",
-  showmutations = FALSE, mar = 0.1 + c(4, 0, 0, 0), tree.lwd = 1,
-  tree.col = NULL, hostlabel = TRUE, hostlabel.cex = NULL,
-  hostlabel.pos = "adjacent", hostlabel.col = tree.col,
-  samplelabel = FALSE, samplelabel.cex = NULL,
-  samplelabel.pos = "right", samplelabel.col = tree.col,
-  mutationlabel = FALSE, mutationlabel.cex = NULL,
-  mutationlabel.pos = "right", label.space = 0.15,
-  host.col = tree.col, host.alpha = 0.2, cline.lty = 3,
-  cline.lwd = 1, cline.col = "black", cpoint.pch = 20,
-  cpoint.cex = 1, cpoint.col = tree.col, xlab = "Time",
-  axis.cex = 1, title.cex = 1, ...)
+plotPhyloTrans(
+  x,
+  plot.which = c("sample", "mpc", "mtcc", "mcc"),
+  samplenr = 0,
+  select.how = "trees",
+  select.who = "index",
+  showmutations = FALSE,
+  mar = 0.1 + c(4, 0, 0, 0),
+  tree.lwd = 1,
+  tree.col = NULL,
+  hostlabel = TRUE,
+  hostlabel.cex = NULL,
+  hostlabel.pos = "adjacent",
+  hostlabel.col = tree.col,
+  samplelabel = FALSE,
+  samplelabel.cex = NULL,
+  samplelabel.pos = "right",
+  samplelabel.col = tree.col,
+  mutationlabel = FALSE,
+  mutationlabel.cex = NULL,
+  mutationlabel.pos = "right",
+  label.space = 0.15,
+  host.col = tree.col,
+  host.alpha = 0.2,
+  cline.lty = 3,
+  cline.lwd = 1,
+  cline.col = "black",
+  cpoint.pch = 20,
+  cpoint.cex = 1,
+  cpoint.col = tree.col,
+  xlab = "Time",
+  axis.cex = 1,
+  title.cex = 1,
+  ...
+)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}

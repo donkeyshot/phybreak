@@ -361,8 +361,10 @@ update_host_phylotrans <- function(hostID, which_protocol) {
 
     ### identify the current infector and propose the new infector
     infector.current.ID <- v$infectors[hostID]
-    dens.infectorproposal <- dgamma(tinf.prop - v$inftimes,
-                                    shape = p$gen.shape, scale = p$gen.mean/p$gen.shape) +
+    dens.infectorproposal <- c(0,infect_distribution(tinf.prop, 
+                                                 v$inftimes[-1], p,
+                                                 nodetimes = v$nodetimes[v$nodetypes=="s"],
+                                                 cultimes = v$cultimes)) +
       (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorproposal[hostID] <- 0
     infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
@@ -370,8 +372,10 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     
     ### calculate proposal ratio 
     # the reverse proposal includes proposing an infector
-    dens.infectorcurrent <- dgamma(v$inftimes[hostID] - v$inftimes,
-                                   shape = p$gen.shape, scale = p$gen.mean/p$gen.shape) +
+    dens.infectorcurrent <- c(0,infect_distribution(v$inftimes[hostID], 
+                                                v$inftimes[-1], p,
+                                                nodetimes = v$nodetimes[v$nodetypes=="s"],
+                                                cultimes = v$cultimes)) +
       (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorcurrent[hostID] <- 0
     

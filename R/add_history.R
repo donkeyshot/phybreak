@@ -12,7 +12,7 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
   if (introductions == 1 & build) buildoneintro <- TRUE
   else buildoneintro <- FALSE
 
-  h$dist <- rbind(0.5, cbind(0.5, h$dist))
+  h$dist <- rbind(1, cbind(1, h$dist))
   
   nodetimes <- vars$nodetimes
   nodeparents <- as.integer(vars$nodeparents)
@@ -92,6 +92,7 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
   v$nodetimes <- nodetimes
   v$nodehosts <- nodehosts
   v$nodeparents <- nodeparents
+  v$cultimes <- vars$cultimes
   
   if (sum(v$infectors==1) == sum(pbe0$hs$infectors==1)) {
     if (all(which(v$infectors==1) == which(pbe0$hs$infectors==1))) {

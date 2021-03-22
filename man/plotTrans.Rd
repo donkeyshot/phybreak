@@ -4,13 +4,28 @@
 \alias{plotTrans}
 \title{Plotting a phybreak or phybreakdata transmission tree.}
 \usage{
-plotTrans(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"),
-  samplenr = 0, mar = 0.1 + c(4, 0, 0, 0), label.cex = NULL,
-  label.space = 0.15, label.adj = 0, arrow.lwd = 1,
-  arrow.length = NULL, arrow.col = NULL, sample.pch = 4,
-  sample.lwd = NULL, sample.cex = label.cex, polygon.col = "gray",
-  polygon.border = NA, line.lty = 3, xlab = "Time", axis.cex = 1,
-  title.cex = 1, ...)
+plotTrans(
+  x,
+  plot.which = c("sample", "edmonds", "mpc", "mtcc"),
+  samplenr = 0,
+  mar = 0.1 + c(4, 0, 0, 0),
+  label.cex = NULL,
+  label.space = 0.15,
+  label.adj = 0,
+  arrow.lwd = 1,
+  arrow.length = NULL,
+  arrow.col = NULL,
+  sample.pch = 4,
+  sample.lwd = NULL,
+  sample.cex = label.cex,
+  polygon.col = "gray",
+  polygon.border = NA,
+  line.lty = 3,
+  xlab = "Time",
+  axis.cex = 1,
+  title.cex = 1,
+  ...
+)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak} or \code{phybreakdata}. A \code{\link{phybreakdata}}-object should

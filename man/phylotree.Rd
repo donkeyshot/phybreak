@@ -4,8 +4,12 @@
 \alias{phylotree}
 \title{Maximum clade credibility tree.}
 \usage{
-phylotree(x, samplesize = Inf, support = c("proportion", "count"),
-  phylo.class = FALSE)
+phylotree(
+  x,
+  samplesize = Inf,
+  support = c("proportion", "count"),
+  phylo.class = FALSE
+)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}

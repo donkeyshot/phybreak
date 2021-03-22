@@ -69,11 +69,19 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 
 
 ### calculate the log-likelihood of generation intervals 
-lik_gentimes <- function(shapeG, meanG, inftimes, infectors) {
+# lik_gentimes <- function(shapeG, meanG, sampleScale, cullingScale, transModel, inftimes, infectors,
+#                          nodetimes, cultimes) {
+lik_gentimes <- function(p, v){
   0 + # force of infection from external source
-  sum(dgamma(inftimes[infectors > 1] - 
-               inftimes[infectors[infectors > 1]], 
-             shape = shapeG, scale = meanG/shapeG, log = TRUE))
+  sum(infect_distribution(v$inftimes[v$infectors > 1],
+                            v$inftimes[v$infectors[v$infectors > 1]],
+                          nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[v$infectors>1]-1],
+                          cultimes = v$cultimes[v$infectors[v$infectors>1]],
+                          p = p,
+                          log = TRUE))
+  # sum(dgamma(inftimes[infectors > 1] - 
+  #              inftimes[infectors[infectors > 1]], 
+  #            shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 
 ### calculate the log-likelihood of sampling intervals 

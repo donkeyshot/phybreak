@@ -32,7 +32,8 @@
 #' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 50)
 #' @export
 burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_only = 0, 
-                            parameter_frequency = 1, status_interval = 10, histtime = -1e5) {
+                            parameter_frequency = 1, status_interval = 10, 
+                            history = FALSE, histtime = -1e5) {
   ### tests
   if(ncycles < 1) stop("ncycles should be positive")
   if(is.null(x$p$wh.bottleneck)) {
@@ -67,7 +68,8 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
   
   build_pbe(x, histtime)
 
-  message(paste0("   cycle      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+  #message(paste0("   cycle      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+  message(paste0("   cycle      logLik  introductions       mu  t.half  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
   print_screen_log(0)
   
   curtime <- Sys.time()
@@ -77,7 +79,7 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
       print_screen_log(rep)
       curtime <- Sys.time()
     }
-    for(i in sample(c(rep(-(1:10), parameter_frequency), 1:(x$p$obs+1)))) {
+    for(i in sample(c(rep(-(1:12), parameter_frequency), 1:(x$p$obs+1)))) {
       # print(i)
       if(i > 0) {
         which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
@@ -89,6 +91,8 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
       if (i == -1)  update_mu()
       if (i == -2 && x$h$est.mG)  update_mG()
       if (i == -3 && x$h$est.mS)  update_mS()
+      if (i == -11 && x$h$est.tG) update_tG()
+      if (i == -12 && x$h$est.tS) update_tS()
       if (i == -10 && x$h$est.wh.h) update_wh_history()
       if (i == -4 && x$h$est.wh.s)  update_wh_slope()
       if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
@@ -99,9 +103,15 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
     }
   }
   
-  res <- destroy_pbe(x$s)
-  
-  return(res)
+  if(history) {
+    res <- list(d = pbe0$d, v = pbe0$v, p = pbe0$p, h = pbe0$h, s = x$s,
+                       hist = pbe0$v$inftimes[1])
+    class(res) <- c("phybreak", "list")
+    return(res)
+  } else {
+    res <- destroy_pbe(x$s)
+    return(res)
+  }
 }
 
 
@@ -118,7 +128,7 @@ print_screen_log <- function(iteration) {
     stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
     stringr::str_pad(signif(sum(pbe0$v$infectors==1), 1), 15),
     stringr::str_pad(signif(pbe0$p$mu, 3), 9),
-    stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
+    stringr::str_pad(signif(log((1-pbe0$p$trans.init)/pbe0$p$trans.init)/pbe0$p$trans.growth, 3), 10),
     stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
     stringr::str_pad(phangorn::parsimony(
       phybreak2phylo(environment2phybreak(pbe0$v)), pbe0$d$sequences), 10)))

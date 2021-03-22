@@ -4,8 +4,15 @@
 \alias{logLik.phybreak}
 \title{Log-likelihood of a phybreak-object.}
 \usage{
-\method{logLik}{phybreak}(object, genetic = TRUE, withinhost = TRUE,
-  sampling = TRUE, generation = TRUE, distance = TRUE, ...)
+logLik.phybreak(
+  object,
+  genetic = TRUE,
+  withinhost = TRUE,
+  sampling = TRUE,
+  generation = TRUE,
+  distance = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{An object of class \code{phybreak}.}

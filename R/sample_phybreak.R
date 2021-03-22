@@ -78,6 +78,8 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                    mu = c(x$s$mu, rep(NA, nsample)), 
                    mG = c(x$s$mG, rep(NA, nsample)), 
                    mS = c(x$s$mS, rep(NA, nsample)), 
+                   tG = c(x$s$tG, rep(NA, nsample)),
+                   tS = c(x$s$tS, rep(NA, nsample)),
                    wh.h = c(x$s$wh.h, rep(NA, nsample)), 
                    wh.s = c(x$s$wh.s, rep(NA, nsample)), 
                    wh.e = c(x$s$wh.e, rep(NA, nsample)), 
@@ -87,7 +89,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                    dist.m = c(x$s$dist.m, rep(NA, nsample)), 
                    logLik = c(x$s$logLik, rep(NA, nsample)))
     
-    build_pbe(x, histtime)
+    #build_pbe(x, histtime)
 
     message(paste0("  sample      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
     print_screen_log(length(x$s$mu))
@@ -101,7 +103,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           print_screen_log(sa)
           curtime <- Sys.time()
         }
-        for(i in  sample(c(rep(-(1:10), parameter_frequency), 1:(x$p$obs+1)))) {
+        for(i in  sample(c(rep(-(1:12), parameter_frequency), 1:(x$p$obs+1)))) {
           if(i > 0) {
             which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                      1,
@@ -112,6 +114,8 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           if (i == -1)  update_mu()
           if (i == -2 && x$h$est.mG)  update_mG()
           if (i == -3 && x$h$est.mS)  update_mS()
+          if (i == -11 && x$h$est.tG) update_tG()
+          if (i == -12 && x$h$est.tS) update_tS()
           if (i == -10 && x$h$est.wh.h) update_wh_history()
           if (i == -4 && x$h$est.wh.s)  update_wh_slope()
           if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
@@ -135,6 +139,8 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
       s.post$mu[sa] <- pbe0$p$mu
       s.post$mG[sa] <- pbe0$p$gen.mean
       s.post$mS[sa] <- pbe0$p$sample.mean
+      s.post$tG[sa] <- pbe0$p$trans.growth
+      s.post$tS[sa] <- pbe0$p$trans.sample
       s.post$wh.h[sa] <- pbe0$p$wh.history
       s.post$wh.s[sa] <- pbe0$p$wh.slope
       s.post$wh.e[sa] <- pbe0$p$wh.exponent
@@ -142,7 +148,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
       s.post$dist.e[sa] <- pbe0$p$dist.exponent
       s.post$dist.s[sa] <- pbe0$p$dist.scale
       s.post$dist.m[sa] <- pbe0$p$dist.mean
-      s.post$logLik[sa] <- pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikdist + pbe0$logLikcoal
+      s.post$logLik[sa] <- pbe0$logLikgen + pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikdist + pbe0$logLikcoal 
     }
     
     res <- destroy_pbe(s.post)

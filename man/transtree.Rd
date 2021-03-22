@@ -4,10 +4,16 @@
 \alias{transtree}
 \title{Create a consensus transmission tree.}
 \usage{
-transtree(x, method = c("count", "edmonds", "mpc", "mtcc"),
-  samplesize = Inf, infector.name = TRUE, support = c("proportion",
-  "count"), infection.times = c("all", "infector", "infector.sd"),
-  time.quantiles = c(0.025, 0.5, 0.975), phylo.class = FALSE)
+transtree(
+  x,
+  method = c("count", "edmonds", "mpc", "mtcc"),
+  samplesize = Inf,
+  infector.name = TRUE,
+  support = c("proportion", "count"),
+  infection.times = c("all", "infector", "infector.sd"),
+  time.quantiles = c(0.025, 0.5, 0.975),
+  phylo.class = FALSE
+)
 }
 \arguments{
 \item{x}{An object of class \code{phybreak}.}

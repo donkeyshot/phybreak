@@ -5,13 +5,31 @@
 \alias{sim.phybreak}
 \title{Outbreak simulation.}
 \usage{
-sim_phybreak(obsize = 50, popsize = NA, samplesperhost = 1,
-  R0 = 1.5, spatial = FALSE, gen.shape = 10, gen.mean = 1,
-  sample.shape = 10, sample.mean = 1, additionalsampledelay = 0,
-  wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1,
-  wh.exponent = 1, wh.level = 0.1, dist.model = "power",
-  dist.exponent = 2, dist.scale = 1, mu = 1e-04,
-  sequence.length = 10000, ...)
+sim_phybreak(
+  obsize = 50,
+  popsize = NA,
+  samplesperhost = 1,
+  introductions = 1,
+  R0 = 1.5,
+  spatial = FALSE,
+  gen.shape = 10,
+  gen.mean = 1,
+  sample.shape = 10,
+  sample.mean = 1,
+  seq.dist = NA,
+  additionalsampledelay = 0,
+  wh.model = "linear",
+  wh.bottleneck = "auto",
+  wh.slope = 1,
+  wh.exponent = 1,
+  wh.level = 0.1,
+  dist.model = "power",
+  dist.exponent = 2,
+  dist.scale = 1,
+  mu = 1e-04,
+  sequence.length = 10000,
+  ...
+)
 
 sim.phybreak(...)
 }

@@ -41,7 +41,7 @@ copy2pbe2 <- function(var, env) {
 
 ### build the pbe0 at the start of an mcmc chain by copying the fixed parameters and phybreak object, and by
 ### calculating likarray and the log-likelihoods 
-build_pbe <- function(phybreak.obj, histtime) {
+build_pbe <- function(phybreak.obj, histtime = -1e5) {
   ### Making everything available within the function
   le <- environment()
   d <- phybreak.obj$d
@@ -136,9 +136,12 @@ build_pbe <- function(phybreak.obj, histtime) {
   
   ### calculate the other log-likelihoods
   logLiksam <- lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes)
-  logLikgen <- lik_gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors)
+  logLikgen <- lik_gentimes(p, v)
+  # logLikgen <- lik_gentimes(p$gen.shape, p$gen.mean, p$gen.sample.scale, p$gen.culling.scale, p$trans.model,
+  #                           v$inftimes, v$infectors, v$nodetimes,  v$cultimes)
   logLikcoal <- lik_coaltimes(le)
-  logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, v$infectors, d$distances)
+  logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, 
+                              v$infectors[v$infectors!=0]-1, d$distances)
   
   ### copy everything into pbe0
   copy2pbe0("d", le)
@@ -159,7 +162,8 @@ build_pbe <- function(phybreak.obj, histtime) {
 ### empty the environments and return the new object.  
 destroy_pbe <- function(phybreak.obj.samples) {
   remove_history()
-  res <- list(d = pbe0$d, v = environment2phybreak(pbe0$v), p = pbe0$p, h = pbe0$h, s = phybreak.obj.samples)
+  res <- list(d = pbe0$d, v = environment2phybreak(pbe0$v), p = pbe0$p, h = pbe0$h, s = phybreak.obj.samples,
+              hist = pbe0$v$inftimes[1])
   class(res) <- c("phybreak", "list")
   rm(list = ls(pbe0), envir = pbe0)
   rm(list = ls(pbe1), envir = pbe1)
@@ -217,7 +221,7 @@ propose_pbe <- function(f) {
   
   
   if (f == "phylotrans" || f == "trans" || f == "mG") {
-    logLikgen <- lik_gentimes(p$gen.shape, p$gen.mean, v$inftimes, v$infectors)
+    logLikgen <- lik_gentimes(p, v)
     copy2pbe1("logLikgen", le)
   }
   
@@ -233,7 +237,7 @@ propose_pbe <- function(f) {
   
   if (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {
     logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean,
-                                v$infectors, d$distances)
+                                v$infectors[v$infectors!=0]-1, d$distances)
     copy2pbe1("logLikdist", le)
   }
   

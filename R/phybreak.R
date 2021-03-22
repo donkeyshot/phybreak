@@ -113,12 +113,14 @@
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
 phybreak <- function(dataset, times = NULL, introductions = 1,
-         mu = NULL, gen.shape = 3, gen.mean = 1,
+         mu = NULL, gen.shape = 3, gen.mean = 1, trans.model = "gamma",
+         trans.init = 1e-4, trans.growth = 1, trans.sample = 0.1, trans.culling = 5,
          sample.shape = 3, sample.mean = 1, 
          wh.model = "linear", wh.bottleneck = "auto", wh.history = 1, wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
          dist.model = "power", dist.exponent = 2, dist.scale = 1, dist.mean = 1,
          est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
          est.sample.mean = TRUE, prior.sample.mean.mean = 1, prior.sample.mean.sd = Inf,
+         est.trans.growth = TRUE, est.trans.sample = TRUE,
          est.wh.history = TRUE, est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
          est.wh.exponent = TRUE, prior.wh.exponent.shape = 1, prior.wh.exponent.mean = 1,
          est.wh.level = TRUE, prior.wh.level.shape = 1, prior.wh.level.mean = 0.1,
@@ -160,6 +162,7 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
   dataslot$hostnames <- dataset$sample.hosts
   dataslot$sequences <- dataset$sequences
   dataslot$sample.times <- dataset$sample.times
+  dataslot$culling.times <- dataset$culling.times
   dataslot$locations <- dataset$locations
   dataslot$distances <- dataset$distances
   
@@ -187,6 +190,10 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
     gen.mean = gen.mean,
     sample.shape = sample.shape,
     gen.shape = gen.shape,
+    trans.init = trans.init,
+    trans.growth = trans.growth,
+    trans.sample = trans.sample,
+    trans.culling = trans.culling,
     wh.model = wh.model,
     wh.bottleneck = wh.bottleneck,
     wh.history = wh.history,
@@ -196,7 +203,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
     dist.model = dist.model,
     dist.exponent = dist.exponent,
     dist.scale = dist.scale,
-    dist.mean = dist.mean
+    dist.mean = dist.mean,
+    trans.model = trans.model
   )
   
   ##############################
@@ -207,6 +215,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
   phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot,
                                            introductions)
   variableslot <- phybreakvariables$v
+  if(length(variableslot$cultimes) == 0)
+    variableslot <- within(variableslot, rm(cultimes))
   dataslot$reference.date <- phybreakvariables$d$reference.date
   
   #################
@@ -230,6 +240,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
                      dist = distmatrix_phybreak(subset(dataslot$sequences, subset = 1:parameterslot$obs)),
                      est.mG = est.gen.mean,
                      est.mS = est.sample.mean,
+                     est.tG = est.trans.growth,
+                     est.tS = est.trans.sample,
                      est.wh.h = est.wh.history,
                      est.wh.s = est.wh.slope && wh.model == "linear",
                      est.wh.e = est.wh.exponent && wh.model == "exponential",
@@ -266,6 +278,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
     mu = c(),
     mG = c(),
     mS = c(),
+    tG = c(),
+    tS = c(),
     wh.s = c(),
     wh.e = c(),
     wh.0 = c(),
