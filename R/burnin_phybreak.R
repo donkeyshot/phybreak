@@ -79,7 +79,7 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
       print_screen_log(rep)
       curtime <- Sys.time()
     }
-    for(i in sample(c(rep(-(1:12), parameter_frequency), 1:(x$p$obs+1)))) {
+    for(i in sample(c(rep(-(1:13), parameter_frequency), 1:(x$p$obs+1)))) {
       # print(i)
       if(i > 0) {
         which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
@@ -94,6 +94,7 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
       if (i == -11 && x$h$est.tG) update_tG()
       if (i == -12 && x$h$est.tS) update_tS()
       if (i == -10 && x$h$est.wh.h) update_wh_history()
+      if (i == -13) update_hist_dens()
       if (i == -4 && x$h$est.wh.s)  update_wh_slope()
       if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
       if (i == -6 && x$h$est.wh.0)  update_wh_level()

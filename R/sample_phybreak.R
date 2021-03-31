@@ -76,6 +76,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                    nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
                    introductions = c(sum(x$s$infectors==0), rep(NA, nsample)),
                    mu = c(x$s$mu, rep(NA, nsample)), 
+                   hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
                    mG = c(x$s$mG, rep(NA, nsample)), 
                    mS = c(x$s$mS, rep(NA, nsample)), 
                    tG = c(x$s$tG, rep(NA, nsample)),
@@ -103,7 +104,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           print_screen_log(sa)
           curtime <- Sys.time()
         }
-        for(i in  sample(c(rep(-(1:12), parameter_frequency), 1:(x$p$obs+1)))) {
+        for(i in  sample(c(rep(-(1:13), parameter_frequency), 1:(x$p$obs+1)))) {
           if(i > 0) {
             which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                      1,
@@ -117,6 +118,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           if (i == -11 && x$h$est.tG) update_tG()
           if (i == -12 && x$h$est.tS) update_tS()
           if (i == -10 && x$h$est.wh.h) update_wh_history()
+          if (i == -13) update_hist_dens()
           if (i == -4 && x$h$est.wh.s)  update_wh_slope()
           if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
           if (i == -6 && x$h$est.wh.0)  update_wh_level()
@@ -137,6 +139,7 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                                     rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c"))))
       s.post$introductions[sa] <- sum(vars_to_log$infectors == 0)
       s.post$mu[sa] <- pbe0$p$mu
+      s.post$hist_dens[sa] <- pbe0$p$hist_dens
       s.post$mG[sa] <- pbe0$p$gen.mean
       s.post$mS[sa] <- pbe0$p$sample.mean
       s.post$tG[sa] <- pbe0$p$trans.growth

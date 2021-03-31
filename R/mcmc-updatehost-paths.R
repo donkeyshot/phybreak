@@ -367,6 +367,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                                  cultimes = v$cultimes)) +
       (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorproposal[hostID] <- 0
+    dens.infectorproposal[1] <- p$hist_dens * dens.infectorproposal[1]
     infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
     copy2pbe1("infector.proposed.ID", environment())
     
@@ -377,6 +378,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                                 nodetimes = v$nodetimes[v$nodetypes=="s"],
                                                 cultimes = v$cultimes)) +
       (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
+    dens.infectorcurrent[1] <- p$hist_dens * dens.infectorcurrent[1]
     dens.infectorcurrent[hostID] <- 0
     
     # logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/

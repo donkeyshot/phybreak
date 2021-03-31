@@ -242,14 +242,16 @@ get_mcmc <- function(x, thin = 1, nkeep = Inf) {
     res <- cbind(x$s$mG[tokeep], res)
     parnames <- c("mG", parnames)
   }
-  if (x$h$est.mG) {
+  if (x$h$est.tG) {
     res <- cbind(x$s$tG[tokeep], res)
     parnames <- c("tG", parnames)
   }
-  if (x$h$est.mG) {
+  if (x$h$est.tS) {
     res <- cbind(x$s$tS[tokeep], res)
     parnames <- c("tS", parnames)
   }
+  res <- cbind(x$s$hist_dens[tokeep], res)
+  parnames <- c("hist.dens", parnames)
   res <- cbind(x$s$mu[tokeep], x$s$introductions[tokeep], res, x$s$logLik[tokeep])
   parnames <- c("mu", "introductions", parnames, "logLik")
   colnames(res) <- parnames

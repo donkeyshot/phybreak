@@ -28,6 +28,34 @@ update_mu <- function() {
     }
 }
 
+update_hist_dens <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  h <- pbe0$h
+  p <- pbe1$p
+  
+  ### change to proposal state
+  p$hist_dens <- exp(log(p$hist_dens) + rnorm(1, 0, 0.1))
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate likelihood
+  propose_pbe("mG")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikseq - pbe0$logLikseq
+  
+  ### accept or reject
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("mG")
+  }
+}
+
+
 update_mS <- function() {
     ### create an up-to-date proposal-environment
     prepare_pbe()
