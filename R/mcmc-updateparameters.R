@@ -46,13 +46,13 @@ update_hist_dens <- function() {
   ### calculate likelihood
   propose_pbe("mG")
   
-  ### calculate acceptance probability
-  logaccprob <- pbe1$logLikseq - pbe0$logLikseq
-  
-  ### accept or reject
-  if (runif(1) < exp(logaccprob)) {
+  # ### calculate acceptance probability
+  # logaccprob <- pbe1$logLikseq - pbe0$logLikseq
+  # 
+  # ### accept or reject
+  # if (runif(1) < exp(logaccprob)) {
     accept_pbe("mG")
-  }
+  # }
 }
 
 
@@ -134,7 +134,7 @@ update_tG <- function() {
                                    rate = sumgt + (h$mG.av/p$gen.shape) * (1 + (h$mG.av/h$mG.sd)^2))
   
   p$trans.growth <- rnorm(1, mean = log(sumgt)/10, sd = 0.1)#log((1-p$trans.init)/p$trans.init)/rexp(1, rate = 15/sumgt)
-  
+  # p$trans.growth <- exp(log(p$trans.growth) + rnorm(1, 0, 0.1))
   ### update proposal environment
   copy2pbe1("p", le)
   
@@ -158,7 +158,9 @@ update_tS <- function() {
   le <- environment()
   p <- pbe1$p
   
-  p$trans.sample <- runif(1, 0, 1)
+  p$trans.sample <- exp(log(p$trans.sample) + rnorm(1, 0, 0.1))
+  if (p$trans.sample < 0 | p$trans.sample > 1)
+    return()
   
   ### update proposal environment
   copy2pbe1("p", le)

@@ -95,7 +95,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
     # make vars-list with the tree to plot
     if (plot.which != "sample") {
       tree2plot <- suppressWarnings(transtree(x, plot.which, 
-                                              infection.times = "infector", time.quantiles = 0.5))
+                                              infection.times = "infector", time.quantiles = 0.5)$transtree)
       vars <- list(sample.times = x$d$sample.times,
                    sample.hosts = x$d$hostnames,
                    sim.infection.times = tree2plot[, 3],

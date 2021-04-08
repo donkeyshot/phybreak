@@ -126,7 +126,7 @@ burnin.phybreak <- function(...) {
 print_screen_log <- function(iteration) {
   message(paste0(
     stringr::str_pad(iteration, 8),
-    stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal, 2), 12),
+    stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal + pbe0$logLikdist, 2), 12),
     stringr::str_pad(signif(sum(pbe0$v$infectors==1), 1), 15),
     stringr::str_pad(signif(pbe0$p$mu, 3), 9),
     stringr::str_pad(signif(log((1-pbe0$p$trans.init)/pbe0$p$trans.init)/pbe0$p$trans.growth, 3), 10),
