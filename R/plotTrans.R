@@ -126,13 +126,21 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
       } else {
         arrow.col <- arrow.col[1]
       }
+      
+      if(is.null(unlist(x$s))){
+        trans.sample = x$p$trans.sample
+        trans.growth = x$p$trans.growth
+      } else {
+        trans.sample = median(x$s$tS)
+        trans.growth = median(x$s$tG)
+      }
       tg.mean <- x$p$gen.mean
       tg.shape <- x$p$gen.shape
       ttrans <- list(trans.model = x$p$trans.model,
-                     trans.sample = median(x$s$tS),
+                     trans.sample = trans.sample,
                      trans.init = x$p$trans.init,
                      trans.culling = x$p$trans.culling,
-                     trans.growth = median(x$s$tG))
+                     trans.growth = trans.growth)
     } else {
       # plot.which == "sample" && samplenr > 0
       

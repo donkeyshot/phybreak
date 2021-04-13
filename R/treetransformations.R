@@ -229,7 +229,8 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
   if(is.null(vars$sim.infection.times) | is.null(vars$sim.infectors) | resample) {
     resample <- TRUE
     inftimes <- .rinftimes(samtimes[1:nhosts], resamplepars$sample.mean, resamplepars$sample.shape)
-    infectors <- .rinfectors(inftimes, introductions, resamplepars$gen.mean, resamplepars$gen.shape)
+    infectors <- .rinfectors(inftimes, introductions, p = resamplepars, 
+                             v = list(cultimes=cultimes, nodetimes = samtimes), nhosts)
   } else {
     inftimes <- as.numeric(vars$sim.infection.times - refdate)
     infectors <- match(vars$sim.infectors, hostnames)
@@ -392,23 +393,26 @@ whichgeneration <- function(infectors, hostID) {
   st - rgamma(length(st), shape = shapeS, scale = meanS/shapeS)
 }
 
-### random infectors times given infection times and generation interval distribution
-.rinfectors <- function(it, introductions, meanG, shapeG) {
+### random infectors given infection times and generation interval distribution
+.rinfectors <- function(it, introductions, p, v, nhosts) {
   ### tests
   if(class(it) != "numeric" && class(it) != "integer") {
     stop(".rinfectors called with non-numeric infection times")
   }
   if(sum(it == min(it)) > 1) stop("rinfectors with >1 index case")
-  if(meanG <= 0) stop(".rinfectors called with non-positive mean generation interval")
-  if(shapeG <= 0) stop(".rinfectors called with non-positive shape parameter")
-  
+  if(p$trans.model ==  "gamma"){
+    if(meanG <= 0) stop(".rinfectors called with non-positive mean generation interval")
+    if(shapeG <= 0) stop(".rinfectors called with non-positive shape parameter")
+  }
   ### function body
   res <- rep(0,length(it))
   for(i in 1:length(it)) {
     if(it[i] > it[order(it)][introductions]) {
-      dist <- dgamma(it[i] - it, shape = shapeG, scale = meanG/shapeG)
+      dist <- infect_distribution(it[i],it,cultimes=v$cultimes,nodetimes=v$nodetimes[1:nhosts], p=p)
       dist[i] <- 0
       res[i] <- sample(length(it), 1, prob = dist)
+      print(dist)
+      print(res[i])
     }
   }
   return(res)
@@ -434,10 +438,10 @@ pullnodes_complete_multiple_introductions <- function(currentID) {
   nodes <- which(pbe1$v$nodehosts == currentID)
   transnodes <- which(pbe1$v$nodetypes == "t")
   transnode.currentID <- transnodes[currentID]
-  if (any(pbe1$v$infectors == currentID)){
+  if (any(pbe1$v$infectors == currentID) | length(nodes) > 1){
     innodes <- pbe1$v$infectors == currentID
-    edgesin <- c(currentID, transnodes[innodes])
-    edgeintimes <- c(pbe1$v$nodetimes[currentID], pbe1$v$inftimes[innodes])
+    edgesin <- nodes
+    edgeintimes <- pbe1$v$nodetimes[nodes]
     transnode.inftime <- pbe1$v$nodetimes[transnodes[currentID]]
     coaltimes <- sample_coaltimes(edgeintimes, transnode.inftime, pbe1$p)
     # print(coaltimes)
