@@ -72,6 +72,8 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 # lik_gentimes <- function(shapeG, meanG, sampleScale, cullingScale, transModel, inftimes, infectors,
 #                          nodetimes, cultimes) {
 lik_gentimes <- function(p, v){
+  #meanG = p$gen.mean
+  #shapeG = p$gen.shape
   0 + # force of infection from external source
   sum(infect_distribution(v$inftimes[v$infectors > 1],
                             v$inftimes[v$infectors[v$infectors > 1]],
@@ -79,8 +81,8 @@ lik_gentimes <- function(p, v){
                           cultimes = v$cultimes[v$infectors[v$infectors>1]],
                           p = p,
                           log = TRUE))
-  # sum(dgamma(inftimes[infectors > 1] - 
-  #              inftimes[infectors[infectors > 1]], 
+  # sum(dgamma(v$inftimes[v$infectors > 1] -
+  #              v$inftimes[v$infectors[v$infectors > 1]],
   #            shape = shapeG, scale = meanG/shapeG, log = TRUE))
 }
 

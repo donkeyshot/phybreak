@@ -167,6 +167,11 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
       }
       tg.mean <- x$s$mG[samplenr]
       tg.shape = x$p$gen.shape
+      ttrans <- list(trans.model = x$p$trans.model,
+                     trans.sample = x$s$tS[samplenr],
+                     trans.init = x$p$trans.init,
+                     trans.culling = x$p$trans.culling,
+                     trans.growth = x$s$tG[samplenr])
     }
   }
   maketransplot(vars, tg.mean = tg.mean, tg.shape = tg.shape, ttrans = ttrans,

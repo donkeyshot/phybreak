@@ -401,8 +401,8 @@ whichgeneration <- function(infectors, hostID) {
   }
   if(sum(it == min(it)) > 1) stop("rinfectors with >1 index case")
   if(p$trans.model ==  "gamma"){
-    if(meanG <= 0) stop(".rinfectors called with non-positive mean generation interval")
-    if(shapeG <= 0) stop(".rinfectors called with non-positive shape parameter")
+    if(p$gen.mean <= 0) stop(".rinfectors called with non-positive mean generation interval")
+    if(p$gen.shape <= 0) stop(".rinfectors called with non-positive shape parameter")
   }
   ### function body
   res <- rep(0,length(it))
@@ -411,8 +411,6 @@ whichgeneration <- function(infectors, hostID) {
       dist <- infect_distribution(it[i],it,cultimes=v$cultimes,nodetimes=v$nodetimes[1:nhosts], p=p)
       dist[i] <- 0
       res[i] <- sample(length(it), 1, prob = dist)
-      print(dist)
-      print(res[i])
     }
   }
   return(res)
