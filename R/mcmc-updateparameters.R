@@ -133,7 +133,7 @@ update_tG <- function() {
                                    shape = p$gen.shape * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2,
                                    rate = sumgt + (h$mG.av/p$gen.shape) * (1 + (h$mG.av/h$mG.sd)^2))
   
-  p$trans.growth <- rnorm(1, mean = log(sumgt)/10, sd = 0.1)#log((1-p$trans.init)/p$trans.init)/rexp(1, rate = 15/sumgt)
+  p$trans.growth <- max(0,rnorm(1, mean = log(sumgt)/10, sd = 0.1))#log((1-p$trans.init)/p$trans.init)/rexp(1, rate = 15/sumgt)
   # p$trans.growth <- exp(log(p$trans.growth) + rnorm(1, 0, 0.1))
   ### update proposal environment
   copy2pbe1("p", le)
