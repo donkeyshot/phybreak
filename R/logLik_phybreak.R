@@ -160,12 +160,24 @@ lik_coaltimes <- function(phybreakenv) {
                                           whtimes[coalnodes])),
                            constant = -log(phybreakenv$p$wh.level) * coalnodes)
   }
-  cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite=,
-                         linear = log(whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope + 
-                                        ((whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) == 0)) / phybreakenv$p$wh.slope,
-                         exponential  = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
-                                              exp(phybreakenv$p$wh.exponent * whtimes)),
-                         constant = whtimes/phybreakenv$p$wh.level)
+  
+  if (length(coalnodes.history) > 0){
+    cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite=,
+                           linear = c(log(whtimes[orderedhosts <= 1] + phybreakenv$p$wh.level/phybreakenv$p$wh.history + 
+                                          ((whtimes[orderedhosts <= 1] + phybreakenv$p$wh.level/phybreakenv$p$wh.history) == 0)) / phybreakenv$p$wh.history,
+                                    log(whtimes[orderedhosts > 1] + phybreakenv$p$wh.level/phybreakenv$p$wh.slope + 
+                                          ((whtimes[orderedhosts > 1] + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) == 0)) / phybreakenv$p$wh.slope),
+                           exponential  = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
+                                                exp(phybreakenv$p$wh.exponent * whtimes)),
+                           constant = whtimes/phybreakenv$p$wh.level)
+  } else {
+    cumcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite=,
+                           linear = log(whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope + 
+                                          ((whtimes + phybreakenv$p$wh.level/phybreakenv$p$wh.slope) == 0)) / phybreakenv$p$wh.slope,
+                           exponential  = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
+                                                exp(phybreakenv$p$wh.exponent * whtimes)),
+                           constant = whtimes/phybreakenv$p$wh.level)
+  }
   coalratediffs <- cumcoalrates - c(0, head(cumcoalrates, -1))
   logcoalescapes <- -coalratediffs * choose(nrlineages, 2)
   
