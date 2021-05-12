@@ -131,7 +131,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   
   ### propose the new infection time
   if (hostID == 1)
-    tinf.prop <- v$inftimes[hostID] - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 1e3)
+    tinf.prop <- v$inftimes[hostID]# - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 10)
   else 
     tinf.prop <- v$nodetimes[hostID-1] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))

@@ -88,7 +88,8 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
                    dist.e = c(x$s$dist.e, rep(NA, nsample)), 
                    dist.s = c(x$s$dist.s, rep(NA, nsample)), 
                    dist.m = c(x$s$dist.m, rep(NA, nsample)), 
-                   logLik = c(x$s$logLik, rep(NA, nsample)))
+                   logLik = with(x, cbind(s$logLik, matrix(NA, nrow = 5, ncol = nsample))),
+                   historyinf = c(x$s$historyinf, rep(NA, nsample)))
     
     if (!history)
       build_pbe(x, histtime)
@@ -128,6 +129,8 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           if (i == -9 && x$h$est.dist.m)  update_dist_mean()
         }
       }
+      #print(pbe0$v$inftimes[1])
+      s.post$historyinf[sa] <- pbe0$v$inftimes[1]
       remove_history(keepenv = TRUE)
       vars_to_log <- environment2phybreak(pbe0_2$v)
       s.post$inftimes[, sa] <- vars_to_log$inftimes
@@ -152,7 +155,8 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
       s.post$dist.e[sa] <- pbe0$p$dist.exponent
       s.post$dist.s[sa] <- pbe0$p$dist.scale
       s.post$dist.m[sa] <- pbe0$p$dist.mean
-      s.post$logLik[sa] <- pbe0$logLikgen + pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikdist + pbe0$logLikcoal 
+      s.post$logLik[, sa] <- c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam, pbe0$logLikdist, pbe0$logLikseq) 
+      #print(c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam,pbe0$logLikdist, pbe0$logLikseq))
     }
     
     res <- destroy_pbe(s.post)

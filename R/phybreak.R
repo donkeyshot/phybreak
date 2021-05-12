@@ -288,7 +288,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
     dist.e = c(),
     dist.s = c(),
     dist.m = c(),
-    logLik = c()
+    logLik = c(),
+    historyinf = c()
   )
 
   ################################
