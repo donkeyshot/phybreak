@@ -33,14 +33,22 @@
 #' MCMCstate <- burnin_phybreak(MCMCstate, ncycles = 20)
 #' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
-sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, withinhost_only = 0, 
-                            parameter_frequency = 1, status_interval = 10, histtime = -1e5, history = FALSE) {
-    ### tests
-    if(nsample < 1) stop("nsample should be positive")
-    if(thin < 1) stop("thin should be positive")
-    if(is.null(x$p$wh.bottleneck)) {
-      x$p$wh.bottleneck <- choose_whbottleneck("auto", x$p$wh.model)
-    }
+sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, keepphylo = 0, withinhost_only = 0, 
+                            parameter_frequency = 1, status_interval = 10, histtime = -1e5, history = FALSE,
+                            nchains = 1, heats = NULL, all_chains = FALSE, parallel = FALSE, ...) {
+  
+  if (parallel)
+    return(sample_phybreak_parallel(x, nsample, thin, thinswap, classic, keepphylo, 
+                                    withinhost_only, parameter_frequency, status_interval, 
+                                    histtime = -1e5, history = FALSE,
+                                    nchains = 1, heats = NULL, all_chains = FALSE, ...))
+      
+  ### tests
+  if(nsample < 1) stop("nsample should be positive")
+  if(thin < 1) stop("thin should be positive")
+  if(is.null(x$p$wh.bottleneck)) {
+    x$p$wh.bottleneck <- choose_whbottleneck("auto", x$p$wh.model)
+  }
   if(classic < 0 | classic > 1) stop("classic should be a fraction")
   if(keepphylo < 0 | keepphylo > 1) stop("keepphylo should be a fraction")
   if(withinhost_only < 0 | withinhost_only > 1) stop("withinhost_only should be a fraction")
@@ -68,45 +76,77 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
   
   protocoldistribution <- c(1 - classic - keepphylo - withinhost_only, classic, keepphylo, withinhost_only)
   
-    ### create room in s to add the new posterior samples
-    s.post <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
-                   infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
-                   nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
-                   nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
-                   nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
-                   introductions = c(sum(x$s$infectors==0), rep(NA, nsample)),
-                   mu = c(x$s$mu, rep(NA, nsample)), 
-                   hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
-                   mG = c(x$s$mG, rep(NA, nsample)), 
-                   mS = c(x$s$mS, rep(NA, nsample)), 
-                   tG = c(x$s$tG, rep(NA, nsample)),
-                   tS = c(x$s$tS, rep(NA, nsample)),
-                   wh.h = c(x$s$wh.h, rep(NA, nsample)), 
-                   wh.s = c(x$s$wh.s, rep(NA, nsample)), 
-                   wh.e = c(x$s$wh.e, rep(NA, nsample)), 
-                   wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
-                   dist.e = c(x$s$dist.e, rep(NA, nsample)), 
-                   dist.s = c(x$s$dist.s, rep(NA, nsample)), 
-                   dist.m = c(x$s$dist.m, rep(NA, nsample)), 
-                   logLik = with(x, cbind(s$logLik, matrix(NA, nrow = 5, ncol = nsample))),
-                   historyinf = c(x$s$historyinf, rep(NA, nsample)))
+  ### create room in s to add the new posterior samples
+  s.posts <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
+                 infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
+                 nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
+                 nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
+                 nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
+                 introductions = c(sum(x$s$infectors==0), rep(NA, nsample)),
+                 mu = c(x$s$mu, rep(NA, nsample)), 
+                 hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
+                 mG = c(x$s$mG, rep(NA, nsample)), 
+                 mS = c(x$s$mS, rep(NA, nsample)), 
+                 tG = c(x$s$tG, rep(NA, nsample)),
+                 tS = c(x$s$tS, rep(NA, nsample)),
+                 wh.h = c(x$s$wh.h, rep(NA, nsample)), 
+                 wh.s = c(x$s$wh.s, rep(NA, nsample)), 
+                 wh.e = c(x$s$wh.e, rep(NA, nsample)), 
+                 wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
+                 dist.e = c(x$s$dist.e, rep(NA, nsample)), 
+                 dist.s = c(x$s$dist.s, rep(NA, nsample)), 
+                 dist.m = c(x$s$dist.m, rep(NA, nsample)), 
+                 logLik = with(x, cbind(s$logLik, matrix(NA, nrow = 5, ncol = nsample))),
+                 historyinf = c(x$s$historyinf, rep(NA, nsample)),
+                 heat = c(x$s$heat, rep(NA, nsample)))
     
-    if (!history)
-      build_pbe(x, histtime)
+  s.posts <- lapply(1:nchains, function(i) s.posts)
+    
+  if (!history)
+    build_pbe(x, histtime)
 
-    message(paste0("  sample      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
-    print_screen_log(length(x$s$mu))
+  if (is.null(heats))
+    heats <- 1/(1+1*(1:nchains-1))
+  else if (inherits(heats, "numeric") & length(heats) != nchains)
+    stop("length of heats is not the same as number of chains")
+  else if (!inherits(heats, "numeric"))
+    stop("heats is not a numeric vector")
     
-    curtime <- Sys.time()
+  envirs <- list()
+  
+  for (n in 1:nchains){
+    heat <- heats[n]
+    copy2pbe0("heat", environment())
+    chain <- n
+    copy2pbe0("chain", environment())
+    envirs[[n]] <- as.environment(as.list(pbe0, all.names = TRUE))
+  }
     
-    for (sa in tail(1:length(s.post$mu), nsample)) {
+  message(paste0("  sample      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+  print_screen_log(length(x$s$mu))
+    
+  curtime <- Sys.time()
+
+  swap_thin <- 0
+  shared_heats <- heats
+  
+  for (sa in tail(1:length(s.posts[[1]]$mu), nsample)) {
+    
+    for (rep in 1:thin) {
+      if(Sys.time() - curtime > status_interval) {
+        for (i in ls(envir=envirs[[1]])) copy2pbe0(i, envirs[[1]])
+        print_screen_log(sa)
+        curtime <- Sys.time()
+      }
       
-      for (rep in 1:thin) {
-        if(Sys.time() - curtime > status_interval) {
-          print_screen_log(sa)
-          curtime <- Sys.time()
-        }
-        for(i in  sample(c(rep(-(1:13), parameter_frequency), 1:(x$p$obs+1)))) {
+      for (i in 1:nchains){
+        envirs[[i]]$heat <- shared_heats[i]
+      }
+      
+      envirs <- lapply (envirs, function(e) {
+        for (i in ls(envir=e)) copy2pbe0(i, e)
+        
+        for(i in  sample(c(rep(-(1:12), parameter_frequency), 1:(x$p$obs+1)))) {
           if(i > 0) {
             which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                      1,
@@ -120,7 +160,6 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           if (i == -11 && x$h$est.tG) update_tG()
           if (i == -12 && x$h$est.tS) update_tS()
           if (i == -10 && x$h$est.wh.h) update_wh_history()
-          if (i == -13) update_hist_dens()
           if (i == -4 && x$h$est.wh.s)  update_wh_slope()
           if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
           if (i == -6 && x$h$est.wh.0)  update_wh_level()
@@ -128,11 +167,30 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
           if (i == -8 && x$h$est.dist.s)  update_dist_scale()
           if (i == -9 && x$h$est.dist.m)  update_dist_mean()
         }
-      }
-      #print(pbe0$v$inftimes[1])
+        
+        as.environment(as.list(pbe0, all.names = TRUE))
+      })
+      
+      if(nchains > 1 & swap_thin %% thinswap == 0){
+        shared_lik <- do.call(cbind, lapply(envirs, function(xx){
+          sum(xx$logLikcoal, xx$logLikgen, xx$logLiksam, xx$logLikdist, 
+              xx$logLikseq)
+        }))
+        
+        shared_heats <- swap_heats(shared_heats, shared_lik)
+      } 
+      swap_thin <- swap_thin + 1
+    }
+    
+    s.posts <- lapply(envirs, function(e){
+      for (i in ls(envir=e)) copy2pbe0(i, e)
+      
+      chain <- pbe0$chain
+      s.post <- s.posts[[chain]]
+      
       s.post$historyinf[sa] <- pbe0$v$inftimes[1]
       remove_history(keepenv = TRUE)
-      vars_to_log <- environment2phybreak(pbe0_2$v)
+      vars_to_log <- environment2phybreak(pbe2$v)
       s.post$inftimes[, sa] <- vars_to_log$inftimes
       s.post$infectors[, sa] <- vars_to_log$infectors
       s.post$nodetimes[, sa] <- c(vars_to_log$nodetimes[vars_to_log$nodetypes == "c"],
@@ -142,8 +200,9 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
       s.post$nodeparents[, sa] <- c(vars_to_log$nodeparents,
                                     rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c"))))
       s.post$introductions[sa] <- sum(vars_to_log$infectors == 0)
+      #print(sprintf("intros=%s",s.post$introductions[sa]))
       s.post$mu[sa] <- pbe0$p$mu
-      s.post$hist_dens[sa] <- pbe0$p$hist_dens
+      #s.post$hist_dens[sa] <- pbe0$p$hist_dens
       s.post$mG[sa] <- pbe0$p$gen.mean
       s.post$mS[sa] <- pbe0$p$sample.mean
       s.post$tG[sa] <- pbe0$p$trans.growth
@@ -156,12 +215,23 @@ sample_phybreak <- function(x, nsample, thin = 1, classic = 0, keepphylo = 0, wi
       s.post$dist.s[sa] <- pbe0$p$dist.scale
       s.post$dist.m[sa] <- pbe0$p$dist.mean
       s.post$logLik[, sa] <- c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam, pbe0$logLikdist, pbe0$logLikseq) 
+      s.post$heat[sa] <- n
       #print(c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam,pbe0$logLikdist, pbe0$logLikseq))
-    }
+      
+      #assign(paste0("s.post.",chain), s.post)
+      s.posts[[chain]] <- s.post
+      
+    })
     
-    res <- destroy_pbe(s.post)
+  }
     
-    
+  s.post <- s.posts[[1]]
+      
+  res <- destroy_pbe(s.post)
+  
+  if(all_chains)
+    return(list(phyb.obj = res, chains = s.posts))
+  else
     return(res)
     
 }

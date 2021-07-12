@@ -2,10 +2,10 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
   if (build){
     v <- vars
     p <- pars
-    copy2pbe1_2("d", environment())
-    copy2pbe1_2("v", environment())
-    copy2pbe1_2("p", environment())
-    copy2pbe1_2("h", environment())
+    copy2pbe2("d", environment())
+    copy2pbe2("v", environment())
+    copy2pbe2("p", environment())
+    copy2pbe2("h", environment())
   }
   
   introductions <- sum(vars$infectors==0)
@@ -102,7 +102,7 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
         v$nodetimes[sum(v$nodetypes!="t")+1] <- v$inftimes[1]
         
         for(n in names(pbe1))
-          copy2pbe1_2(n, pbe1)
+          copy2pbe2(n, pbe1)
         
         hs <- v
         copy2pbe1("v", environment())
@@ -145,7 +145,7 @@ remove_history <- function(keepenv = FALSE){
   v$nodeparents <- nodeparents
   
   if (keepenv)
-    copy2pbe0_2("v", environment())
+    copy2pbe2("v", environment())
   else {
     pbe0$h$dist <- pbe0$h$dist[,2:ncol(pbe0$h$dist)][2:nrow(pbe0$h$dist),]
     copy2pbe0("v", environment())

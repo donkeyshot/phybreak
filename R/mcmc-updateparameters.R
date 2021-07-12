@@ -189,6 +189,7 @@ update_wh_history <- function(){
     
     ### change to proposal state
     p$wh.history <- exp(log(p$wh.history) + rnorm(1, 0, h$si.wh))
+    #if (p$wh.history > 1) return()
     
     ### update proposal environment
     copy2pbe1("p", le)

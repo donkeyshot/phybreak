@@ -131,7 +131,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   
   ### propose the new infection time
   if (hostID == 1)
-    tinf.prop <- v$inftimes[hostID]# - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 10)
+    tinf.prop <- v$inftimes[hostID] - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 10)
   else 
     tinf.prop <- v$nodetimes[hostID-1] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
@@ -367,7 +367,6 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                                  cultimes = v$cultimes)) +
       (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorproposal[hostID] <- 0
-    dens.infectorproposal[1] <- p$hist_dens * dens.infectorproposal[1]
     infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
     copy2pbe1("infector.proposed.ID", environment())
     
@@ -378,7 +377,6 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                                 nodetimes = v$nodetimes[v$nodetypes=="s"],
                                                 cultimes = v$cultimes)) +
       (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
-    dens.infectorcurrent[1] <- p$hist_dens * dens.infectorcurrent[1]
     dens.infectorcurrent[hostID] <- 0
     
     # logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
@@ -460,8 +458,9 @@ update_host_phylotrans <- function(hostID, which_protocol) {
 
     if(pbe1$logLiktoporatio > -Inf) {
       propose_pbe("phylotrans")
-      logacceptanceprob <- pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikdist + pbe1$logLiktoporatio -
-        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikdist + pbe1$logproposalratio
+      logacceptanceprob <- pbe0$heat * 
+        (pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikdist + pbe1$logLiktoporatio -
+        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikdist) + pbe1$logproposalratio
       if (runif(1) < exp(logacceptanceprob)) {
         accept_pbe("phylotrans")
       }
