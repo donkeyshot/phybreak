@@ -40,8 +40,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
   if (parallel)
     return(sample_phybreak_parallel(x, nsample, thin, thinswap, classic, keepphylo, 
                                     withinhost_only, parameter_frequency, status_interval, 
-                                    histtime = -1e5, history = FALSE,
-                                    nchains = 1, heats = NULL, all_chains = FALSE, ...))
+                                    histtime, history, nchains, heats, all_chains, ...))
       
   ### tests
   if(nsample < 1) stop("nsample should be positive")
