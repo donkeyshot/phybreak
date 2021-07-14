@@ -76,7 +76,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
   protocoldistribution <- c(1 - classic - keepphylo - withinhost_only, classic, keepphylo, withinhost_only)
   
   ### create room in s to add the new posterior samples
-  s.posts <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
+  s.post <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
                  infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
                  nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                  nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
@@ -99,7 +99,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                  historyinf = c(x$s$historyinf, rep(NA, nsample)),
                  heat = c(x$s$heat, rep(NA, nsample)))
     
-  s.posts <- lapply(1:nchains, function(i) s.posts)
+  s.posts <- lapply(1:nchains, function(i) s.post)
     
   if (!history)
     build_pbe(x, histtime)
@@ -214,7 +214,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       s.post$dist.s[sa] <- pbe0$p$dist.scale
       s.post$dist.m[sa] <- pbe0$p$dist.mean
       s.post$logLik[, sa] <- c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam, pbe0$logLikdist, pbe0$logLikseq) 
-      s.post$heat[sa] <- n
+      s.post$heat[sa] <- pbe0$heat
       #print(c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam,pbe0$logLikdist, pbe0$logLikseq))
       
       #assign(paste0("s.post.",chain), s.post)
@@ -223,6 +223,21 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
     })
     
   }
+  
+  s.posts <- lapply(1:length(heats), function(nheat){
+    s <- s.post
+    for (chain in 1:nchains){
+      smp <- which(posts[[chain]]$heat == heats[nheat])
+      for (n in names(s)){
+        if(inherits(s[[n]], "matrix"))
+          s[[n]][,smp] <- posts[[chain]][[n]][,smp]
+        else
+          s[[n]][smp] <- posts[[chain]][[n]][smp]
+      }
+    }
+    s$chain <- posts[[nheat]]$heat
+    return(s)
+  })
     
   s.post <- s.posts[[1]]
       
