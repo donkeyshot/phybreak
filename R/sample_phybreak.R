@@ -227,15 +227,15 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
   s.posts <- lapply(1:length(heats), function(nheat){
     s <- s.post
     for (chain in 1:nchains){
-      smp <- which(posts[[chain]]$heat == heats[nheat])
+      smp <- which(s.posts[[chain]]$heat == heats[nheat])
       for (n in names(s)){
         if(inherits(s[[n]], "matrix"))
-          s[[n]][,smp] <- posts[[chain]][[n]][,smp]
+          s[[n]][,smp] <- s.posts[[chain]][[n]][,smp]
         else
-          s[[n]][smp] <- posts[[chain]][[n]][smp]
+          s[[n]][smp] <- s.posts[[chain]][[n]][smp]
       }
     }
-    s$chain <- posts[[nheat]]$heat
+    s$chain <- s.posts[[nheat]]$heat
     return(s)
   })
     

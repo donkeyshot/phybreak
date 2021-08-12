@@ -36,7 +36,22 @@
 sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, keepphylo = 0, withinhost_only = 0, 
                             parameter_frequency = 1, status_interval = 10, histtime = -1e5, history = FALSE,
                             nchains = 1, heats = NULL, all_chains = FALSE, 
-                            outfile = "~/phybreak_parallel_output.txt", phybreakdir) {
+                            outfile = "~/phybreak_parallel_output.txt") {
+  
+  if(!("parallel" %in% .packages(TRUE))) {
+    stop("package 'parallel' should be installed for this function")
+  }
+  if(!("parallel" %in% .packages(FALSE))) {
+    stop("package 'parallel' is not attached")
+  }
+  
+  if(!("Rdsm" %in% .packages(TRUE))) {
+    stop("package 'Rdsm' should be installed for this function")
+  }
+  if(!("Rdsm" %in% .packages(FALSE))) {
+    stop("package 'Rdsm' is not attached")
+  }
+  
   ### tests
   if(nsample < 1) stop("nsample should be positive")
   if(thin < 1) stop("thin should be positive")
@@ -76,7 +91,7 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
                   nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                   nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                   nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
-                  introductions = c(sum(x$s$infectors==0), rep(NA, nsample)),
+                  introductions = c(sum(x$s$infectors==0), rep(NA, nsample - 1)),
                   mu = c(x$s$mu, rep(NA, nsample)), 
                   hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
                   mG = c(x$s$mG, rep(NA, nsample)), 
@@ -136,10 +151,21 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
   
   ### Export variables and functions
   #clusterExport(cl, varlist = ls(pos=which(search() == "package:phybreak")))
+  # Export from function environment
   clusterExport(cl, varlist = c("x", "envirs", "nsample", "thin", "thinswap", "protocoldistribution",
-                                "s.post", "status_interval", "parameter_frequency",
-                                "phybreakdir"), 
+                                "s.post", "status_interval", "parameter_frequency"), 
                 envir = environment())
+  
+  # Export from package namespace
+  clusterExport(cl, varlist = c("copy2pbe0", "pbe0", "pbe2", "print_screen_log",
+                                "update_host", "update_mu", "update_mG",
+                                "update_mS", "update_tG",  "update_tS",
+                                "update_wh_history", "update_wh_slope",
+                                "update_wh_exponent","update_wh_level",
+                                "update_dist_exponent","update_dist_scale",
+                                "update_dist_mean",
+                                "remove_history", "environment2phybreak",
+                                "swap_heats"), envir = environment())
   
   #message(paste0("  sample      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
   #print_screen_log(length(x$s$mu))
@@ -148,9 +174,10 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
   ### Process MCMC for each chain in parallel and share heats and likelihoods
   process_mcmc <- function(shared_heats, shared_lik) {
     require(Rdsm)
-    devtools::clean_dll()
-    devtools::load_all(phybreakdir)
-
+    require(phybreak)
+    # devtools::clean_dll()
+    # devtools::load_all(phybreakdir)
+    
     me <- myinfo$id
 
     for (i in ls(envir=envirs[[me]])) copy2pbe0(i, envirs[[me]])
@@ -191,12 +218,9 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
         if (i == -9 && x$h$est.dist.m)  update_dist_mean()
       }
 
-      shared_lik[1, me] <- sum(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam,
-                               pbe0$logLikdist, pbe0$logLikseq)
-      
       ### Store current state
       if (sa %% thin == 0){
-  
+
         s.post$historyinf[sa] <- pbe0$v$inftimes[1]
         remove_history(keepenv = TRUE)
         vars_to_log <- environment2phybreak(pbe2$v)
@@ -224,65 +248,59 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
         s.post$logLik[, sa] <- c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam, pbe0$logLikdist, pbe0$logLikseq)
         s.post$heat[sa] <- shared_heats[1, me]
       }
-  
+
+      # Swap heats of chains
       if (sa %% thinswap == 0){
+        shared_lik[1, me] <- sum(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam,
+                                 pbe0$logLikdist, pbe0$logLikseq)
+        
         barr()
         if (me == 1){
           shared_heats[,] <- swap_heats(shared_heats[,], shared_lik[,])
         }
         barr()
       }
-  
+      
       gc()
-    }
-    return(s.post)
+     }
+    return(list(s = s.post, p = pbe0))
   }
   
   clusterExport(cl, "process_mcmc", envir = environment())
+  clusterEvalQ(cl, library(phybreak))
   #clusterEvalQ(cl, process_mcmc(shared_heats, shared_lik))
 
   posts <- clusterEvalQ(cl, process_mcmc(shared_heats, shared_lik))
   stopCluster(cl)
-  
+
   ### Sort samples per chain
   heat_index <- matrix(nrow = nsample, ncol = 3)
   for (i in 1:nchains) {
     for (j in 1:length(posts)) {
-      heat_index[which(posts[[j]]$heat == heats[i]),j] <- i
+      heat_index[which(posts[[j]]$s$heat == heats[i]),j] <- i
     }
   }
   
-  s.posts <- lapply(1:nchains, function(i){
-    s <- s.post
-    for (n in names(s)){
-      for (j in 1:length(posts)){
-        if (inherits(s[[n]], "matrix"))
-          s[[n]][,which(heat_index[,i]==j)] <- posts[[j]][[n]][,which(heat_index[,i]==j)]
-        else
-          s[[n]][which(heat_index[,i]==j)] <- posts[[j]][[n]][which(heat_index[,i]==j)]
-      }
-    }
-    return(s)
-  })
+  e <- posts[[which(heat_index[nsample,] == 1)]]$p
+  for (i in ls(envir=e)) copy2pbe0(i, e)
   
   s.posts <- lapply(1:length(heats), function(nheat){
     s <- s.post
     for (chain in 1:nchains){
-      smp <- which(posts[[chain]]$heat == heats[nheat])
+      smp <- which(posts[[chain]]$s$heat == heats[nheat])
       for (n in names(s)){
         if(inherits(s[[n]], "matrix"))
-          s[[n]][,smp] <- posts[[chain]][[n]][,smp]
+          s[[n]][,smp] <- posts[[chain]]$s[[n]][,smp]
         else
-          s[[n]][smp] <- posts[[chain]][[n]][smp]
+          s[[n]][smp] <- posts[[chain]]$s[[n]][smp]
       }
     }
-    s$chain <- posts[[nheat]]$heat
+    s$chain <- posts[[nheat]]$s$heat
     return(s)
   })
   
-  
   s.post <- s.posts[[1]]
-  
+
   res <- destroy_pbe(s.post)
   
   if(all_chains)
