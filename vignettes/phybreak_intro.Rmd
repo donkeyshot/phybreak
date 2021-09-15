@@ -154,7 +154,7 @@ plot(mcmc_FMD2007[, "mS"])
 To increase the ESS you could take more samples by running `sample.phybreak` again; the MCMC chain will continue where it stopped. For now, we'll stick with the current chain.
 The `mcmc` object can also be used to get summary statistics of the parameters and variables:
 ```{r}
-summary(mcmc_FMD2007[, c("mu", "mS", "mG", "slope")])
+summary(mcmc_FMD2007[, c("mu", "mS", "mG", "wh.slope")])
 ```
 
 The summary statistics of the model parameters are useful (so I selected only these), but summaries of the variables are better obtained through specific `phybreak` functions. The reason is that infection times in the `mcmc` object are only relative to the first sampling day, and that infectors are categorical variables and should be considered within the context of the complete tree. From the summary you see that the median sampling interval is 9.8 days, and the median generation interval 7.4 days.
@@ -215,18 +215,7 @@ phybreak_FMD2007 <- phybreak(dataset = dataset_FMD2007)
 phybreak_FMD2007 <- burnin.phybreak(phybreak_FMD2007, ncycles = 5000)
 phybreak_FMD2007 <- sample.phybreak(phybreak_FMD2007, nsample = 25000)
 ```
-```r
-hosts_FMD2007 <- c("IP1b", "IP1b", "IP2b", "IP2c",
-                      "IP3b", "IP3c", "IP4b", "IP5", "IP6b",
-                      "IP7", "IP8")
 
-dataset_FMD2007 <- phybreakdata(sequences = sequences_FMD2007, 
-                                sample.times = dates_FMD2007,
-                                host.names = hosts_FMD2007)
-phybreak_FMD2007 <- phybreak(dataset = dataset_FMD2007)
-phybreak_FMD2007 <- burnin.phybreak(phybreak_FMD2007, ncycles = 5000)
-phybreak_FMD2007 <- sample.phybreak(phybreak_FMD2007, nsample = 25000)
-```
 ```{r, fig.width=5}
 transtree(phybreak_FMD2007, method = "edmonds")
 plotTrans(phybreak_FMD2007, plot.which = "edmonds")
