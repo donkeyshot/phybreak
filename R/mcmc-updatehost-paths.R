@@ -132,12 +132,16 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   ### propose the new infection time
   if (hostID == 1)
     tinf.prop <- v$inftimes[hostID] - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 10)
-  else 
+    #tinf.prop <- tinf.prop
+  else {  
     tinf.prop <- v$nodetimes[hostID-1] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
   # tinf.prop <- v$inftimes[hostID] + rnorm(1, 0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape))
   # tinf.prop <- min(tinf.prop, 2 * v$nodetimes[hostID] - tinf.prop)
+    
+  }
   copy2pbe1("tinf.prop", le)
+  
   
   ### going down the decision tree
   if (v$infectors[hostID] == 0) {
@@ -365,7 +369,9 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                                  v$inftimes[-1], p,
                                                  nodetimes = v$nodetimes[v$nodetypes=="s"],
                                                  cultimes = v$cultimes)) +
-      (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
+      (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ] *
+      (v$cultimes + 5 - tinf.prop > 0)
+    
     dens.infectorproposal[hostID] <- 0
     infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
     copy2pbe1("infector.proposed.ID", environment())

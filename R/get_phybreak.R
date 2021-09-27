@@ -250,8 +250,8 @@ get_mcmc <- function(x, thin = 1, nkeep = Inf) {
     res <- cbind(x$s$tS[tokeep], res)
     parnames <- c("tS", parnames)
   }
-  res <- cbind(x$s$hist_dens[tokeep], res)
-  parnames <- c("hist.dens", parnames)
+  # res <- cbind(x$s$hist_dens[tokeep], res)
+  # parnames <- c("hist.dens", parnames)
   res <- cbind(x$s$historyinf[tokeep], res)
   parnames <- c("historyinf", parnames)
   

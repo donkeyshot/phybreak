@@ -34,7 +34,9 @@
 #' MCMCstate <- sample_phybreak(MCMCstate, nsample = 50, thin = 2)
 #' @export
 sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, keepphylo = 0, withinhost_only = 0, 
-                            parameter_frequency = 1, status_interval = 10, histtime = -1e5, history = FALSE,
+                            parameter_frequency = 1, status_interval = 10, 
+                            verbose = 1,
+                            histtime = -1e5, history = FALSE, keep_history = FALSE,
                             nchains = 1, heats = NULL, all_chains = FALSE, parallel = FALSE, ...) {
   
   if (parallel)
@@ -57,6 +59,16 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       keepphylo <- 0
       warning("model incompatible with keepphylo-updates: they will not be used", immediate. = TRUE)
     } 
+  }
+  if(verbose == 1){
+    printmessage = TRUE
+    printlog = TRUE
+  } else if (verbose == 0){
+    printmessage = FALSE
+    printlog = FALSE
+  } else if (verbose == 2){
+    printmessage = FALSE
+    printlog = TRUE
   }
   
   ### add distance model if not present
@@ -81,7 +93,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                  nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                  nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                  nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
-                 introductions = c(sum(x$s$infectors==0), rep(NA, nsample)),
+                 introductions = c(x$s$introductions, rep(NA, nsample)),
                  mu = c(x$s$mu, rep(NA, nsample)), 
                  hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
                  mG = c(x$s$mG, rep(NA, nsample)), 
@@ -95,7 +107,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                  dist.e = c(x$s$dist.e, rep(NA, nsample)), 
                  dist.s = c(x$s$dist.s, rep(NA, nsample)), 
                  dist.m = c(x$s$dist.m, rep(NA, nsample)), 
-                 logLik = with(x, cbind(s$logLik, matrix(NA, nrow = 5, ncol = nsample))),
+                 logLik = c(x$s$logLik, rep(NA, nsample)),
                  historyinf = c(x$s$historyinf, rep(NA, nsample)),
                  heat = c(x$s$heat, rep(NA, nsample)))
     
@@ -120,10 +132,12 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
     copy2pbe0("chain", environment())
     envirs[[n]] <- as.environment(as.list(pbe0, all.names = TRUE))
   }
-    
-  message(paste0("  sample      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
-  print_screen_log(length(x$s$mu))
-    
+  
+  if (printmessage)   
+    message(paste0("  sample      logLik  introductions       mu  gen.mean  sam.mean parsimony (nSNPs = ", pbe0$d$nSNPs, ")"))
+  if (printlog)
+    print_screen_log(length(x$s$mu))
+  
   curtime <- Sys.time()
 
   swap_thin <- 0
@@ -132,7 +146,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
   for (sa in tail(1:length(s.posts[[1]]$mu), nsample)) {
     
     for (rep in 1:thin) {
-      if(Sys.time() - curtime > status_interval) {
+      if(Sys.time() - curtime > status_interval & printlog == TRUE) {
         for (i in ls(envir=envirs[[1]])) copy2pbe0(i, envirs[[1]])
         print_screen_log(sa)
         curtime <- Sys.time()
@@ -199,9 +213,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       s.post$nodeparents[, sa] <- c(vars_to_log$nodeparents,
                                     rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c"))))
       s.post$introductions[sa] <- sum(vars_to_log$infectors == 0)
-      #print(sprintf("intros=%s",s.post$introductions[sa]))
       s.post$mu[sa] <- pbe0$p$mu
-      #s.post$hist_dens[sa] <- pbe0$p$hist_dens
       s.post$mG[sa] <- pbe0$p$gen.mean
       s.post$mS[sa] <- pbe0$p$sample.mean
       s.post$tG[sa] <- pbe0$p$trans.growth
@@ -213,11 +225,9 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       s.post$dist.e[sa] <- pbe0$p$dist.exponent
       s.post$dist.s[sa] <- pbe0$p$dist.scale
       s.post$dist.m[sa] <- pbe0$p$dist.mean
-      s.post$logLik[, sa] <- c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam, pbe0$logLikdist, pbe0$logLikseq) 
+      s.post$logLik[sa] <- sum(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam, pbe0$logLikdist, pbe0$logLikseq) 
       s.post$heat[sa] <- pbe0$heat
-      #print(c(pbe0$logLikcoal, pbe0$logLikgen, pbe0$logLiksam,pbe0$logLikdist, pbe0$logLikseq))
       
-      #assign(paste0("s.post.",chain), s.post)
       s.posts[[chain]] <- s.post
       
     })
@@ -240,8 +250,14 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
   })
     
   s.post <- s.posts[[1]]
-      
-  res <- destroy_pbe(s.post)
+  
+  if(keep_history) {
+    res <- list(d = pbe0$d, v = pbe0$v, p = pbe0$p, h = pbe0$h, s = s.post,
+                hist = pbe0$v$inftimes[1])
+    class(res) <- c("phybreak", "list")
+  } else {
+    res <- destroy_pbe(s.post)
+  }
   
   if(all_chains)
     return(list(phyb.obj = res, chains = s.posts))

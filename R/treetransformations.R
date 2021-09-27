@@ -1,7 +1,7 @@
 phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   ### extract variables
   if (sum(vars$infectors==0)==1) introductions <- 1L
-  else introductions <- as.integer(sum(vars$infectors==0)-1)
+  else introductions <- as.integer(sum(vars$infectors==0))
   nodetimes <- vars$nodetimes
   nodeparents <- as.integer(vars$nodeparents)
   nodehosts <- as.integer(vars$nodehosts) + introductions

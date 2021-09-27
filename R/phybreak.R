@@ -113,7 +113,7 @@
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
 phybreak <- function(dataset, times = NULL, introductions = 1,
-         mu = NULL, hist_dens = 1, gen.shape = 3, gen.mean = 1, trans.model = "gamma",
+         mu = NULL, gen.shape = 3, gen.mean = 1, trans.model = "gamma",
          trans.init = 1e-4, trans.growth = 1, trans.sample = 0.1, trans.culling = 5,
          sample.shape = 3, sample.mean = 1, 
          wh.model = "linear", wh.bottleneck = "auto", wh.history = 1, wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
@@ -186,7 +186,6 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
   parameterslot <- list(
     obs = length(unique(dataslot$hostnames)),
     mu = NULL,
-    hist_dens = hist_dens,
     sample.mean = sample.mean,
     gen.mean = gen.mean,
     sample.shape = sample.shape,

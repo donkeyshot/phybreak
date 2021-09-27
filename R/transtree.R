@@ -92,8 +92,11 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
     }
     if (method[1] == "mpc") {
         res <- .mpcinfector(x, samplesize, phylo.class, infection.times[1] == "infector.sd")
-        besttree <- res[[2]]
-        res <- res[[1]]
+        
+        if(!phylo.class) {
+          besttree <- res[[2]]
+          res <- res[[1]]
+        }
         if (phylo.class) 
             return(get.phylo(x, samplenr = res, simmap = TRUE))
     }

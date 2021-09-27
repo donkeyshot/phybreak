@@ -68,7 +68,7 @@ infect_distribution <- function(time, inftimes, p,
     if(length(nodetimes) == length(inftimes)-1)
       samtimes <- nodetimes - inftimes[-1]
     else 
-      samtimes <- nodetimes - inftimes
+      samtimes <- as.numeric(nodetimes - inftimes)
     
     if(length(cultimes) == length(inftimes)-1)
       cultimes <- cultimes - inftimes[-1]
@@ -89,36 +89,29 @@ infect_distribution <- function(time, inftimes, p,
         if(hosttimes[i+j] < 0)
           probs <- c(probs, 0)
         else if(hosttimes[i+j] < samtimes[i])
-          #probs <- c(probs, 1/(1+exp(-1/2*(hosttimes[i+j]-p$gen.mean))))
           probs <- c(probs, 1/(1+a*exp(-r*hosttimes[i+j])))
         else if(hosttimes[i+j] >= samtimes[i] & hosttimes[i+j] < cultimes[i])
-          #probs <- c(probs, p$gen.sample.scale*1/(1+exp(-(hosttimes[i+j]-p$gen.mean))))
           probs <- c(probs, S/(1+a*exp(-r*hosttimes[i+j])))
         else 
-          # probs <- c(probs, p$gen.sample.scale*1/(1+exp(-(cultimes[i+j]-p$gen.mean))) * 
-          #              exp(-p$gen.culling.scale*(hosttimes[i+j]-cultimes[i])))
           probs <- c(probs, S/(1+a*exp(-r*cultimes[i])) * exp(-C*(hosttimes[i+j]-cultimes[i])))
       }
     } else {
       probs <- c()
+      
       for (t in hosttimes){
         if (t < samtimes[host]){
-          #probs <- c(probs, 1/(1+exp(-1/2*(t-p$gen.mean))))
           probs <- c(probs, 1/(1+a*exp(-r*t)))
         } else if (t >= samtimes[host] & t < cultimes[host]){
-          #probs <- c(probs, p$gen.sample.scale*1/(1+exp(-(t-p$gen.mean))))
           probs <- c(probs, S*1/(1+a*exp(-r*t)))
         } else if (t >= cultimes[host]){
-          # probs <- c(probs, p$gen.sample.scale*1/(1+exp(-(cultimes[host]-p$gen.mean))) * 
-          #          exp(-p$gen.culling.scale*(t-cultimes[host])))
           probs <- c(probs, S*1/(1+a*exp(-r*cultimes[host])) * exp(-C*(t-cultimes[host])))
         }
       }
     }
     
     if(log)
-      return(log(probs))
+      return(log(probs*p$trans.norm))
     else
-      return(probs)
+      return(probs*p$trans.norm)
   }
 }
