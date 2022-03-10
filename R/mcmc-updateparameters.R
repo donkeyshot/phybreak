@@ -38,21 +38,51 @@ update_hist_dens <- function() {
   p <- pbe1$p
   
   ### change to proposal state
-  p$hist_dens <- exp(log(p$hist_dens) + rnorm(1, 0, 0.1))
+  history.dist <- exp(log(h$dist[1]) + rnorm(1, 0, 0.1))
+  h$dist[1,] <- history.dist
+  h$dist[,1] <- history.dist
   
   ### update proposal environment
-  copy2pbe1("p", le)
+  copy2pbe0("h", le)
   
   ### calculate likelihood
-  propose_pbe("mG")
+  #propose_pbe("mG")
   
   # ### calculate acceptance probability
   # logaccprob <- pbe1$logLikseq - pbe0$logLikseq
   # 
   # ### accept or reject
   # if (runif(1) < exp(logaccprob)) {
-    accept_pbe("mG")
+   # accept_pbe("mG")
   # }
+}
+
+update_hist_mean <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  p <- pbe1$p
+  h <- pbe0$h
+  
+  ### change to proposal state
+  hist.mean <- exp(log(p$hist.mean) + rnorm(1, 0, 0.1))
+  p$hist.mean <- hist.mean
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate likelihood
+  propose_pbe("hist.mean")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikintro - pbe0$logLikintro
+  
+  ### accept or reject
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("hist.mean")
+  }
 }
 
 
@@ -105,6 +135,7 @@ update_mG <- function() {
                                      shape = p$gen.shape * (p$obs - 1) + 2 + (h$mG.av/h$mG.sd)^2, 
                                      rate = sumgt + (h$mG.av/p$gen.shape) * (1 + (h$mG.av/h$mG.sd)^2))
     
+    p$gen.mean <- p$gen.mean
     ### update proposal environment
     copy2pbe1("p", le)
     

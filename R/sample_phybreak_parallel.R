@@ -37,7 +37,9 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
                             parameter_frequency = 1, status_interval = 10,
                             histtime = -1e5, history = FALSE,
                             nchains = 1, heats = NULL, all_chains = FALSE, 
-                            outfile = "") {
+                            boost.mcmc = FALSE, outfile = "") {
+  
+  print(boost.mcmc)
   
   if(!("parallel" %in% .packages(TRUE))) {
     stop("package 'parallel' should be installed for this function")
@@ -93,27 +95,31 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
   
   ### create room in s to add the new posterior samples
   s.post <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
-                  infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
-                  nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
-                  nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
-                  nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
-                  introductions = c(sum(x$s$infectors==0), rep(NA, nsample - 1)),
-                  mu = c(x$s$mu, rep(NA, nsample)), 
-                  hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
-                  mG = c(x$s$mG, rep(NA, nsample)), 
-                  mS = c(x$s$mS, rep(NA, nsample)), 
-                  tG = c(x$s$tG, rep(NA, nsample)),
-                  tS = c(x$s$tS, rep(NA, nsample)),
-                  wh.h = c(x$s$wh.h, rep(NA, nsample)), 
-                  wh.s = c(x$s$wh.s, rep(NA, nsample)), 
-                  wh.e = c(x$s$wh.e, rep(NA, nsample)), 
-                  wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
-                  dist.e = c(x$s$dist.e, rep(NA, nsample)), 
-                  dist.s = c(x$s$dist.s, rep(NA, nsample)), 
-                  dist.m = c(x$s$dist.m, rep(NA, nsample)), 
-                  logLik = c(x$s$logLik, rep(NA, nsample)),
-                  historyinf = c(x$s$historyinf, rep(NA, nsample)),
-                  heat = c(x$s$heat, rep(NA, nsample)))
+                 infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
+                 nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
+                 nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
+                 nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
+                 histnodetimes = with(x, cbind(s$histnodetimes, matrix(NA, nrow = 3*d$nsamples , ncol = nsample))),
+                 histnodeparents = with(x, cbind(s$histnodeparents, matrix(NA, nrow = 3*d$nsamples , ncol = nsample))),
+                 histnodehosts = with(x, cbind(s$histnodehosts, matrix(NA, nrow = 3*d$nsamples , ncol = nsample))),
+                 introductions = c(x$s$introductions, rep(NA, nsample)),
+                 mu = c(x$s$mu, rep(NA, nsample)), 
+                 hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
+                 hist.mean = c(x$s$hist.mean, rep(NA, nsample)),
+                 mG = c(x$s$mG, rep(NA, nsample)), 
+                 mS = c(x$s$mS, rep(NA, nsample)), 
+                 tG = c(x$s$tG, rep(NA, nsample)),
+                 tS = c(x$s$tS, rep(NA, nsample)),
+                 wh.h = c(x$s$wh.h, rep(NA, nsample)), 
+                 wh.s = c(x$s$wh.s, rep(NA, nsample)), 
+                 wh.e = c(x$s$wh.e, rep(NA, nsample)), 
+                 wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
+                 dist.e = c(x$s$dist.e, rep(NA, nsample)), 
+                 dist.s = c(x$s$dist.s, rep(NA, nsample)), 
+                 dist.m = c(x$s$dist.m, rep(NA, nsample)), 
+                 logLik = c(x$s$logLik, rep(NA, nsample)),
+                 historyinf = c(x$s$historyinf, rep(NA, nsample)),
+                 heat = c(x$s$heat, rep(NA, nsample)))
   
   ### Set heats for MC3, heats = 1 if there is one chain
   if (is.null(heats))
@@ -139,8 +145,8 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
   
   ### Export variables and functions
   clusterExport(cl, varlist = c("x", "nsample", "nswaps", "thin", "thinswap", "protocoldistribution",
-                                "s.post", "status_interval", "parameter_frequency",
-                                "history"), 
+                                "s.post", "status_interval", "parameter_frequency","histtime",
+                                "history", "boost.mcmc"), 
                 envir = environment())
   
   if (outfile != "")
@@ -153,34 +159,41 @@ sample_phybreak_parallel <- function(x, nsample, thin = 1, thinswap = 1, classic
     if (nswaps == 1) { 
       if(me == 1)
         return(sample_phybreak(x, nsample = thinswap, heats=shared_heats[1,me],
-                               history = history, keep_history = FALSE))
+                               history = history, histtime = histtime, keep_history = FALSE, boost.mcmc = boost.mcmc))
       else
         return(sample_phybreak(x, nsample = thinswap, heats=shared_heats[1,me],
-                               history = history, keep_history = FALSE, 
-                               verbose = 0))
+                               history = history, histtime = histtime, keep_history = FALSE, 
+                               verbose = 0, boost.mcmc = boost.mcmc))
     } else {
       if (me == 1)
         s <- sample_phybreak(x, nsample = thinswap, heats=shared_heats[1,me],
-                             history = history, keep_history = TRUE)
+                             history = history, histtime = histtime, keep_history = TRUE, boost.mcmc = boost.mcmc)
       else
         s <- sample_phybreak(x, nsample = thinswap, heats=shared_heats[1,me],
-                             history = history, keep_history = TRUE, 
-                             verbose = 0)
+                             history = history, histtime = histtime, keep_history = TRUE, 
+                             verbose = 0, boost.mcmc = boost.mcmc)
     }
     if (nswaps == 2) {
       return(sample_phybreak(s, nsample = thinswap, heats=shared_heats[1,me],
-                             history = TRUE, 
-                             verbose = 0))
+                             history = TRUE, histtime = histtime, 
+                             verbose = 0, boost.mcmc = boost.mcmc))
     } else {
       for (i in 2:(nswaps-1)){
-        if (shared_heats[1,me] == 1)
+        if (shared_heats[1,me] == 1){
+          if(i %% 100 == 0)
+            s <- sample_phybreak(s, nsample = thinswap, heats=shared_heats[1,me],
+                                history = TRUE, histtime = histtime, keep_history = TRUE, 
+                                verbose = 2, boost.mcmc = boost.mcmc)
+          else 
+            s <- sample_phybreak(s, nsample = thinswap, heats=shared_heats[1,me],
+                                 history = TRUE, histtime = histtime, keep_history = TRUE, 
+                                 verbose = 0, boost.mcmc = boost.mcmc)
+        } else {
           s <- sample_phybreak(s, nsample = thinswap, heats=shared_heats[1,me],
-                               history = TRUE, keep_history = TRUE, 
-                               verbose = 2)
-        else 
-          s <- sample_phybreak(s, nsample = thinswap, heats=shared_heats[1,me],
-                               history = TRUE, keep_history = TRUE, 
-                               verbose = 0)
+                               history = TRUE, histtime = histtime, keep_history = TRUE, 
+                               verbose = 0, boost.mcmc = boost.mcmc)
+        }
+      
         shared_lik[1, me] <- s$s$logLik[length(s$s$logLik)]
         #print(shared_lik[,])
         barr()

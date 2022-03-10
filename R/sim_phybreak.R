@@ -8,6 +8,10 @@
 #'   an \code{obsize} can severely increase the simulation time, depending on \code{R0}.
 #' @param samplesperhost Number of samples to be taken per host, either a vector or a single number.
 #' @param R0 The basic reproduction ratio used for simulation. The offspring distribution is Poisson.
+#' @param introductions The number of index cases when simulating a multiple introduced outbreak.
+#' @param introdistribution The probability distribution for the infection times of the index cases. Options are 
+#'   \code{introdistribution = "exp"} for an exponential grow over time of the probability density, or 
+#'   \code{introdistribution = "unif"} for an uniform probability distribution.
 #' @param spatial If \code{TRUE}, the hosts are placed on a square with density 1, and a distance kernel is used to 
 #'   model transmission probabilities between the hosts.
 #' @param gen.shape The shape parameter of the gamma-distributed generation interval.
@@ -54,7 +58,8 @@
 #' simulation <- sim_phybreak()
 #' @export
 sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
-                         introductions = 1, R0 = 1.5, spatial = FALSE,
+                         introductions = 1, introdistribution = "unif", outbreaktime = 10,
+                         R0 = 1.5, spatial = FALSE,
                          gen.shape = 10, gen.mean = 1, 
                          sample.shape = 10, sample.mean = 1, histtime = -10,
                          additionalsampledelay = 0,
@@ -86,6 +91,12 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(any(c(gen.shape, gen.mean, sample.shape, sample.mean, wh.slope, mu) <= 0)) {
     stop("parameter values should be positive")
   }
+  if(introdistribution != "exp" & introdistribution != "unif"){
+    stop('introdistribution should be either "exp" or "unif"')
+  }
+  if(introductions == 1){
+    histtime <- NULL
+  }
   wh.model <- choose_whmodel(wh.model)
   wh.bottleneck <- choose_whbottleneck(wh.bottleneck, wh.model)
   wh.level <- wh.level * (wh.bottleneck == "wide")
@@ -93,20 +104,20 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   ### simulate step by step
   if(is.na(obsize)) {
     if(spatial) {
-      res <- sim_outbreak_spatial(popsize, R0, gen.shape, gen.mean,
+      res <- sim_outbreak_spatial(popsize, R0, introductions, introdistribution, gen.shape, gen.mean,
                           sample.shape, sample.mean, dist.model, dist.exponent, dist.scale)
     } else {
-      res <- sim_outbreak(popsize, R0, introductions, gen.shape, gen.mean,
+      res <- sim_outbreak(popsize, R0, introductions, introdistribution, gen.shape, gen.mean,
                           sample.shape, sample.mean)
     }
      obsize <- res$obs
      if(obsize == 1) return(c("Outbreak size = 1"))
   } else {
     if(spatial) {
-      res <- sim_outbreak_size_spatial(obsize, popsize, R0, introductions, gen.shape, gen.mean,
+      res <- sim_outbreak_size_spatial(obsize, popsize, R0, introductions, introdistribution, gen.shape, gen.mean,
                                sample.shape, sample.mean, dist.model, dist.exponent, dist.scale)
     } else {
-      res <- sim_outbreak_size(obsize, popsize, R0, introductions, gen.shape, gen.mean,
+      res <- sim_outbreak_size(obsize, popsize, R0, introductions, introdistribution, outbreaktime, gen.shape, gen.mean,
                                sample.shape, sample.mean)
     }
   }
@@ -115,7 +126,6 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   res <- sim_additionalsamples(res, samplesperhost, additionalsampledelay)
   res <- sim_phylotree(res, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean, histtime)
   res <- sim_sequences(res, mu, sequence.length)
-  #res <- merge_trees(res)
   
   hostnames <- paste0("host.", 1:obsize)
   
@@ -135,7 +145,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(introductions > 1){
     res <- within(res, {
       inftimes <- inftimes[-1]
-      infectors <- infectors[-1]
+      infectors <- infectors[-1]-1
     })
   }
   
@@ -149,7 +159,8 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
                        host.names = hostnames[c(1:obs, addsamplehosts)],
                        sim.infection.times = inftimes,
                        sim.infectors = infectors,
-                       sim.tree = treeout
+                       sim.tree = treeout,
+                       external.seq = F
                 ))
   } else {
     toreturn <- with(res,
@@ -160,7 +171,8 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
       host.names = hostnames[c(1:obs, addsamplehosts)],
       sim.infection.times = inftimes,
       sim.infectors = infectors,
-      sim.tree = treeout
+      sim.tree = treeout,
+      external.seq = F
     ))
   }
   
@@ -177,33 +189,31 @@ sim.phybreak <- function(...) {
 
 ### simulate an outbreak of a particular size by repeating
 ### simulations until obsize is obtained
-sim_outbreak_size <- function(obsize, Npop, R0, intro, aG, mG, aS, mS) {
+sim_outbreak_size <- function(obsize, Npop, R0, intro, introdist, time, aG, mG, aS, mS) {
   if(is.na(Npop)) {
     Npop <- obsize
     while(1 - obsize/Npop < exp(-R0* obsize/Npop)) {Npop <- Npop + 1}
   } 
   
-  sim <- sim_outbreak(Npop, R0, intro, aG, mG, aS, mS)
-  obs <- sum(unlist(lapply(sim, function(xx) xx$obs)))
+  sim <- sim_outbreak(Npop, R0, intro, introdist, time, aG, mG, aS, mS)
   
-  while(obs != obsize) {
-    sim <- sim_outbreak(Npop, R0, intro, aG, mG, aS, mS)
-    obs <- sum(unlist(lapply(sim, function(xx) xx$obs)))
+  while(sim$obs != obsize) {
+    sim <- sim_outbreak(Npop, R0, intro, introdist, time, aG, mG, aS, mS)
   }
   
   return(sim)
 }
 
-sim_outbreak_size_spatial <- function(obsize, Npop, R0, intro, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale) {
+sim_outbreak_size_spatial <- function(obsize, Npop, R0, intro, introdist, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale) {
   if(is.na(Npop)) {
     Npop <- obsize
     while(1 - obsize/Npop < exp(-R0* obsize/Npop)) {Npop <- Npop + 1}
   } 
   
-  sim <- sim_outbreak_spatial(Npop, R0, intro, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale)
+  sim <- sim_outbreak_spatial(Npop, R0, intro, introdist, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale)
   
   while(sim$obs != obsize | sum(sim$infectors==1) != intro) {
-    sim <- sim_outbreak_spatial(Npop, R0, intro, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale)
+    sim <- sim_outbreak_spatial(Npop, R0, intro, introdist, aG, mG, aS, mS, dist.model, dist.exponent, dist.scale)
   }
   
   return(sim)
@@ -211,73 +221,147 @@ sim_outbreak_size_spatial <- function(obsize, Npop, R0, intro, aG, mG, aS, mS, d
 
 
 ### simulate an outbreak
-sim_outbreak <- function(Npop, R0, intro, aG, mG, aS, mS) {
+sim_outbreak <- function(Npop, R0, intro, introdist, time, aG, mG, aS, mS) {
   ### initialize
-  inftimes <- c(0, rep(10000, Npop-intro))
-  #sources <- rep(0,Npop)
-  trees <- vector(mode = "list", length = intro)
-  trees <- lapply(seq_along(trees), function(i){
-    tree <- rep(0,Npop)
-    return(list("sources"=tree,
-                "inftimes"=c(0,rep(10000, Npop-1)),
-                "nth.inf" = 1))
-  })
-  nrcontacts <- rpois(Npop, R0)
-  nth.infection <- 1
-  currentID <- 1
-  whichtree <- 1
+  introwaittimes <- rexp(intro-1, rate = intro/time)
+  introtimes <- c(0,cumsum(introwaittimes))
   
-  ### by order of infection, sample secondary infections
-  # currentID is the infected host under consideration
-  while(nth.infection <= Npop & inftimes[currentID] != 10000) {
-    #when does currentID make infectious contacts?
-    #reverse sorting so that with double contacts, the earliest will be used last
-    whencontacts <- sort(trees[[whichtree]]$inftimes[currentID] + 
-                           rgamma(nrcontacts[currentID], aG, aG/mG),decreasing = TRUE)
-    
-    #who are these contacts made with?
-    whocontacted <- sample(Npop, nrcontacts[currentID], replace = TRUE)
-    
-    #are these contacts successful, i.e. earlier than the existing contacts with these hosts?
-    successful <- whencontacts < trees[[whichtree]][[2]][whocontacted]
-    
-    #change infectors and infection times of successful contactees
-    trees[[whichtree]]$sources[whocontacted[successful]] <- currentID
-    # sources[whocontacted[successful]] <- currentID
-    trees[[whichtree]]$inftimes[whocontacted[successful]] <- whencontacts[successful]
-    inftimes[whocontacted[successful]] <- whencontacts[successful]
-    
-    trees[[whichtree]]$nth.inf <- trees[[whichtree]]$nth.inf + 1
-    
-    #go to next infected host in line
-    nth.infection <- nth.infection + 1
-    whichtree <- sample(intro, 1)
-    currentID <- order(trees[[whichtree]]$inftimes)[trees[[whichtree]]$nth.inf]
-  }
+  Npops <- rep(1, intro)
+  Npops_plus <- sample(intro, Npop - intro, replace = TRUE)
+  Npops[sort(unique(Npops_plus))] <- Npops[sort(unique(Npops_plus))] + table(Npops_plus)
   
-  trees <- lapply(trees, function(xx){
+  trees <- lapply(1:intro, function(i){
+    inftimes <- c(0, rep(10000, Npops[i]-1))
+    sources <- rep(0,Npops[i])
+    nrcontacts <- rpois(Npops[i], R0)
+    nth.infection <- 1
+    currentID <- 1
+    
+    # if (introdist == "exp")
+    #   r <- (R0^(1/aG)-1)/(mG/aG)
+    # else 
+    #   r <- 0
+    
+    ### by order of infection, sample secondary infections
+    # currentID is the infected host under consideration
+    # while(nth.infection <= Npops[i] & inftimes[currentID] != 10000) {
+    #   #when does currentID make infectious contacts?
+    #   #reverse sorting so that with double contacts, the earliest will be used last
+    #   # if (intro > 1){
+    #   #   if (currentID == 1){
+    #   #     #whencontacts <- sort(runif(nrcontacts[currentID],inftimes[currentID],inftimes[currentID]+log(Npop,R0)*mG),decreasing = TRUE)
+    #   #     X <- runif(nrcontacts[currentID]-1)
+    #   #     Y <- ifelse(rep(r,length(X))>0, log(X*exp(r*log(Npop,R0)*mG)-X+1)/r, runif(nrcontacts[currentID]-1,0,10))
+    #   #     whencontacts <- sort(c(0,Y), decreasing = TRUE)
+    #   #   } else {
+    #   #     whencontacts <- sort(inftimes[currentID] + rgamma(nrcontacts[currentID], aG, aG/mG),decreasing = TRUE)
+    #   #   }
+    #   # } else {
+    #     whencontacts <- sort(inftimes[currentID] + rgamma(nrcontacts[currentID], aG, aG/mG),decreasing = TRUE)
+    #   # }
+    #   
+    #   #who are these contacts made with?
+    #   whocontacted <- sample(Npop, nrcontacts[currentID], replace = TRUE)
+    #   
+    #   #are these contacts successful, i.e. earlier than the existing contacts with these hosts?
+    #   successful <- whencontacts < inftimes[whocontacted]
+    #   
+    #   #change infectors and infection times of successful contactees
+    #   sources[whocontacted[successful]] <- currentID
+    #   inftimes[whocontacted[successful]] <- whencontacts[successful]
+    #   
+    #   #go to next infected host in line
+    #   nth.infection <- nth.infection + 1
+    #   currentID <- order(inftimes)[nth.infection]
+    # }
+    # 
+    while(nth.infection <= Npops[i] & inftimes[currentID] != 10000) {
+      #when does currentID make infectious contacts?
+      #reverse sorting so that with double contacts, the earliest will be used last
+      whencontacts <- sort(inftimes[currentID] + rgamma(nrcontacts[currentID], aG, aG/mG),decreasing = TRUE)
+      
+      #who are these contacts made with?
+      whocontacted <- sample(Npops[i], nrcontacts[currentID], replace = TRUE)
+      
+      #are these contacts successful, i.e. earlier than the existing contacts with these hosts?
+      successful <- whencontacts < inftimes[whocontacted]
+      
+      #change infectors and infection times of successful contactees
+      sources[whocontacted[successful]] <- currentID
+      inftimes[whocontacted[successful]] <- whencontacts[successful]
+      
+      #go to next infected host in line
+      nth.infection <- nth.infection + 1
+      currentID <- order(inftimes)[nth.infection]
+    }
+    
     ### determine outbreaksize and sampling times
-    obs <- sum(xx$inftimes < 10000)
-    samtimes <- xx$inftimes + rgamma(Npop, aS, aS/mS)
+    obs <- sum(inftimes<10000)
+    # if (intro > 1)
+    #   samtimes <- c(0,inftimes[-1] + rgamma(Npop, aS, aS/mS))
+    # else 
+    samtimes <- inftimes + rgamma(Npops[i], aS, aS/mS)
     
     ### order hosts by sampling times, and renumber hostIDs
     ### so that the uninfected hosts can be discarded
     orderbysamtimes <- order(samtimes)
-    
-    sources <- xx$sources[orderbysamtimes]
+    sources <- sources[orderbysamtimes]
     infectors <- match(sources,orderbysamtimes)[1:obs]
     infectors[is.na(infectors)] <- 0
-    inftimes <- xx$inftimes[orderbysamtimes]
+    inftimes <- inftimes[orderbysamtimes]
     samtimes <- samtimes[orderbysamtimes]
     
-    return(list("obs" = obs,
-                "infectors" = infectors,
-                "inftimes" = inftimes[1:obs],
-                "samtimes" = samtimes[1:obs]))
+    ### return the outbreak
+    # if(intro > 1){
+    #   inftimes <- inftimes - min(inftimes[-1])
+    #   samtimes <- samtimes + inftimes[1]
+    #   
+    #   return(
+    #     list(
+    #       obs = obs-1,
+    #       samtimes = samtimes[2:obs],
+    #       inftimes = inftimes[2:obs],
+    #       infectors = infectors
+    #     )
+    #   )
+    # } else {
+      return(
+        list(
+          ntree = i,
+          obs = obs,
+          samtimes = samtimes[1:obs] + introtimes[i],
+          inftimes = inftimes[1:obs] + introtimes[i],
+          infectors = infectors
+        )
+      )
   })
   
-  ### Return the outbreak
-  return(trees)
+  hostorder <- order(do.call(c,lapply(trees, function(t) return(t$samtimes))))
+  samtimes = do.call(c,lapply(trees, function(t) return(t$samtimes)))[hostorder]
+  inftimes = do.call(c,lapply(trees, function(t) return(t$inftimes)))[hostorder]
+  
+  hosts <- match(1:length(hostorder), hostorder)
+  
+  infectors <- c()
+  for (i in 1:intro){
+    if (trees[[i]]$obs > 1){
+      treehost <- hosts[1:trees[[i]]$obs]
+      infectors <- c(infectors, 0, treehost[trees[[i]]$infectors[-1]])
+    } else {
+      infectors <- c(infectors, 0)
+    }
+    hosts <- hosts[-(1:trees[[i]]$obs)]
+  }
+  infectors <- infectors[hostorder]
+  
+  return(
+    list(
+      obs = length(infectors),
+      samtimes = samtimes,
+      inftimes = inftimes,
+      infectors = c(0,infectors+1)
+    )
+  )
 }
 
 ### simulate a spatial outbreak
@@ -307,6 +391,11 @@ sim_outbreak_spatial <- function(Npop, R0, intro, aG, mG, aS, mS, dist.model, di
   nth.infection <- 1
   currentID <- 1
   
+  if (introdist == "exp")
+    r <- (R0^(1/aG)-1)/(mG/aG)
+  else 
+    r <- 0
+  
   ### by order of infection, sample secondary infections
   # currentID is the infected host under consideration
   while(nth.infection <= Npop+1 & inftimes[currentID] != 10000) {
@@ -316,10 +405,14 @@ sim_outbreak_spatial <- function(Npop, R0, intro, aG, mG, aS, mS, dist.model, di
     
     #who are these contacts made with?
     if(intro > 1){
-      if(currentID == 1)
+      if(currentID == 1) {
         whocontacted <- sample(Npop+1, nrcontacts[currentID], replace = FALSE)
-      else
+        X <- runif(nrcontacts[currentID]-1)
+        Y <- ifelse(rep(R0,length(X))>1, log(X*exp(r*log(Npop,R0)*mG)-X+1)/r, runif(nrcontacts[currentID]-1,0,log(Npop,R0)*mG))
+        whencontacts <- sort(c(0,Y), decreasing = TRUE)
+      } else {
         whocontacted <- sample(Npop+1, nrcontacts[currentID], replace = TRUE, prob = R0_matrix[currentID, ])
+      }
     } else {
       whocontacted <- sample(Npop, nrcontacts[currentID], replace = TRUE, prob = R0_matrix[currentID, ])
     }
@@ -337,7 +430,10 @@ sim_outbreak_spatial <- function(Npop, R0, intro, aG, mG, aS, mS, dist.model, di
   
   ### determine outbreaksize and sampling times
   obs <- sum(inftimes<10000)
-  samtimes <- c(0,inftimes[-1] + rgamma(Npop, aS, aS/mS))
+  if (intro > 1)
+    samtimes <- c(0,inftimes[-1] + rgamma(Npop, aS, aS/mS))
+  else 
+    samtimes <- inftimes + rgamma(Npop+1, aS, aS/mS)
   
   ### order hosts by sampling times, and renumber hostIDs
   ### so that the uninfected hosts can be discarded
@@ -416,7 +512,7 @@ sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exp
     if(wh.bottleneck == "wide") {
       invisible(sapply(1:sim.object$obs, rewire_pullnodes_wide))
     } else {
-      invisible(sapply(1:(sim.object$obs+1), function(x){
+      invisible(sapply(1:(sim.object$obs + 1), function(x){
         if (x == 1)
           pbe1$v$nodeparents[which(pbe1$v$nodehosts==0)] <- 0
         
@@ -426,7 +522,14 @@ sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exp
         } else {
           
           loosenodetimes <- pbe1$v$nodetimes[loosenodes]
-          coalescenttimesnew <- sample_coaltimes(loosenodetimes, pbe1$v$inftimes[x], pbe1$p)
+          if (x == 1) {
+            coalescenttimesnew <- sapply(loosenodetimes, function(t) runif(1, histtime, t))
+            coalescenttimesnew <- coalescenttimesnew[-which(coalescenttimesnew == max(coalescenttimesnew))]
+            coalescenttimesnew[which(coalescenttimesnew == min(coalescenttimesnew))] <- histtime
+            
+          } else {
+            coalescenttimesnew <- sample_coaltimes(loosenodetimes, pbe1$v$inftimes[x], pbe1$p)
+          }
           free_cnodes <- which(pbe1$v$nodeparents == -1 & pbe1$v$nodetypes == "c")
           
           coalnodes <- free_cnodes[1:(length(loosenodes)-1)]

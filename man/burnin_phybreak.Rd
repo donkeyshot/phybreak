@@ -13,7 +13,9 @@ burnin_phybreak(
   withinhost_only = 0,
   parameter_frequency = 1,
   status_interval = 10,
-  histtime = -1e+05
+  history = FALSE,
+  histtime = -1e+05,
+  nchains = 1
 )
 
 burnin.phybreak(...)

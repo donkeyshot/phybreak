@@ -1,7 +1,6 @@
 phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   ### extract variables
-  if (sum(vars$infectors==0)==1) introductions <- 1L
-  else introductions <- as.integer(sum(vars$infectors==0))
+  introductions <- 1L
   nodetimes <- vars$nodetimes
   nodeparents <- as.integer(vars$nodeparents)
   nodehosts <- as.integer(vars$nodehosts) + introductions
@@ -250,7 +249,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
                     rep("x", nsamples - nhosts), 
                     rep("c", nsamples - introductions), 
                     rep("t", nhosts)),  
-      #node type (primary sampling, extra sampling, coalescent)
+      #node type (primary sampling, extra sampling, coalescent, transmission)
       nodetimes = c(samtimes, samtimes[-c(1:introductions)], inftimes),
       nodehosts = c(samhosts, rep(-1, length(samhosts) - introductions), infectors),
       nodeparents = rep(-1, 2 * nsamples + nhosts - introductions)
@@ -309,7 +308,17 @@ phybreak2environment <- function(vars) {
   obs <- sum(vars$nodetypes == "s")
   nsamples <- sum(vars$nodetypes %in% c("s", "x"))
   
-  for(edge in 1:obs) {
+  if (obs < length(vars$infectors)){
+    newnode <- 2*nsamples
+    vars$nodetypes[newnode] <- "t"
+    vars$nodetimes[newnode] <- vars$inftimes[1]
+    vars$nodehosts[newnode] <- 0
+    vars$nodeparents[which(vars$nodeparents == 0)] <- newnode
+    vars$nodeparents[newnode] <- 0
+    
+  }
+  
+  for(edge in 1:(obs)) {
     curedge <- edge
     parentnode <- vars$nodeparents[curedge]
     endhost <- vars$nodehosts[curedge]

@@ -216,8 +216,14 @@ get_mcmc <- function(x, thin = 1, nkeep = Inf) {
   ### extracting all variables and parameters, and naming them
   res <- with(x, cbind(t(s$inftimes[, tokeep]), 
                        t(s$infectors[, tokeep])))
-  parnames <- with(x,
-                   c(paste0("tinf.", d$hostnames[1:p$obs]), paste0("infector.", d$hostnames[1:p$obs])))
+  
+  if (x$p$hist)
+    parnames <- with(x,
+                     c(paste0("tinf.", d$hostnames[1:(p$obs+1)]), paste0("infector.", d$hostnames[1:(p$obs+1)])))
+  else
+    parnames <- with(x,
+                     c(paste0("tinf.", d$hostnames[1:p$obs]), paste0("infector.", d$hostnames[1:p$obs])))
+  
   if (x$h$est.wh.h) {
     res <- cbind(x$s$wh.h[tokeep], res)
     parnames <- c("wh.history", parnames)

@@ -80,7 +80,7 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
     ### initialization
     samplesize <- min(samplesize, chainlength)
     nsamples <- x$d$nsamples
-    obs <- x$p$obs
+    obs <- ifelse(x$p$hist, x$p$obs+1, x$p$obs)
     res <- c()
     
     ### decision tree to use correct model
@@ -117,8 +117,12 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
     
     ### build output infectors
     if (infector.name) {
-        infectors.out <- matrix(c("index", x$d$hostnames)[1 + res[, 1]], ncol = 1, dimnames = list(x$d$hostnames[1:obs], 
-            "infector"))
+      if (x$p$hist)
+        infectors.out <- matrix(c("index", "history", x$d$hostnames)[1 + res[, 1]], ncol = 1, 
+                                dimnames = list(c("history",x$d$hostnames[1:(obs-1)]), "infector"))
+      else
+        infectors.out <- matrix(c("index", x$d$hostnames)[1 + res[, 1]], ncol = 1, 
+                                dimnames = list(x$d$hostnames[1:obs], "infector"))
     } else {
         infectors.out <- matrix(res[, 1], ncol = 1, dimnames = list(x$d$hostnames[1:obs], "infector"))
     }
@@ -269,7 +273,7 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
     ### initialize some constants
     chainlength <- length(x$s$mu)
     nsamples <- x$d$nsamples
-    obsize <- x$p$obs
+    obsize <- ifelse(x$p$obs == nrow(x$s$infectors), x$p$obs, x$p$obs+1)
     samplerange <- (chainlength - samplesize + 1):chainlength
     posteriorsamples <- x$s$infectors[, samplerange]
     

@@ -23,6 +23,8 @@ rewire_within_complete_edgewise <- function(ID, tinf) {
   coaltimes_new <- sample_coaltimes(pbe1$v$nodetimes[pbe1$v$nodehosts == ID & pbe1$v$nodetypes != "c"],
                                     tinf, pbe1$p)
   coaltimes_new <- coaltimes_new[coaltimes_new > tinf]
+  if (ID == 1)
+    coaltimes_new[1] <- coaltimes_old[1] + rnorm(1, mean = 0, sd = 10)
   
   pbe1$logLiktoporatio <- pbe1$logLiktoporatio - lik_topology_host(pbe1, ID)
   

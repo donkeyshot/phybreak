@@ -19,8 +19,7 @@ sample_phybreak_parallel(
   nchains = 1,
   heats = NULL,
   all_chains = FALSE,
-  outfile = "~/phybreak_parallel_output.txt",
-  phybreakdir
+  outfile = ""
 )
 }
 \arguments{

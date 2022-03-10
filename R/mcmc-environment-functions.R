@@ -102,37 +102,15 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
   
   ### change the variables slot to an environmental variables slot (with transmission nodes in the tree)
   v <- phybreak2environment(v)
-  if(sum(v$nodetypes=="t") != length(v$infectors)){
-    v$nodehosts <- c(v$nodehosts[v$nodetypes!="t"],
-                     0,
-                     v$nodehosts[v$nodetypes=="t"])
-    v$nodetimes <- c(v$nodetimes[v$nodetypes!="t"],
-                     v$inftimes[1],
-                     v$nodetimes[v$nodetypes=="t"])
-    newcoalnode <- sum(v$nodetypes!="t")+1
-    coalnodes <- v$nodeparents[v$nodetypes=="c"][2:sum(v$nodetypes=="c")]
-    coalnodes <- sapply(coalnodes, function(xx){
-      if(xx >= newcoalnode) return(xx + 1)
-      else return(xx)
-    })
-    v$nodeparents <- c(sapply(v$nodeparents[v$nodetype=="s"], function(xx){
-      if(xx >= newcoalnode) return(xx + 1)
-      else return(xx)
-    }),
-    newcoalnode,
-    coalnodes,
-    0,
-    v$nodeparents[v$nodetypes=="t"])
-    v$nodetypes <- c(v$nodetypes, "t")
-  }
   
-  history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
-  v <- history$v
-  h <- history$h
+  if (p$obs == length(v$infectors)){
+    history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
+    v <- history$v
+    h <- history$h
+  }
   
   ### complete likarray and calculate log-likelihood of sequences
   .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
-  
   
   ### calculate the other log-likelihoods
   logLiksam <- lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes)
@@ -142,6 +120,8 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
   logLikcoal <- lik_coaltimes(le)
   logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, 
                               v$infectors[v$infectors!=0]-1, d$distances)
+  logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 1), 
+                                   max(d$sample.times) - min(v$inftimes[-1]))
   
   ### copy everything into pbe0
   copy2pbe0("d", le)
@@ -155,13 +135,14 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
   copy2pbe0("logLikgen", le)
   copy2pbe0("logLikdist", le)
   copy2pbe0("logLikcoal", le)
+  copy2pbe0("logLikintro", le)
 }
 
 
 ### take the elements d, v, p, and h from pbe0, and s from the function arguments, and make a new phybreak-object. Then
 ### empty the environments and return the new object.  
 destroy_pbe <- function(phybreak.obj.samples) {
-  remove_history()
+  #remove_history()
   res <- list(d = pbe0$d, v = environment2phybreak(pbe0$v), p = pbe0$p, h = pbe0$h, s = phybreak.obj.samples,
               hist = pbe0$v$inftimes[1])
   class(res) <- c("phybreak", "list")
@@ -181,6 +162,7 @@ prepare_pbe <- function() {
   copy2pbe1("likarrayfreq", pbe0)
   pbe1$logLikseq <- pbe0$logLikseq + 0 #make a true copy, not a pointer
   pbe1$logLiktoporatio <- 0
+  pbe1$logLikintro <- pbe0$logLikintro + 0 #make a true copy, not a pointer
 }
 
 
@@ -192,6 +174,8 @@ propose_pbe <- function(f) {
   d <- pbe0$d
   v <- pbe1$v
   p <- pbe1$p
+  h <- pbe0$h
+  hostID <- pbe1$hostID
   
   if (f == "phylotrans" || f == "withinhost") {
     # identify changed nodes
@@ -219,7 +203,6 @@ propose_pbe <- function(f) {
     .likseqenv(pbe1, chnodes, nodetips)
   }
   
-  
   if (f == "phylotrans" || f == "trans" || f == "mG") {
     logLikgen <- lik_gentimes(p, v)
     copy2pbe1("logLikgen", le)
@@ -241,6 +224,12 @@ propose_pbe <- function(f) {
     copy2pbe1("logLikdist", le)
   }
   
+  if (f == "phylotrans" || f == "hist.mean"){
+    logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 1), 
+                                     max(d$sample.times) - min(v$inftimes[-1]))
+    copy2pbe1("logLikintro", le)
+  }
+  
   if (f == "mS" && p$wh.bottleneck == "complete") {
     copy2pbe1("logLikcoal", pbe0)
   }
@@ -254,7 +243,7 @@ accept_pbe <- function(f) {
   }
   
   if(f == "mG" || f == "mS" || f == "mu" || f == "wh.slope" || f == "wh.exponent" || f == "wh.level" ||
-     f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {
+     f == "dist.exponent" || f == "dist.scale" || f == "dist.mean" || f == "hist.mean") {
     copy2pbe0("p", pbe1)
   }
   
@@ -269,6 +258,10 @@ accept_pbe <- function(f) {
   
   if(f == "phylotrans" || f == "trans" || f == "mG") {
     copy2pbe0("logLikgen", pbe1)
+  }
+  
+  if(f == "phylotrans" || f == "hist.mean") {
+    copy2pbe0("logLikintro", pbe1)
   }
   
   if (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {

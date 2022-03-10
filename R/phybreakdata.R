@@ -46,7 +46,7 @@
 #' dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 #' @export
 phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names = NULL, host.names = sample.names, 
-                         culling.times = NULL,
+                         culling.times = NULL, external.sequence = NULL,
                          sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL) {
   
   ##########################################################
@@ -114,6 +114,18 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
   } else {
     warning("names in host.names don't match sample.names and are therefore overwritten")
     names(host.names) <- sample.names
+  }
+  
+  if(is.null(external.sequence)){
+    seq.dist <- dist.dna(as.DNAbin(sequences))*ncol(sequences)
+    ext.seq <- generateSequence(sequences)
+    sequences <- rbind(sequences, ext.seq)
+    name <- sprintf("sample.%s.0", nrow(sequences))
+    sample.names <- c(sample.names, name)
+    sample.times <- c(sample.times, min(sample.times))
+    names(sample.times)[nrow(sequences)] <- name 
+    host.names <- c(host.names, name)
+    names(host.names)[nrow(sequences)] <- name
   }
   
   ##########################################################################
@@ -238,7 +250,6 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
     if(class(culling.times) != class(sample.times)) {
       stop("culling.times should be of same class as sample.times")
     }
-    
     culling.times <- culling.times[allfirsttimes][outputorderhosts]
     
     if(is.null(names(culling.times))) {
@@ -328,6 +339,15 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
   
   class(res) <- "phybreakdata"
   return(res)
+}
+
+generateSequence <- function(s){
+  dist.seq <- ceiling(max(dist.dna(as.DNAbin(s))*ncol(s))) + 1000
+  pos <- sample(ncol(s), dist.seq)
+  nucl <- sample(c("a", "c", "t", "g"), dist.seq, replace = T)
+  new_seq <- s[sample(nrow(s),1),]
+  new_seq[pos] <- nucl
+  return(new_seq)
 }
 
 

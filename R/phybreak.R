@@ -112,15 +112,16 @@
 #' ### but only with single samples per host and not with additional data (future implementation)
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
-phybreak <- function(dataset, times = NULL, introductions = 1,
+phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRUE,
          mu = NULL, gen.shape = 3, gen.mean = 1, trans.model = "gamma",
          trans.init = 1e-4, trans.growth = 1, trans.sample = 0.1, trans.culling = 5,
-         sample.shape = 3, sample.mean = 1, 
+         sample.shape = 3, sample.mean = 1, hist.mean = 1,
          wh.model = "linear", wh.bottleneck = "auto", wh.history = 1, wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
          dist.model = "power", dist.exponent = 2, dist.scale = 1, dist.mean = 1,
          est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
          est.sample.mean = TRUE, prior.sample.mean.mean = 1, prior.sample.mean.sd = Inf,
-         est.trans.growth = TRUE, est.trans.sample = TRUE,
+         est.trans.growth = TRUE, est.trans.sample = TRUE, 
+         est.hist.mean = TRUE, prior.hist.mean.mean = 1, prior.hist.mean.shape = 0,
          est.wh.history = TRUE, est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
          est.wh.exponent = TRUE, prior.wh.exponent.shape = 1, prior.wh.exponent.mean = 1,
          est.wh.level = TRUE, prior.wh.level.shape = 1, prior.wh.level.mean = 0.1,
@@ -143,7 +144,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
   ###########################################
   ### check for correct classes and sizes ###
   ###########################################
-  dataset <- testdataclass_phybreak(dataset, times)
+  dataset <- testdataclass_phybreak(dataset, times, ...)
+  rownames(as.character(dataset$sequences))
   if(use.tree) testfortree_phybreak(dataset)
   testargumentsclass_phybreak(environment())
   wh.model <- choose_whmodel(wh.model)
@@ -204,7 +206,9 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
     dist.exponent = dist.exponent,
     dist.scale = dist.scale,
     dist.mean = dist.mean,
-    trans.model = trans.model
+    trans.model = trans.model,
+    hist.mean = hist.mean,
+    hist = use.history
   )
   
   ##############################
@@ -249,10 +253,13 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
                      est.dist.e = est.dist.exponent && dist.model %in% c("power", "exponential"),
                      est.dist.s = est.dist.scale && dist.model == "power",
                      est.dist.m = est.dist.mean && dist.model == "poisson",
+                     est.hist.mean = est.hist.mean,
                      mG.av = prior.gen.mean.mean,
                      mG.sd = prior.gen.mean.sd,
                      mS.av = prior.sample.mean.mean,
                      mS.sd = prior.sample.mean.sd,
+                     hist.m.av = prior.hist.mean.mean,
+                     hist.m.sh = prior.hist.mean.shape,
                      wh.s.sh = prior.wh.slope.shape,
                      wh.s.av = prior.wh.slope.mean,
                      wh.e.sh = prior.wh.exponent.shape,
@@ -275,8 +282,11 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
     nodetimes = c(),
     nodehosts = c(),
     nodeparents = c(),
+    histnodetimes = c(),
+    histnodeparents = c(),
+    histnodehosts = c(),
     mu = c(),
-    hist_dens = c(),
+    hist.mean = c(),
     mG = c(),
     mS = c(),
     tG = c(),
@@ -288,7 +298,6 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
     dist.s = c(),
     dist.m = c(),
     logLik = c(),
-    historyinf = c(),
     heat = c()
   )
 
@@ -310,9 +319,9 @@ phybreak <- function(dataset, times = NULL, introductions = 1,
 
 
 ### Test dataset class
-testdataclass_phybreak <- function(dataset, times) {
+testdataclass_phybreak <- function(dataset, times, ...) {
   if(inherits(dataset, c("DNAbin", "phyDat", "matrix"))) {
-    dataset <- phybreakdata(sequences = dataset, sample.times = times)
+    dataset <- phybreakdata(sequences = dataset, sample.times = times, ...)
   }
   
   if(!inherits(dataset, "phybreakdata")) {

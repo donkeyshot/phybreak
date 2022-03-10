@@ -4,7 +4,7 @@
 \alias{logLik.phybreak}
 \title{Log-likelihood of a phybreak-object.}
 \usage{
-logLik.phybreak(
+\method{logLik}{phybreak}(
   object,
   genetic = TRUE,
   withinhost = TRUE,

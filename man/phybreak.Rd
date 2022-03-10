@@ -9,7 +9,6 @@ phybreak(
   times = NULL,
   introductions = 1,
   mu = NULL,
-  hist_dens = 1,
   gen.shape = 3,
   gen.mean = 1,
   trans.model = "gamma",

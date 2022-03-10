@@ -26,11 +26,12 @@ rewire_pullnodes_complete <- function(currentID) {
         # endtimes of new edges, and new coalescenttimes
         loosenodetimes <- c()
         coalescenttimesnew <- c()
+        
         for(le in 1:length(loosenodes)) {
-          coalescenttimesnew <- c(coalescenttimesnew,
-                                  sample_singlecoaltime(c(edgesendoldtimes, loosenodetimes),
-                                                        c(coalescenttimesold, coalescenttimesnew),
-                                                        pbe1$v$nodetimes[loosenodes[le]], pbe1$v$inftimes[currentID], pbe1$p))
+            coalescenttimesnew <- c(coalescenttimesnew,
+                                    sample_singlecoaltime(c(edgesendoldtimes, loosenodetimes),
+                                                          c(coalescenttimesold, coalescenttimesnew),
+                                                          pbe1$v$nodetimes[loosenodes[le]], pbe1$v$inftimes[currentID], pbe1$p))
           loosenodetimes <- c(loosenodetimes, pbe1$v$nodetimes[loosenodes[le]])
         }
         

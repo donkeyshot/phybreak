@@ -62,23 +62,20 @@ plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplen
   } else if (samplenr == 0) {
     simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE))
   } else {
-    x$v <- list(
-      nodetimes = c(x$v$nodetimes[x$v$nodetypes == "s"], x$s$nodetimes[, samplenr]),
-      nodeparents = x$s$nodeparents[, samplenr],
-      nodehosts = c(x$v$nodehosts[x$v$nodetypes == "s"], x$s$nodehosts[, samplenr]),
-      nodetypes = x$v$nodetypes
-    )
-    x$v <- lapply(x$v, function(xx) {
-      nas <- which(is.na(xx))
-      if (length(nas) > 0) return(xx[-nas])
-      else return(xx)
-    })
+    x$v <- with(x, 
+                 list(
+                   inftimes = s$inftimes[, samplenr],
+                   infectors = s$infectors[, samplenr],
+                   nodetimes = c(v$nodetimes[v$nodetypes %in% c("s", "x")], s$nodetimes[, samplenr]),
+                   nodeparents = s$nodeparents[, samplenr],
+                   nodehosts = c(v$nodehosts[v$nodetypes %in% c("s", "x")], s$nodehosts[, samplenr]),
+                   nodetypes = v$nodetypes
+                 ))
     
     simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE))
   }
-
-  phytools::plotSimmap(simmapplot, mar = par("mar"), colors = setNames(nm = unique(simmapplot$states)), ...)
-  rootnodetime <- x$d$reference.date + min(x$v$nodetimes[x$v$nodetypes == "c"])
+  phytools::plotSimmap(simmapplot, mar = par("mar"), colors = setNames(nm = unique(as.character(simmapplot$node.state))), ...)
+  rootnodetime <- x$d$reference.date + x$v$inftimes[1] + simmapplot$root.edge
   
   labs <- pretty(par("xaxp")[1:2] + rootnodetime)
   axis(1, at = labs - rootnodetime, labels = labs)

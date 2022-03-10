@@ -16,10 +16,6 @@ ESS(x)
 \method{ESS}{numeric}(x)
 }
 \arguments{
-\item{x}{An object of class \code{phybreak}.}
-
-\item{x}{Vector of class \code{factor}.}
-
 \item{x}{Vector of class \code{numeric}, containing only integers. This will be treated as a categorical variable.}
 }
 \value{

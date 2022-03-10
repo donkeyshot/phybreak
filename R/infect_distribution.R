@@ -110,8 +110,8 @@ infect_distribution <- function(time, inftimes, p,
     }
     
     if(log)
-      return(log(probs*p$trans.norm))
+      return(log(probs))
     else
-      return(probs*p$trans.norm)
+      return(probs)
   }
 }

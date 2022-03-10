@@ -74,6 +74,9 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 lik_gentimes <- function(p, v){
   #meanG = p$gen.mean
   #shapeG = p$gen.shape
+  intro = sum(v$infectors==1) - 1
+  total = length(v$infectors)
+  
   0 + # force of infection from external source
   sum(infect_distribution(v$inftimes[v$infectors > 1],
                             v$inftimes[v$infectors[v$infectors > 1]],
@@ -107,6 +110,11 @@ lik_distances <- function(dist.model, dist.exponent, dist.scale, dist.mean, infe
            -dist.mean + distancevector * log(dist.mean) - lgamma(1 + distancevector)
          )
   )
+}
+
+### calculate the log-likelihood of introductions
+lik_introductions <- function(hist.mean, intro, time) {
+  sum(c(dpois(intro, hist.mean, log = TRUE), log(factorial(intro)), log((1/time)^(intro-1)), log(1/hist.mean)))
 }
 
 ### calculate the log-likelihood of coalescent intervals 
@@ -144,7 +152,7 @@ lik_coaltimes <- function(phybreakenv) {
   
   if (length(coalnodes.history) > 0){
     logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
-                           linear = -log(phybreakenv$p$wh.level + c(rep(phybreakenv$p$wh.history, length(coalnodes.history)),
+                           linear = -log(phybreakenv$p$wh.level + c(rep(1, length(coalnodes.history)),#phybreakenv$p$wh.history * whtimes[coalnodes.history],#rep(phybreakenv$p$wh.history, length(coalnodes.history)),
                                            phybreakenv$p$wh.slope * whtimes[coalnodes.outbreak])),
                            exponential = 
                            -log(phybreakenv$p$wh.level * 

@@ -1,4 +1,5 @@
 add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime){
+  ### Store a back-up of all variables
   if (build){
     v <- vars
     p <- pars
@@ -8,12 +9,15 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
     copy2pbe2("h", environment())
   }
   
+  ### Check if history for 1 introduction should be added
   introductions <- sum(vars$infectors==0)
   if (introductions == 1 & build) buildoneintro <- TRUE
   else buildoneintro <- FALSE
-
-  h$dist <- rbind(1, cbind(1, h$dist))
   
+  h.dist.median <- median(1/h$dist[-1,-1])
+  h$dist <- rbind(1/h.dist.median, cbind(1/h.dist.median, h$dist))
+  
+  ### Extract variables 
   nodetimes <- vars$nodetimes
   nodeparents <- as.integer(vars$nodeparents)
   nodehosts <- as.integer(vars$nodehosts) + 1
@@ -32,23 +36,25 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
                         rep("c", ncoalnodes),
                         rep("t", ntransnodes))
   
-  # artificial host
+  ### Create artificial host
   nodehosts <- c(nodehosts[1:nsamples], 
                  rep(1, introductions -1), nodehosts[nodetypes == "c"],
                  0, nodehosts[nodetypes == "t"])
   
-  # artificial types
+  ### Add artificial types
   nodetypes <- c(rep("s", nhosts-1),
                  rep("x", nsamples-nhosts+1),
                  rep("c", nsamples - 1),
                  rep("t", ntransnodes + 1))
     
   
-  # artificial times
+  ### Add artificial times
   edgesin <- which(nodehosts == 1 & nodetypes != "c")
   edgeintimes <- inftimes[infectors == 1]
   
   newcoaltimes <- sample_coaltimes(edgeintimes, inftimes[1], pars)
+  if(length(newcoaltimes)>0)
+    newcoaltimes[1] <- sample(rnorm(1, mean = h$mrca.av, sd = h$mrca.sd))
   
   nodetimes <- c(nodetimes[1:nsamples], 
                  newcoaltimes, 
@@ -56,14 +62,14 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
                  inftimes[1],
                  nodetimes[names(nodetimes) == "t"])
 
-  # artificial parents
+  ### Add artificial parents
   coalnodes <- which(nodetypes == "c")[1:length(newcoaltimes)]
   transnode <- which(nodetypes == "t")[1]
   nodeorder <- order(c(newcoaltimes, edgeintimes))
   edgeend <- c(coalnodes, edgesin)[nodeorder]
   edgeendtimes <- c(newcoaltimes, edgeintimes)[nodeorder]
   
-  # sample topology of minitree within hostID
+  ### Sample topology of history host
   edgestart <- sample_topology(edgeend,
                                edgeendtimes,
                                c(rep("c", length(newcoaltimes)),
@@ -84,7 +90,8 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
   
   if (buildoneintro) nodeparents[transnode+which(infectors == 1) -1] <- transnode
   else nodeparents[edgeend] <- edgestart
-  # make element v
+  
+  ### Make element v
   v <- list()
   v$inftimes <- inftimes
   v$infectors <- infectors
@@ -115,10 +122,17 @@ add_history <- function(d, vars, pars, h, s, build = FALSE, hist.inf = histtime)
   return(list("v" = v, "h" = h))
 }
 
-remove_history <- function(keepenv = FALSE){
-  v <- pbe0$v
-  p <- pbe0$p
-  d <- pbe0$d
+remove_history <- function(x = NULL, keepenv = FALSE){
+  ### Remove history host
+  if (is.null(x)) {
+    v <- pbe0$v
+    p <- pbe0$p
+    d <- pbe0$d
+  } else {
+    v <- x$v
+    p <- x$p
+    d <- x$d
+  }
   
   v$inftimes <- tail(v$inftimes, p$obs)
   v$infectors <- tail(v$infectors, p$obs) - 1
@@ -144,10 +158,14 @@ remove_history <- function(keepenv = FALSE){
   }
   v$nodeparents <- nodeparents
   
-  if (keepenv)
-    copy2pbe2("v", environment())
-  else {
-    pbe0$h$dist <- pbe0$h$dist[,2:ncol(pbe0$h$dist)][2:nrow(pbe0$h$dist),]
-    copy2pbe0("v", environment())
+  if (is.null(x)){
+    if (keepenv)
+      copy2pbe2("v", environment())
+    else {
+      pbe0$h$dist <- pbe0$h$dist[,2:ncol(pbe0$h$dist)][2:nrow(pbe0$h$dist),]
+      copy2pbe0("v", environment())
+    }
+  } else {
+    return(v)
   }
 }

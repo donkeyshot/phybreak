@@ -151,7 +151,7 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
       nodetimes = c(x$v$nodetimes[x$v$nodetypes %in% c("s", "x")], x$s$nodetimes[, samplenr]),
       nodeparents = x$s$nodeparents[, samplenr],
       nodehosts = c(x$v$nodehosts[x$v$nodetypes %in% c("s", "x")], x$s$nodehosts[, samplenr]),
-      nodetypes = x$v$nodetypes
+      nodetypes = c(x$v$nodetypes[x$v$nodetypes %in% c("s", "x")], rep("c", sum(!is.na(x$s$nodeparents[,samplenr]))-sum(x$v$nodetypes %in% c("s","x"))))
     )
     
     x$v <- lapply(x$v, function(xx) {

@@ -96,12 +96,14 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
     if (plot.which != "sample") {
       tree2plot <- suppressWarnings(transtree(x, plot.which, 
                                               infection.times = "infector", time.quantiles = 0.5)$transtree)
+      tree2plot$infector[tree2plot$infector=="history"] <- "index"
+      tree2plot <- tree2plot[-1,]
+      
       vars <- list(sample.times = x$d$sample.times,
                    sample.hosts = x$d$hostnames,
                    sim.infection.times = tree2plot[, 3],
                    sim.infectors = as.character(tree2plot[, 1]),
-                   post.support = tree2plot[, 2],
-                   culling.times = x$d$culling.times)
+                   post.support = tree2plot[, 2])
       names(vars$sample.times) <- x$d$hostnames
       names(vars$sim.infection.times) <- x$d$hostnames[1:x$p$obs]
       names(vars$sim.infectors) <- x$d$hostnames[1:x$p$obs]
@@ -119,6 +121,7 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
     } else if (samplenr == 0) {
       # plot.which == "sample"
       
+      x$v <- remove_history(x)
       vars <- phybreak2trans(x$v, x$d$hostnames, x$d$reference.date,
                              x$d$culling.times)
       if(is.null(arrow.col)) {
@@ -152,11 +155,8 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         inftimes = x$s$inftimes[, samplenr],
         infectors = x$s$infectors[, samplenr]
       )
-      vars <- lapply(vars, function(xx) {
-        nas <- which(is.na(xx))
-        if (length(nas) > 0) return(xx[-nas])
-        else return(xx)
-      })
+      x$v <- vars
+      vars <- remove_history(x)
       
       vars <- phybreak2trans(vars, unique(x$d$hostnames), x$d$reference.date,
                              x$d$culling.times)

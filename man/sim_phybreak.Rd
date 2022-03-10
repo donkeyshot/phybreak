@@ -10,13 +10,14 @@ sim_phybreak(
   popsize = NA,
   samplesperhost = 1,
   introductions = 1,
+  introdistribution = "exp",
   R0 = 1.5,
   spatial = FALSE,
   gen.shape = 10,
   gen.mean = 1,
   sample.shape = 10,
   sample.mean = 1,
-  seq.dist = NA,
+  histtime = -10,
   additionalsampledelay = 0,
   wh.model = "linear",
   wh.bottleneck = "auto",
@@ -41,6 +42,12 @@ an optimal population size will be chosen based on R0 and obsize. Be aware that 
 an \code{obsize} can severely increase the simulation time, depending on \code{R0}.}
 
 \item{samplesperhost}{Number of samples to be taken per host, either a vector or a single number.}
+
+\item{introductions}{The number of index cases when simulating a multiple introduced outbreak.}
+
+\item{introdistribution}{The probability distribution for the infection times of the index cases. Options are 
+\code{introdistribution == "exp"} for an exponential grow over time of the probability density, or 
+\code{introdistribution == "unif"} for an uniform probability distribution.}
 
 \item{R0}{The basic reproduction ratio used for simulation. The offspring distribution is Poisson.}
 

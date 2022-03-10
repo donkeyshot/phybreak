@@ -131,8 +131,8 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   
   ### propose the new infection time
   if (hostID == 1)
-    tinf.prop <- v$inftimes[hostID] - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 10)
-    #tinf.prop <- tinf.prop
+    #tinf.prop <- v$inftimes[hostID] - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 10)
+    tinf.prop <- v$inftimes[hostID]
   else {  
     tinf.prop <- v$nodetimes[hostID-1] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
@@ -369,9 +369,23 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                                  v$inftimes[-1], p,
                                                  nodetimes = v$nodetimes[v$nodetypes=="s"],
                                                  cultimes = v$cultimes)) +
-      (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ] *
-      (v$cultimes + 5 - tinf.prop > 0)
+      (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     
+    if(!is.null(v$cultimes))
+      dens.infectorproposal <- dens.infectorproposal * (v$cultimes + 5 - tinf.prop > 0)
+    
+    seq.dist <- round((pbe0$h$dist * max(1/pbe0$h$dist)) - 1)
+    pred.mut <- tinf.prop * pbe0$p$mu * ncol(as.character(pbe0$d$sequences)) 
+    # if(pbe0$boost.mcmc == TRUE){
+    #   if ( any(seq.dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1] > pred.mut) ){
+    #     dens.infectorproposal[1] <- mean(1/pbe0$h$dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1])
+    #   } else {
+    #     dens.infectorproposal[1] <- 1
+    #   }
+    # } else {
+      dens.infectorproposal[1] <- 1
+    # }
+  
     dens.infectorproposal[hostID] <- 0
     infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
     copy2pbe1("infector.proposed.ID", environment())
@@ -383,6 +397,15 @@ update_host_phylotrans <- function(hostID, which_protocol) {
                                                 nodetimes = v$nodetimes[v$nodetypes=="s"],
                                                 cultimes = v$cultimes)) +
       (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
+    # if(pbe0$boost.mcmc == TRUE){
+    #   if ( any(seq.dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1] > pred.mut) ){
+    #    dens.infectorcurrent[1] <- mean(1/pbe0$h$dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1])
+    #   } else {
+    #     dens.infectorcurrent[1] <- 1
+    #   }
+    # } else {
+      dens.infectorcurrent[1] <- 1
+    # }
     dens.infectorcurrent[hostID] <- 0
     
     # logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
@@ -465,8 +488,9 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     if(pbe1$logLiktoporatio > -Inf) {
       propose_pbe("phylotrans")
       logacceptanceprob <- pbe0$heat * 
-        (pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikdist + pbe1$logLiktoporatio -
-        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikdist) + pbe1$logproposalratio
+        (pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikintro + pbe1$logLikdist + pbe1$logLiktoporatio -
+        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikintro - pbe0$logLikdist) + pbe1$logproposalratio
+      
       if (runif(1) < exp(logacceptanceprob)) {
         accept_pbe("phylotrans")
       }
