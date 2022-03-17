@@ -46,8 +46,8 @@
 #' dataset <- phybreakdata(sequences = sampleSNPdata, sample.times = sampletimedata)
 #' @export
 phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names = NULL, host.names = sample.names, 
-                         culling.times = NULL, external.sequence = NULL,
-                         sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL) {
+                         culling.times = NULL, external.sequence = FALSE,
+                         sim.infection.times = NULL, sim.infectors = NULL, sim.tree = NULL, history = TRUE) {
   
   ##########################################################
   ### testing the input: first the essential information ###
@@ -73,6 +73,10 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
     }
   if(nrow(sequences) != length(sample.times)) {
     stop("numbers of sequences and sample.times don't match")
+  }
+  if(history & (is.null(sim.infection.times) | is.null(sim.infectors)) ) {
+    warning("no infection times or infectors found, no history possible")
+    history <- FALSE
   }
   if(is.null(sample.names)) {
     if(!is.null(row.names(sequences))) {
@@ -105,15 +109,21 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
   }
   if(is.null(host.names)) host.names <- sample.names
   if(length(host.names) != length(sample.names)) {
-    stop("length of host.names does not match number of sequences")
+    if(!history)
+      stop("length of host.names does not match number of sequences")
   }
   if(is.null(names(host.names))) {
-    names(host.names) <- sample.names
+    if(history) names(host.names) <- c(NA, sample.names)
+    else names(host.names) <- sample.names
   } else if(all(names(host.names) %in% sample.names)) {
     host.names <- host.names[sample.names]
   } else {
-    warning("names in host.names don't match sample.names and are therefore overwritten")
-    names(host.names) <- sample.names
+    if(history) {
+      names(host.names) <- c("sample.0.0",sample.names)
+    } else {
+      warning("names in host.names don't match sample.names and are therefore overwritten")
+      names(host.names) <- sample.names
+    }
   }
   
   if(is.null(external.sequence)){
@@ -133,15 +143,32 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
   ##########################################################################
   allhosts <- unique(host.names)
   allfirsttimes <- rep(FALSE, length(sample.times))
-  sapply(allhosts, function(x) allfirsttimes[which(min(sample.times[host.names == x]) == sample.times & (host.names == x))[1]] <<- TRUE)
-  outputorderhosts <- order(sample.times[allfirsttimes])
-  orderedhosts <- host.names[allfirsttimes][outputorderhosts]
-  outputordersamples <- order(!allfirsttimes, match(host.names, orderedhosts), sample.times)
+  if(history) {
+    sapply(allhosts[-1], function(x) allfirsttimes[which(min(sample.times[host.names[-1] == x]) == sample.times & (host.names[-1] == x))[1]] <<- TRUE)
+    outputorderhosts <- order(sample.times[allfirsttimes])
+    orderedhosts <- host.names[-1][allfirsttimes][outputorderhosts]
+    outputordersamples <- order(!allfirsttimes, match(host.names[-1], orderedhosts), sample.times)
+    
+    outputorderhosts <- c(1, outputorderhosts+1)
+    orderedhosts <- c("history", orderedhosts)
+    
+  } else {
+    sapply(allhosts, function(x) allfirsttimes[which(min(sample.times[host.names == x]) == sample.times & (host.names == x))[1]] <<- TRUE)
+    outputorderhosts <- order(sample.times[allfirsttimes])
+    orderedhosts <- host.names[allfirsttimes][outputorderhosts]
+    outputordersamples <- order(!allfirsttimes, match(host.names, orderedhosts), sample.times)
+  }
+  
   sequences <- sequences[outputordersamples, ]
   sequences <- matrix(sapply(sequences, tolower), nrow = nrow(sequences))
   sample.times <- sample.times[outputordersamples]
   sample.names <- sample.names[outputordersamples]
-  host.names <- host.names[outputordersamples]
+  
+  if(history){
+    host.names <- host.names[outputordersamples+1]
+  } else {
+    host.names <- host.names[outputordersamples]
+  }
 
   #################################################
   ### place essential information in outputlist ###
@@ -282,8 +309,14 @@ phybreakdata <- function(sequences, sample.times, spatial = NULL, sample.names =
       sim.infection.times <- sim.infection.times[outputorderhosts]
       names(sim.infection.times) <- orderedhosts
     }
-    if(!all(sim.infection.times < sample.times[1:length(allhosts)])) {
-      stop("all infection times should be before the sampling times")
+    if(history) {
+      if(!all(sim.infection.times[-1] < sample.times[1:(length(allhosts)-1)])){
+        stop("all infection times should be before the sampling times")
+      }
+    } else {
+      if(!all(sim.infection.times < sample.times[1:length(allhosts)])) {
+        stop("all infection times should be before the sampling times")
+      }
     }
     res <- c(res, list(sim.infection.times = sim.infection.times))
   }

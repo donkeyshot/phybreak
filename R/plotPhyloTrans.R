@@ -161,7 +161,7 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
     })
   }
   plotinput <- list(d = list(names = x$d$names,
-                             hostnames = x$d$hostnames[1:length(x$v$inftimes)],
+                             hostnames = x$d$hostnames[1:(length(x$v$inftimes)-1)],
                              sample.times = x$d$sample.times,
                              reference.date = x$d$reference.date,
                              sequences = x$d$sequences), 

@@ -34,8 +34,10 @@
 #' logLik(MCMCstate, genetic = TRUE, withinhost = FALSE, 
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
-logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE, generation = TRUE, 
+logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE,
+                            generation = TRUE, intro = TRUE, 
                             distance = TRUE, ...) {
+  
   res <- 0
   if (genetic) {
     res <- res + with(object, .likseq(matrix(unlist(d$sequences), ncol = d$nsamples), 
@@ -48,9 +50,18 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   if (sampling) {
     res <- res + with(object, lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes))
   }
+  if (intro) {
+    if (with(object, p$obs != length(v$infectors))) {
+      time <- max(object$d$sample.times) - min(object$v$inftimes[-1])
+      res < res + with(object, lik_introductions(p$hist.mean, sum(v$infectors==1), time))
+    } else {
+      res <- res + 0
+    }
+  }
   if (withinhost) {
     objectenv <- object
     objectenv$v <- phybreak2environment(objectenv$v)
+    #objectenv$v <- with(objectenv, add_history(d,v,p,h,s,hist.inf = objectenv$p$hist.time))$v
     res <- res + with(object, lik_coaltimes(objectenv))
   }
   if(distance && !is.null(object$d$distances)) {
@@ -72,26 +83,30 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 # lik_gentimes <- function(shapeG, meanG, sampleScale, cullingScale, transModel, inftimes, infectors,
 #                          nodetimes, cultimes) {
 lik_gentimes <- function(p, v){
-  #meanG = p$gen.mean
-  #shapeG = p$gen.shape
-  intro = sum(v$infectors==1) - 1
-  total = length(v$infectors)
-  
-  0 + # force of infection from external source
-  sum(infect_distribution(v$inftimes[v$infectors > 1],
-                            v$inftimes[v$infectors[v$infectors > 1]],
-                          nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[v$infectors>1]-1],
-                          cultimes = v$cultimes[v$infectors[v$infectors>1]],
-                          p = p,
-                          log = TRUE))
-  # sum(dgamma(v$inftimes[v$infectors > 1] -
-  #              v$inftimes[v$infectors[v$infectors > 1]],
-  #            shape = shapeG, scale = meanG/shapeG, log = TRUE))
+  if(length(v$inftimes) != sum(v$nodetypes=="s"))
+    0 + # force of infection from external source
+    sum(infect_distribution(v$inftimes[v$infectors > 1],
+                              v$inftimes[v$infectors[v$infectors > 1]],
+                            nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[v$infectors>1]-1],
+                            cultimes = v$cultimes[v$infectors[v$infectors>1]],
+                            p = p,
+                            log = TRUE))
+  else 
+    0 + # force of infection from external source
+    sum(infect_distribution(v$inftimes[v$infectors > 0],
+                            v$inftimes[v$infectors[v$infectors > 0]],
+                            nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[v$infectors>0]],
+                            cultimes = v$cultimes[v$infectors[v$infectors>0]],
+                            p = p,
+                            log = TRUE))
 }
 
 ### calculate the log-likelihood of sampling intervals 
 lik_sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
-  sum(dgamma(nodetimes[1:obs] - inftimes[2:(obs+1)], shape = shapeS, scale = meanS/shapeS, log = TRUE))
+  if(length(inftimes) != obs)
+    sum(dgamma(nodetimes[1:obs] - inftimes[2:(obs+1)], shape = shapeS, scale = meanS/shapeS, log = TRUE))
+  else
+    sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
 ### calculate the log-likelihood of distances 

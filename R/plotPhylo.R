@@ -34,6 +34,11 @@ plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplen
   if(inherits(x, "phybreakdata")) {
     if(exists("sim.infection.times", x) && exists("sim.infectors", x) && exists("sim.tree", x)) {
       samplenames <- names(x$sample.times)
+      if(length(x$sample.hosts) != length(x$sim.infectors)){
+        x$sim.infection.times <- x$sim.infection.times[-1]
+        x$sim.infectors <- x$sim.infectors[-1]
+        x$sim.infectors[x$sim.infectors=="history"] <- "index" 
+      }
       x <- transphylo2phybreak(x)
       x$d$names <- samplenames
       plot.which <- "sample"

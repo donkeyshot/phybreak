@@ -73,6 +73,11 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
   
   if(inherits(x, "phybreakdata")) {
     if(exists("sim.infection.times", x) && exists("sim.infectors", x)) {
+      if(length(x$sample.hosts) != length(x$sim.infectors)){
+        x$sim.infection.times <- x$sim.infection.times[-1]
+        x$sim.infectors <- x$sim.infectors[-1]
+        x$sim.infectors[x$sim.infectors=="history"] <- "index" 
+      }
       vars <- x
       names(vars$sample.times) <- vars$sample.hosts
       tg.mean <- NA
@@ -120,8 +125,8 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
                      trans.growth = median(x$s$tG))
     } else if (samplenr == 0) {
       # plot.which == "sample"
-      
-      x$v <- remove_history(x)
+      if(x$p$obs != length(x$v$inftimes))
+        x$v <- remove_history(x)
       vars <- phybreak2trans(x$v, x$d$hostnames, x$d$reference.date,
                              x$d$culling.times)
       if(is.null(arrow.col)) {

@@ -107,6 +107,9 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
     history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
     v <- history$v
     h <- history$h
+  } else if (nrow(h$dist) == p$obs){
+    h.dist.median <- median(1/h$dist[-1,-1])
+    h$dist <- rbind(1/h.dist.median, cbind(1/h.dist.median, h$dist))
   }
   
   ### complete likarray and calculate log-likelihood of sequences
