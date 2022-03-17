@@ -245,11 +245,10 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
   
   if(is.null(vars$sim.tree) | resample) {
     inftimes = c(unlist(ifelse(resamplepars$hist, list(vars$sim.hist.time), list(NULL))), inftimes)
-    infectors = c(unlist(ifelse(resamplepars$hist, list(0), list(NULL))), infectors)
     if(resamplepars$hist){
       res <- list(
         inftimes = inftimes,
-        infectors = infectors + 1,
+        infectors = c(0,infectors + 1),
         cultimes = cultimes,
         nodetypes = c(rep("s", nhosts), 
                       rep("x", nsamples - nhosts), 
@@ -257,7 +256,7 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
                       rep("t", nhosts+1)),  
         #node type (primary sampling, extra sampling, coalescent, transmission)
         nodetimes = c(samtimes, samtimes[-1], inftimes),
-        nodehosts = c(samhosts+1, rep(-1, length(samhosts) - 1), infectors),
+        nodehosts = c(samhosts+1, rep(-1, length(samhosts) - 1), c(0,infectors + 1)),
         nodeparents = rep(-1, 2 * nsamples + nhosts)
       )
     } else {

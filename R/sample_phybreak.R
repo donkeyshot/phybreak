@@ -93,9 +93,6 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                  nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                  nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                  nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
-                 #nodetimes = with(x, cbind(s$histnodetimes, matrix(NA, nrow = 3*d$nsamples , ncol = nsample))),
-                 #nodeparents = with(x, cbind(s$histnodeparents, matrix(NA, nrow = 3*d$nsamples , ncol = nsample))),
-                 #nodehosts = with(x, cbind(s$histnodehosts, matrix(NA, nrow = 3*d$nsamples , ncol = nsample))),
                  introductions = c(x$s$introductions, rep(NA, nsample)),
                  mu = c(x$s$mu, rep(NA, nsample)), 
                  hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
@@ -170,7 +167,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
             update_host(i, which_protocol)
           }
         
-          if (i == -1)  update_mu()
+          if (i == -1 && x$h$est.mu)  update_mu()
           if (i == -2 && x$h$est.mG)  update_mG()
           if (i == -3 && x$h$est.mS)  update_mS()
           if (i == -11 && x$h$est.tG) update_tG()
