@@ -58,7 +58,7 @@
 #' simulation <- sim_phybreak()
 #' @export
 sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
-                         introductions = 1, introdistribution = "unif", outbreaktime = 10,
+                         introductions = 1, history = TRUE, introdistribution = "unif", outbreaktime = 10,
                          R0 = 1.5, spatial = FALSE,
                          gen.shape = 10, gen.mean = 1, 
                          sample.shape = 10, sample.mean = 1, histtime = -10,
@@ -94,7 +94,10 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(introdistribution != "exp" & introdistribution != "unif"){
     stop('introdistribution should be either "exp" or "unif"')
   }
-  if(introductions == 1){
+  if(introductions > 1 & history == FALSE){
+    warning("history is TRUE for more than 1 introduction and is therefore overwritten")
+    history <- TRUE
+  } else if (introductions == 1 & history == FALSE){
     histtime <- NULL
   }
   wh.model <- choose_whmodel(wh.model)
@@ -127,11 +130,11 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   res <- sim_phylotree(res, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean, histtime)
   res <- sim_sequences(res, mu, sequence.length)
   
-  hostnames <- paste0("host.", 1:obsize)
-  
-  if (introductions > 1) {
+  if (history) {
+    hostnames <- c("history", paste0("host.", 1:obsize))
     samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples]-1, ".", nthsample(res))
-  } else { 
+  } else {
+    hostnames <- paste0("host.", 1:obsize)
     samplenames <- paste0("sample.", res$nodehosts[1:res$Nsamples], ".", nthsample(res))
   }
   names(res$sequences) <- samplenames
@@ -141,14 +144,6 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
 
   ### make a phylo tree
   treeout <- phybreak2phylo(vars = environment2phybreak(res), samplenames = samplenames, simmap = FALSE)
-  
-  if(introductions > 1){
-    res <- within(res, {
-      inftimes <- inftimes[-1]
-      infectors <- infectors[-1]-1
-    })
-  }
-  
   if(spatial) {
     toreturn <- with(res,
                      phybreakdata(
@@ -168,12 +163,14 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
       sequences = sequences,
       sample.times = c(samtimes, addsampletimes),
       sample.names = samplenames,
-      host.names = hostnames[c(1:obs, addsamplehosts)],
+      host.names = hostnames,
       sim.infection.times = inftimes,
       sim.infectors = infectors,
       sim.tree = treeout,
-      external.seq = F
+      external.sequence = F,
+      history = history
     ))
+    toreturn$sim.hist.time <- histtime
   }
   
   return(toreturn)
@@ -353,7 +350,7 @@ sim_outbreak <- function(Npop, R0, intro, introdist, time, aG, mG, aS, mS) {
     hosts <- hosts[-(1:trees[[i]]$obs)]
   }
   infectors <- infectors[hostorder]
-  
+
   return(
     list(
       obs = length(infectors),
@@ -495,6 +492,7 @@ sim_additionalsamples <- function(sim.object, samperh, addsamdelay) {
 ### simulate a phylogenetic tree given a transmission tree
 sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean, histtime) {
   sim.object$inftimes <- c(histtime, sim.object$inftimes)
+  if(is.null(histtime)) sim.object$infectors <- sim.object$infectors[-1]-1
   list2env(list(v = sim.object, 
                 p = list(wh.model = wh.model, wh.bottleneck = wh.bottleneck, wh.slope = wh.slope, wh.exponent = wh.exponent,
                          wh.level = wh.level, sample.mean = sample.mean),
