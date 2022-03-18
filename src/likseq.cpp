@@ -111,11 +111,13 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
       rootnode = i;
     }
   }
- // nextnode = 0;
- // while(nodeparents[nextnode] - 1 != rootnode) {
- //   ++nextnode;
- // }
- // rootnode = nextnode;
+  while(rootnode >= 2 * nsamples - 1) {
+    nextnode = 0;
+    while(nodeparents[nextnode] - 1 != rootnode) {
+      ++nextnode;
+    }
+    rootnode = nextnode;
+  }
   for(int i = 0; i < Nsamples; ++i) {
     routefree[i] = true;
   }
@@ -127,8 +129,9 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
     curnode = i;
     nextnode = nodeparents[curnode] - 1;
     edgelen = nlens[curnode];
-    while(routefree[curnode] && nextnode != -1) {
-//      if(nextnode < 2*Nsamples - 1) {
+    while(routefree[curnode] && curnode != rootnode) {
+      // while(routefree[curnode] && nextnode != -1) {
+        //      if(nextnode < 2*Nsamples - 1) {
         for(int j = 0; j < nSNPs; ++j) {
           totprob = likarray[(curnode * nSNPs + j) * 4];
           for(int k = 1; k < 4; ++k) {
