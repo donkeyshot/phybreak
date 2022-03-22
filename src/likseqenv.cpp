@@ -69,8 +69,9 @@ double likseqenv(Environment pbenv,
     curnode = tips[i] - 1;
     nextnode = nodeparents[curnode] - 1;
     edgelen = nlens[curnode];
-    while(routefree[curnode] && nextnode != -1) {
-      if(nextnode < 2 * nsamples - 1) {
+    while(routefree[curnode] && curnode != rootnode) {
+      // while(routefree[curnode] && nextnode != -1) {
+        if(nextnode < 2 * nsamples - 1) {
         for(int j = 0; j < nSNPs; ++j) {
           totprob = likarray[curnode * nSNPs * 4 + j * 4];
           for(int k = 1; k < 4; ++k) {
