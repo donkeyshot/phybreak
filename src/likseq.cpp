@@ -111,7 +111,7 @@ double likseq(IntegerVector SNPs, IntegerVector SNPfreqs,
       rootnode = i;
     }
   }
-  while(rootnode >= 2 * nsamples - 1) {
+  while(rootnode >= 2 * Nsamples - 1) {
     nextnode = 0;
     while(nodeparents[nextnode] - 1 != rootnode) {
       ++nextnode;
