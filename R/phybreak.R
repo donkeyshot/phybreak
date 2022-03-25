@@ -115,7 +115,7 @@
 phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRUE,
          mu = NULL, gen.shape = 3, gen.mean = 1, trans.model = "gamma",
          trans.init = 1e-4, trans.growth = 1, trans.sample = 0.1, trans.culling = 5,
-         sample.shape = 3, sample.mean = 1, hist.mean = 1,
+         sample.shape = 3, sample.mean = 1, hist.mean = 1, histtime = -1e5,
          wh.model = "linear", wh.bottleneck = "auto", wh.history = 1, wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
          dist.model = "power", dist.exponent = 2, dist.scale = 1, dist.mean = 1,
          est.mu = TRUE, prior.mu.mean = 0, prior.mu.sd = 100,
@@ -209,7 +209,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
     dist.mean = dist.mean,
     trans.model = trans.model,
     hist.mean = hist.mean,
-    hist = use.history
+    hist.time = histtime,
+    use.hist = use.history
   )
   
   ##############################
@@ -220,8 +221,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
   phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot,
                                            introductions)
   variableslot <- phybreakvariables$v
-  if(length(variableslot$cultimes) == 0)
-    variableslot <- within(variableslot, rm(cultimes))
+  # if(length(variableslot$cultimes) == 0)
+  #   variableslot <- within(variableslot, rm(cultimes))
   dataslot$reference.date <- phybreakvariables$d$reference.date
   
   #################

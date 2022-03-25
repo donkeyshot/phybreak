@@ -1,9 +1,12 @@
 ### functions to simulate mini-trees ###
 
-sample_coaltimes <- function(tiptimes, inftime, parameters) {
+sample_coaltimes <- function(tiptimes, inftime, parameters, history = FALSE) {
   ### tests
   if(min(tiptimes) < inftime) stop("sample_coaltimes with negative tip times")
 
+  ### history
+  if (history) inftime <- -100
+  
   ### function body
   if(length(tiptimes) < 2) return(c())
   

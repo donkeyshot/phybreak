@@ -88,8 +88,8 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
   protocoldistribution <- c(1 - classic - keepphylo - withinhost_only, classic, keepphylo, withinhost_only)
   
   ### create room in s to add the new posterior samples
-  s.post <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs+1, ncol = nsample))),
-                 infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs+1, ncol = nsample))),
+  s.post <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
+                 infectors = with(x, cbind(s$infectors, matrix(NA, nrow = p$obs, ncol = nsample))),
                  nodetimes = with(x, cbind(s$nodetimes, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                  nodehosts = with(x, cbind(s$nodehosts, matrix(NA, nrow = d$nsamples - 1, ncol = nsample))), 
                  nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
@@ -109,12 +109,11 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                  dist.s = c(x$s$dist.s, rep(NA, nsample)), 
                  dist.m = c(x$s$dist.m, rep(NA, nsample)), 
                  logLik = c(x$s$logLik, rep(NA, nsample)),
-                 historyinf = c(x$s$historyinf, rep(NA, nsample)),
                  heat = c(x$s$heat, rep(NA, nsample)))
     
   s.posts <- lapply(1:nchains, function(i) s.post)
     
-  build_pbe(x, histtime)
+  build_pbe(x)
   
   if (is.null(heats))
     heats <- 1/(1+1*(1:nchains-1))
@@ -159,8 +158,8 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       envirs <- lapply (envirs, function(e) {
         for (i in ls(envir=e)) copy2pbe0(i, e)
         
-        for(i in  sample(c(rep(-(1:13), parameter_frequency), 1:(x$p$obs+1)))) {
-          if(i > 0) {
+        for(i in  sample(c(rep(-(1:13), parameter_frequency), 0:x$p$obs))) {
+          if(i >= 0) {
             which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                      1,
                                      prob = protocoldistribution)

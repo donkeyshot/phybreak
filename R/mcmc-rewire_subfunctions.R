@@ -4,7 +4,22 @@ rewire_pullnodes_complete <- function(currentID) {
   if(length(loosenodes) > 0) {
     free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodeparents == -1)
     if(currentID == 0) {
-      pbe1$v$nodeparents[loosenodes] <- 0L
+      if(sum(pbe1$v$infectors==0) == 1){
+        pbe1$v$nodeparents[loosenodes] <- 0L
+      } else {
+        loosenodetimes <- pbe1$v$nodetimes[loosenodes]
+        coalescenttimesnew <- sample_coaltimes(loosenodetimes, pbe1$p$hist.time, pbe1$p)
+        coalescenttimesnew[1] <- pbe1$p$hist.time
+        
+        coalnodes <- free_cnodes[1:(length(loosenodes)-1)]
+        pbe1$v$nodehosts[coalnodes] <- 0
+        pbe1$v$nodeparents[coalnodes] <- 
+          do.call(c,lapply(1:(length(loosenodes)-1), function(i){
+            if (i == 1) return(0)
+            else if (i > 1) return(coalnodes[i-1])}))
+        pbe1$v$nodeparents[loosenodes] <- c(coalnodes,tail(coalnodes,1))
+        pbe1$v$nodetimes[coalnodes] <- sort(coalescenttimesnew)
+      }
     } else {
       # old edges entering currentID, with endtimes
       edgesendold <- setdiff(which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes != "c"), loosenodes)
@@ -198,7 +213,7 @@ rewire_pullnodes_wide <- function(currentID) {
 }
 
 ### remove tips from existing minitree, and return the coalescent node
-take_cnode <- function(childnode) {
+take_cnode <- function(childnode, newinfector = 1) {
   parentnode <- pbe1$v$nodeparents[childnode]
   while(pbe1$v$nodetypes[parentnode] %in% c("t", "b")) {
     pbe1$v$nodehosts[childnode] <- -1L
@@ -207,6 +222,9 @@ take_cnode <- function(childnode) {
     childnode <- parentnode
     parentnode <- pbe1$v$nodeparents[childnode]
     if(pbe1$v$nodetypes[childnode] == "b") pbe1$v$nodetypes[childnode] <- "0"
+  }
+  if(newinfector == 0 & pbe1$v$nodeparents[pbe1$v$nodeparents[parentnode]] == 0) {
+    pbe1$v$nodeparents[pbe1$v$nodeparents[parentnode]] <- -1
   }
   second_childnode <- setdiff(which(pbe1$v$nodeparents == parentnode), childnode)
   pbe1$v$nodeparents[second_childnode] <- pbe1$v$nodeparents[parentnode]

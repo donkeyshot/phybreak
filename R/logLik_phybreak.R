@@ -51,9 +51,9 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
     res <- res + with(object, lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes))
   }
   if (intro) {
-    if (with(object, p$obs != length(v$infectors))) {
-      time <- max(object$d$sample.times) - min(object$v$inftimes[-1])
-      res < res + with(object, lik_introductions(p$hist.mean, sum(v$infectors==1), time))
+    if (object$p$use.hist) {
+      time <- max(object$d$sample.times) - min(object$v$inftimes)
+      res < res + with(object, lik_introductions(p$hist.mean, sum(v$infectors==0), time))
     } else {
       res <- res + 0
     }
@@ -61,7 +61,6 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   if (withinhost) {
     objectenv <- object
     objectenv$v <- phybreak2environment(objectenv$v)
-    #objectenv$v <- with(objectenv, add_history(d,v,p,h,s,hist.inf = objectenv$p$hist.time))$v
     res <- res + with(object, lik_coaltimes(objectenv))
   }
   if(distance && !is.null(object$d$distances)) {
@@ -103,10 +102,7 @@ lik_gentimes <- function(p, v){
 
 ### calculate the log-likelihood of sampling intervals 
 lik_sampletimes <- function(obs, shapeS, meanS, nodetimes, inftimes) {
-  if(length(inftimes) != obs)
-    sum(dgamma(nodetimes[1:obs] - inftimes[2:(obs+1)], shape = shapeS, scale = meanS/shapeS, log = TRUE))
-  else
-    sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
+  sum(dgamma(nodetimes[1:obs] - inftimes, shape = shapeS, scale = meanS/shapeS, log = TRUE))
 }
 
 ### calculate the log-likelihood of distances 
@@ -154,10 +150,10 @@ lik_coaltimes <- function(phybreakenv) {
   coalnodes <- coalnodes[orderednodes]
   orderedhosts <- nodehosts[orderednodes]
   
-  coalnodes.history <- which(coalnodes & orderedhosts == 1)
+  coalnodes.history <- which(coalnodes & orderedhosts == 0)
   coalnodes.outbreak <- setdiff(which(coalnodes), coalnodes.history)
   
-  bottlenecks <- sapply(0:(phybreakenv$p$obs+1), function(i) sum((orderedhosts == i) * (1 - 2 * coalnodes))) - 1
+  bottlenecks <- sapply(0:phybreakenv$p$obs, function(i) sum((orderedhosts == i) * (1 - 2 * coalnodes))) - 1
   dlineage <- 2 * c(FALSE, head(coalnodes, -1)) - 1
   dlineage[!duplicated(orderedhosts)] <- bottlenecks
   nrlineages <- 1 + cumsum(dlineage)
@@ -167,7 +163,7 @@ lik_coaltimes <- function(phybreakenv) {
   
   if (length(coalnodes.history) > 0){
     logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
-                           linear = -log(phybreakenv$p$wh.level + c(rep(1, length(coalnodes.history)),#phybreakenv$p$wh.history * whtimes[coalnodes.history],#rep(phybreakenv$p$wh.history, length(coalnodes.history)),
+                           linear = -log(phybreakenv$p$wh.level + c(rep(1, length(coalnodes.history)),
                                            phybreakenv$p$wh.slope * whtimes[coalnodes.outbreak])),
                            exponential = 
                            -log(phybreakenv$p$wh.level * 

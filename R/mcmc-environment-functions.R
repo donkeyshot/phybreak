@@ -102,15 +102,10 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
   
   ### change the variables slot to an environmental variables slot (with transmission nodes in the tree)
   v <- phybreak2environment(v)
-  
-  if (p$obs == length(v$infectors)){
-    history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
-    v <- history$v
-    h <- history$h
-  } else if (nrow(h$dist) == p$obs){
-    h.dist.median <- median(1/h$dist[-1,-1])
-    h$dist <- rbind(1/h.dist.median, cbind(1/h.dist.median, h$dist))
-  }
+
+  #history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
+  #v <- history$v
+  #h <- history$h
   
   ### complete likarray and calculate log-likelihood of sequences
   .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
@@ -122,9 +117,9 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
   #                           v$inftimes, v$infectors, v$nodetimes,  v$cultimes)
   logLikcoal <- lik_coaltimes(le)
   logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, 
-                              v$infectors[v$infectors!=0]-1, d$distances)
-  logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 1), 
-                                   max(d$sample.times) - min(v$inftimes[-1]))
+                              v$infectors, d$distances)
+  logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 0), 
+                                   max(d$sample.times) - min(v$inftimes))
   
   ### copy everything into pbe0
   copy2pbe0("d", le)

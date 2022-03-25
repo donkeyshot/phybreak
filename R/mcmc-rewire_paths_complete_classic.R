@@ -376,7 +376,7 @@ rewire_pathK_complete_classic <- function() {
   edgeintimes <- pbe1$v$nodetimes[edgesin]
 
   # transmission node of hostID
-  transnode <- 2*pbe1$d$nsamples - 1 + pbe1$hostID
+  transnode <- ifelse(pbe1$hostID == 0, 0, 2*pbe1$d$nsamples - 1 + pbe1$hostID)
 
   # all coalescent nodes in new infector and hostID
   coalnodes <- which(pbe1$v$nodehosts == pbe1$hostID & pbe1$v$nodetypes == "c")
@@ -387,7 +387,10 @@ rewire_pathK_complete_classic <- function() {
 
   ### Second, rebuild minitree
   # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
-  newcoaltimes <- sample_coaltimes(edgeintimes, pbe1$v$inftimes[pbe1$hostID], pbe1$p)
+  if(pbe1$hostID == 0)
+    newcoaltimes <- sample_coaltimes(edgeintimes, -100, pbe1$p, history = TRUE)
+  else 
+    newcoaltimes <- sample_coaltimes(edgeintimes, pbe1$v$inftimes[pbe1$hostID], pbe1$p)
 
   # order all edges (transmission, sample, coalescent) by endtime in hostID
   nodeorder <- order(c(newcoaltimes, edgeintimes))
