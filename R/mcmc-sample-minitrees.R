@@ -1,11 +1,21 @@
 ### functions to simulate mini-trees ###
 
-sample_coaltimes <- function(tiptimes, inftime, parameters) {
+sample_coaltimes <- function(tiptimes, inftime, parameters, historyhost = FALSE) {
   ### tests
   if(min(tiptimes) < inftime) stop("sample_coaltimes with negative tip times")
 
   ### function body
   if(length(tiptimes) < 2) return(c())
+  
+  if(historyhost) {
+    # transform times so that fixed rate 1 can be used
+    ttrans <- sort(tiptimes/parameters$wh.history, decreasing = TRUE)
+    tnodetrans <- .sctwh3(ttrans)
+    
+    res <- sort(parameters$wh.history * tnodetrans)
+    
+    return(res)
+  }
   
   switch(
     parameters$wh.model,
