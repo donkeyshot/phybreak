@@ -4,14 +4,17 @@
 tinf.prop.shape.mult <- 2/3  #shape for proposing infection time is sample.shape * tinf.prop.shape.mult
 
 ### fork to the requested update protocol
-update_host <- function(hostID, which_protocol) {
+update_host <- function(hostID, which_protocol, history) {
   ### use protocol
   if(which_protocol == "keepphylo") {
     update_host_keepphylo(hostID)
   } else if(which_protocol == "withinhost") {
     update_host_withinhost(hostID)
   } else {
-    update_host_phylotrans(hostID, which_protocol)
+    if(history)
+      update_host_history(hostID, which_protocol)
+    else 
+      update_host_phylotrans(hostID, which_protocol)
   }
 }
 
@@ -130,43 +133,42 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   v <- pbe0$v
   
   ### propose the new infection time
-  if (hostID == 1)
-    #tinf.prop <- v$inftimes[hostID] - runif(1, min = v$inftimes[hostID]-min(v$inftimes[-hostID]), max = 10)
-    tinf.prop <- v$inftimes[hostID]
-  else {  
-    tinf.prop <- v$nodetimes[hostID-1] -
+  tinf.prop <- v$nodetimes[hostID] -
     rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
   # tinf.prop <- v$inftimes[hostID] + rnorm(1, 0, 0.5 * pbe0$h$mS.av / sqrt(p$sample.shape))
   # tinf.prop <- min(tinf.prop, 2 * v$nodetimes[hostID] - tinf.prop)
-    
-  }
   copy2pbe1("tinf.prop", le)
-  
   
   ### going down the decision tree
   if (v$infectors[hostID] == 0) {
     # Y (hostID is index case)
-    if (tinf.prop < min(c(v$inftimes[v$infectors == hostID], Inf))) {
-      # YY (... & tinf.prop before hostID's first transmission node)
+    if (sum(v$infectors == hostID) == 0) {
+      # YY (... & no transmission from hostID)
       update_pathA(which_protocol)
-    }#$else {
-      # YN (... & tinf.prop after hostID's first transmission node)
-    #   if (tinf.prop < sort(c(v$inftimes[v$infectors == hostID], Inf))[2]) {
-    #     # YNY (... & tinf.prop before hostID's second transmission node)
-    #     update_pathB(which_protocol)
-    #   } else {
-    #     # YNN (... & tinf.prop after hostID's second transmission node)
-    #     update_pathC(which_protocol) 
-    #   }
-    # }
+    } else{
+      # YN (... & hostID not only case in subtree)
+      if (tinf.prop < min(c(v$inftimes[v$infectors == hostID], Inf))) {
+        # YNY (... & tinf.prop before hostID's first transmission node)
+        update_pathA(which_protocol)
+      } else {
+        # YNN (... & tinf.prop after hostID's first transmission node)
+        if (tinf.prop < sort(c(v$inftimes[v$infectors == hostID], Inf))[2]) {
+          # YNNY (... & tinf.prop before hostID's second transmission node)
+          update_pathB(which_protocol)
+        } else {
+          # YNNN (... & tinf.prop after hostID's second transmission node)
+          update_pathC(which_protocol)
+        }
+      }
+    }
   } else {
     # N (hostID is not index case)
-    if (tinf.prop < v$inftimes[v$infectors == 0]) {
-      # NY (... & tinf.prop before infection of index case)
-      # update_pathD(which_protocol)
+    if (tinf.prop < v$inftimes[tail(.ptr(v$infectors, hostID), 1)]) {
+      # NY (... & tinf.prop before infection of hostID's index case)
+      update_pathD(which_protocol)
       return()
     } else {
-      # NN (... & tinf.prop after infection of index case)
+      # NN (... & tinf.prop after infection of hostID's index case)
       if (tinf.prop < min(c(v$inftimes[v$infectors == hostID], Inf))) {
         # NNY (... & tinf.prop before hostID's first transmission node)
         update_pathE(which_protocol)
@@ -179,6 +181,34 @@ update_host_phylotrans <- function(hostID, which_protocol) {
 }
 
 
+### updating index cases: proposing an infection time and add or remove index case
+update_host_history <- function(hostID, which_protocol) {
+  ### create an up-to-date proposal-environment with hostID as focal host
+  copy2pbe1("hostID", environment())
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  d <- pbe0$d
+  p <- pbe0$p
+  v <- pbe0$v
+  
+  ### propose the new infection time
+  tinf.prop <- v$nodetimes[hostID] -
+    rgamma(1, shape = tinf.prop.shape.mult * pbe0$p$sample.shape, scale = pbe0$p$sample.mean/(tinf.prop.shape.mult * pbe0$p$sample.shape))
+  copy2pbe1("tinf.prop", le)
+  
+  ### going down the decision tree
+  if (hostID == 0) {
+    # Y (hostID is history)
+    update_host_withinhost(hostID)
+  } else {
+    # N (hostID is not history)
+    if (tinf.prop < min(c(v$inftimes[v$infectors == hostID], Inf))) {
+      # NY (... & tinf.prop before hostID's first transmission node)
+      update_pathL(which_protocol)
+    }
+  }
+}
 
 {
   ### update if hostID is index and tinf.prop is before the first secondary case
@@ -191,13 +221,16 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     tinf.prop <- pbe1$tinf.prop
     
     ### calculate proposal ratio
-     logproposalratio <- 0
-    # logproposalratio <- dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
-    #                            shape = tinf.prop.shape.mult * p$sample.shape,
-    #                            scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
-    #   dgamma(v$nodetimes[hostID] - tinf.prop,
-    #          shape = tinf.prop.shape.mult * p$sample.shape,
-    #          scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
+    # logproposalratio <- 0
+    logproposalratio <- infect_distribution(v$nodetimes[hostID],
+                                            v$inftimes[hostID],
+                                            p,
+                                            nodetimes = v$nodetimes[v$nodetypes=="s"],
+                                            cultimes = v$cultimes, log = TRUE) -
+      infect_distribution(v$nodetimes[hostID], tinf.prop,
+                          p,
+                          nodetimes = v$nodetimes[v$nodetypes=="s"],
+                          cultimes = v$cultimes, log = TRUE)
     copy2pbe1("logproposalratio", environment())
     
     ### propose minitrees and accept or reject
@@ -225,9 +258,12 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     tinf.prop <- pbe1$tinf.prop
     
     ### propose infector for hostID
-    dens.infectorproposal <- dgamma(tinf.prop - v$inftimes,
-                                    shape = p$gen.shape, scale = p$gen.mean/p$gen.shape) +
+    dens.infectorproposal <- infect_distribution(tinf.prop, 
+                                                 v$inftimes, p,
+                                                 nodetimes = v$nodetimes[v$nodetypes=="s"],
+                                                 cultimes = v$cultimes) +
       (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
+    dens.infectorproposal[which(v$tree != v$tree[hostID])] <- 0
     dens.infectorproposal[hostID] <- 0
     infector.proposed.ID <- sample(p$obs, 1, prob = dens.infectorproposal)
     copy2pbe1("infector.proposed.ID", environment())
@@ -324,9 +360,12 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     # the reverse proposal includes proposing an infector, 
     # so first identify the current infector
     infector.current.ID <- v$infectors[hostID]
-    dens.infectorcurrent <- dgamma(v$inftimes[hostID] - v$inftimes,
-                                   shape = p$gen.shape, scale = p$gen.mean/p$gen.shape) +
-      (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
+    dens.infectorcurrent <- infect_distribution(v$inftimes[hostID], 
+                                                v$inftimes, p,
+                                                nodetimes = v$nodetimes[v$nodetypes=="s"],
+                                                cultimes = v$cultimes) +
+      (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
+    dens.infectorcurrent[which(v$tree != v$tree[hostID])] <- 0
     dens.infectorcurrent[hostID] <- 0
     
     # logproposalratio <- log(dens.infectorcurrent[infector.current.ID]/(sum(dens.infectorcurrent))) 
@@ -365,59 +404,43 @@ update_host_phylotrans <- function(hostID, which_protocol) {
 
     ### identify the current infector and propose the new infector
     infector.current.ID <- v$infectors[hostID]
-    dens.infectorproposal <- c(0,infect_distribution(tinf.prop, 
-                                                 v$inftimes[-1], p,
+    dens.infectorproposal <- infect_distribution(tinf.prop, 
+                                                 v$inftimes, p,
                                                  nodetimes = v$nodetimes[v$nodetypes=="s"],
-                                                 cultimes = v$cultimes)) +
+                                                 cultimes = v$cultimes) +
       (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     
-    if(!is.null(v$cultimes))
+    if(length(v$cultimes) > 0)
       dens.infectorproposal <- dens.infectorproposal * (v$cultimes + 5 - tinf.prop > 0)
-    
-    seq.dist <- round((pbe0$h$dist * max(1/pbe0$h$dist)) - 1)
-    pred.mut <- tinf.prop * pbe0$p$mu * ncol(as.character(pbe0$d$sequences)) 
-    # if(pbe0$boost.mcmc == TRUE){
-    #   if ( any(seq.dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1] > pred.mut) ){
-    #     dens.infectorproposal[1] <- mean(1/pbe0$h$dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1])
-    #   } else {
-    #     dens.infectorproposal[1] <- 1
-    #   }
-    # } else {
-      dens.infectorproposal[1] <- 1
-    # }
   
+    dens.infectorproposal[which(v$tree != v$tree[hostID])] <- 0
     dens.infectorproposal[hostID] <- 0
-    infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
-    copy2pbe1("infector.proposed.ID", environment())
+  
+    infector.proposed.ID <- sample(p$obs, 1, prob = dens.infectorproposal)
     
     ### calculate proposal ratio 
     # the reverse proposal includes proposing an infector
-    dens.infectorcurrent <- c(0,infect_distribution(v$inftimes[hostID], 
-                                                v$inftimes[-1], p,
+    dens.infectorcurrent <- infect_distribution(v$inftimes[hostID], 
+                                                v$inftimes, p,
                                                 nodetimes = v$nodetimes[v$nodetypes=="s"],
-                                                cultimes = v$cultimes)) +
+                                                cultimes = v$cultimes) +
       (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
-    # if(pbe0$boost.mcmc == TRUE){
-    #   if ( any(seq.dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1] > pred.mut) ){
-    #    dens.infectorcurrent[1] <- mean(1/pbe0$h$dist[hostID, which(v$inftimes[hostID] - v$inftimes > 0)-1])
-    #   } else {
-    #     dens.infectorcurrent[1] <- 1
-    #   }
-    # } else {
-      dens.infectorcurrent[1] <- 1
-    # }
+
+    dens.infectorcurrent[which(v$tree != v$tree[hostID])] <- 0
     dens.infectorcurrent[hostID] <- 0
     
     # logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
     #                           (dens.infectorproposal[infector.proposed.ID] * sum(dens.infectorcurrent))) 
     logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
                               (dens.infectorproposal[infector.proposed.ID] * sum(dens.infectorcurrent))) +
-      dgamma(v$nodetimes[hostID-1] - v$inftimes[hostID],
+      dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
-      dgamma(v$nodetimes[hostID-1] - tinf.prop,
+      dgamma(v$nodetimes[hostID] - tinf.prop,
              shape = tinf.prop.shape.mult * p$sample.shape,
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
+    
+    copy2pbe1("infector.proposed.ID", environment())
     copy2pbe1("logproposalratio", environment())
     
     ### propose minitrees and accept or reject
@@ -480,11 +503,74 @@ update_host_phylotrans <- function(hostID, which_protocol) {
   }
   
   
+  ### update if proposal is add/remove index case and tinf.prop if before first secondary case
+  update_pathL <- function(which_protocol) {
+    ### Make input locally available
+    p <- pbe0$p
+    v <- pbe0$v
+    hostID <- pbe1$hostID
+    tinf.prop <- pbe1$tinf.prop
+    
+    ### identify the current infector and propose the new infector
+    infector.current.ID <- v$infectors[hostID]
+    if (infector.current.ID == 0) infector.current.ID <- p$obs+1
+    
+    dens.infectorproposal <- c(infect_distribution(tinf.prop, 
+                                                   v$inftimes, p,
+                                                   nodetimes = v$nodetimes[v$nodetypes=="s"],
+                                                   cultimes = v$cultimes) +
+                                 (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ], 1)
+    
+    if(length(v$cultimes) > 0)
+      dens.infectorproposal <- dens.infectorproposal * (v$cultimes + 5 - tinf.prop > 0)
+ 
+    dens.infectorproposal[hostID] <- 0
+    
+    infector.proposed.ID <- sample(p$obs+1, 1, prob = dens.infectorproposal)
+    
+    ### calculate proposal ratio 
+    # the reverse proposal includes proposing an infector
+    dens.infectorcurrent <- c(infect_distribution(v$inftimes[hostID], 
+                                                  v$inftimes, p,
+                                                  nodetimes = v$nodetimes[v$nodetypes=="s"],
+                                                  cultimes = v$cultimes) +
+                                (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ], 1)
+    dens.infectorcurrent[hostID] <- 0
+    
+    logproposalratio <- log(dens.infectorcurrent[infector.current.ID] * sum(dens.infectorproposal)/
+                              (dens.infectorproposal[infector.proposed.ID] * sum(dens.infectorcurrent))) +
+      dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
+             shape = tinf.prop.shape.mult * p$sample.shape,
+             scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
+      dgamma(v$nodetimes[hostID] - tinf.prop,
+             shape = tinf.prop.shape.mult * p$sample.shape,
+             scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
+    
+    if (infector.proposed.ID == p$obs+1) infector.proposed.ID <- 0
+    
+    copy2pbe1("infector.proposed.ID", environment())
+    copy2pbe1("logproposalratio", environment())
+    
+    ### propose minitrees and accept or reject
+    if(which_protocol == "classic") {
+      if(p$wh.bottleneck == "complete") {
+        rewire_function <- "rewire_pathL_complete_classic"
+      } else {
+        rewire_function <- "rewire_pathL_wide_classic"
+      }
+    } else if(p$wh.bottleneck == "complete") {
+      rewire_function <- "rewire_pathL_complete_edgewise"
+    } else {
+      rewire_function <- "rewire_pathL_wide_edgewise"
+    }
+    update_move(rewire_function, which_protocol)
+  }
+  
   ### update of phylogenetic tree
   update_move <- function(rewirefunction, which_protocol) {
     prepare_pbe()
     do.call(rewirefunction, args = list())
-
+    
     if(pbe1$logLiktoporatio > -Inf) {
       propose_pbe("phylotrans")
       logacceptanceprob <- pbe0$heat * 
@@ -514,6 +600,7 @@ update_host_phylotrans <- function(hostID, which_protocol) {
          (pbe0$p$wh.bottleneck == "wide" &&
           any(pbe0$v$nodetypes %in% c("x", "t") & pbe0$v$nodehosts == pbe1$hostID))) {
         prepare_pbe()
+        if (!is.null(pbe1$infector.proposed.ID)) rm('infector.proposed.ID', envir = pbe1)
         coalnode <- take_cnode(edge)
         if(pbe1$v$nodehosts[2 * pbe1$d$nsamples - 1 + pbe1$hostID] == -1) {
           node_torelink <- which(pbe1$v$nodehosts == pbe1$hostID)

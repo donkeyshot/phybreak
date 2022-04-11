@@ -17,9 +17,7 @@
 
 # The environments are used during MCMC-updating, and in sim_phybreak and phybreak to simulate the phylogenetic tree.
 pbe0 <- new.env()
-#pbe0_2 <- new.env()
 pbe1 <- new.env()
-#pbe1_2 <- new.env()
 pbe2 <- new.env()
 
 # Copy functions to phybreak environments
@@ -41,7 +39,7 @@ copy2pbe2 <- function(var, env) {
 
 ### build the pbe0 at the start of an mcmc chain by copying the fixed parameters and phybreak object, and by
 ### calculating likarray and the log-likelihoods 
-build_pbe <- function(phybreak.obj, histtime = -1e5) {
+build_pbe <- function(phybreak.obj) {
   ### Making everything available within the function
   le <- environment()
   d <- phybreak.obj$d
@@ -103,14 +101,12 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
   ### change the variables slot to an environmental variables slot (with transmission nodes in the tree)
   v <- phybreak2environment(v)
   
-  if (p$obs == length(v$infectors)){
-    history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
-    v <- history$v
-    h <- history$h
-  } else if (nrow(h$dist) == p$obs){
-    h.dist.median <- median(1/h$dist[-1,-1])
-    h$dist <- rbind(1/h.dist.median, cbind(1/h.dist.median, h$dist))
-  }
+  indices <- which(v$infectors == 0)
+  v$tree <- sapply(1:p$obs, function(i) tail(.ptr(v$infectors, i), 1))
+
+  #history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
+  #v <- history$v
+  #h <- history$h
   
   ### complete likarray and calculate log-likelihood of sequences
   .likseqenv(le, (d$nsamples + 1):(2 * d$nsamples - 1), 1:d$nsamples)
@@ -118,13 +114,11 @@ build_pbe <- function(phybreak.obj, histtime = -1e5) {
   ### calculate the other log-likelihoods
   logLiksam <- lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes)
   logLikgen <- lik_gentimes(p, v)
-  # logLikgen <- lik_gentimes(p$gen.shape, p$gen.mean, p$gen.sample.scale, p$gen.culling.scale, p$trans.model,
-  #                           v$inftimes, v$infectors, v$nodetimes,  v$cultimes)
   logLikcoal <- lik_coaltimes(le)
   logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, 
-                              v$infectors[v$infectors!=0]-1, d$distances)
-  logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 1), 
-                                   max(d$sample.times) - min(v$inftimes[-1]))
+                              v$infectors, d$distances)
+  logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 0), 
+                                   max(d$sample.times) - min(v$inftimes))
   
   ### copy everything into pbe0
   copy2pbe0("d", le)

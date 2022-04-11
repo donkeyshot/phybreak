@@ -240,26 +240,26 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
   }
   
   ### Output with or without history
-  if(resamplepars$hist)
-    if(is.null(vars$sim.hist.time)) resamplepars$hist = FALSE
+  # if(resamplepars$hist)
+  #   if(is.null(vars$sim.hist.time)) resamplepars$hist = FALSE
   
   if(is.null(vars$sim.tree) | resample) {
-    inftimes = c(unlist(ifelse(resamplepars$hist, list(vars$sim.hist.time), list(NULL))), inftimes)
-    if(resamplepars$hist){
-      res <- list(
-        inftimes = inftimes,
-        infectors = c(0,infectors + 1),
-        cultimes = cultimes,
-        nodetypes = c(rep("s", nhosts), 
-                      rep("x", nsamples - nhosts), 
-                      rep("c", nsamples - 1), 
-                      rep("t", nhosts+1)),  
-        #node type (primary sampling, extra sampling, coalescent, transmission)
-        nodetimes = c(samtimes, samtimes[-1], inftimes),
-        nodehosts = c(samhosts+1, rep(-1, length(samhosts) - 1), c(0,infectors + 1)),
-        nodeparents = rep(-1, 2 * nsamples + nhosts)
-      )
-    } else {
+    # inftimes = c(unlist(ifelse(resamplepars$hist, list(vars$sim.hist.time), list(NULL))), inftimes)
+    # if(resamplepars$hist){
+    #   res <- list(
+    #     inftimes = inftimes,
+    #     infectors = c(0,infectors + 1),
+    #     cultimes = cultimes,
+    #     nodetypes = c(rep("s", nhosts), 
+    #                   rep("x", nsamples - nhosts), 
+    #                   rep("c", nsamples - 1), 
+    #                   rep("t", nhosts+1)),  
+    #     #node type (primary sampling, extra sampling, coalescent, transmission)
+    #     nodetimes = c(samtimes, samtimes[-1], inftimes),
+    #     nodehosts = c(samhosts+1, rep(-1, length(samhosts) - 1), c(0,infectors + 1)),
+    #     nodeparents = rep(-1, 2 * nsamples + nhosts)
+    #   )
+    # } else {
       res <- list(
         inftimes = inftimes,
         infectors = infectors,
@@ -270,35 +270,33 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
         nodehosts = c(samhosts, rep(-1, length(samhosts) - 1), infectors),
         nodeparents = rep(-1, 2 * nsamples + nhosts - 1)
       )
-    }
+    # }
     list2env(list(v = res, p = resamplepars, d = list(nsamples = nsamples)), pbe1)
 
     if(resamplepars$wh.bottleneck == "wide") {
       invisible(sapply(1:nhosts, rewire_pullnodes_wide))
-    } else if (resamplepars$hist){
-      invisible(sapply(1:(nhosts+1), pullnodes_complete_multiple_introductions))
     } else {
       invisible(sapply(0:nhosts, rewire_pullnodes_complete))
     }
     res <- environment2phybreak(pbe1$v)
     
   } else {
-    inftimes <- c(unlist(ifelse(resamplepars$hist, list(vars$sim.hist.time), list(NULL))), inftimes)
-    infectors <- c(unlist(ifelse(resamplepars$hist, list(0), list(NULL))), infectors)
-    if(resamplepars$hist) {
-      samhosts <- samhosts + 1
-      infectors <- infectors + 1
-      res <- list(
-        inftimes = inftimes,
-        infectors = infectors,
-        cultimes = cultimes,
-        nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1)),  
-        #node type (primary sampling, extra sampling, coalescent)
-        nodetimes = c(samtimes, samtimes[-c(1:introductions)]),
-        nodehosts = c(samhosts, rep(-1, length(samhosts) - 1)),
-        nodeparents = rep(-1, 2 * nsamples - 1)
-      )
-    } else {
+    # inftimes <- c(unlist(ifelse(resamplepars$hist, list(vars$sim.hist.time), list(NULL))), inftimes)
+    # infectors <- c(unlist(ifelse(resamplepars$hist, list(0), list(NULL))), infectors)
+    # if(resamplepars$hist) {
+    #   samhosts <- samhosts + 1
+    #   infectors <- infectors + 1
+    #   res <- list(
+    #     inftimes = inftimes,
+    #     infectors = infectors,
+    #     cultimes = cultimes,
+    #     nodetypes = c(rep("s", nhosts), rep("x", nsamples - nhosts), rep("c", nsamples - 1)),  
+    #     #node type (primary sampling, extra sampling, coalescent)
+    #     nodetimes = c(samtimes, samtimes[-c(1:introductions)]),
+    #     nodehosts = c(samhosts, rep(-1, length(samhosts) - 1)),
+    #     nodeparents = rep(-1, 2 * nsamples - 1)
+    #   )
+    # } else {
       res <- list(
         inftimes = inftimes,
         infectors = infectors,
@@ -308,15 +306,15 @@ transphylo2phybreak <- function(vars, resample = FALSE, resamplepars = NULL,
         nodehosts = c(samhosts, rep(-1, length(samhosts) - 1)),
         nodeparents = rep(-1, 2 * nsamples - 1)
       )
-    }
+    # }
     phytree <- vars$sim.tree
     res$nodetimes <- c(ape::node.depth.edgelength(phytree) - min(ape::node.depth.edgelength(phytree)[1:nsamples]))
-    res$inftimes[1] <- ifelse(resamplepars$hist, min(res$nodetimes), res$inftimes[1])
+    # res$inftimes[1] <- ifelse(resamplepars$hist, min(res$nodetimes), res$inftimes[1])
     res$nodeparents <- c(0, phytree$edge[,1])[order(c(nsamples + 1, phytree$edge[, 2]))]
     list2env(list(v = res, p = list(wh.model = "single")), pbe1)
     make_nodehosts(pbe1)
     res <- pbe1$v
-    res$nodehosts[res$nodehosts==0] <- 1
+    # res$nodehosts[res$nodehosts==0] <- 1
   }
   
   return(list(
@@ -452,7 +450,7 @@ whichgeneration <- function(infectors, hostID) {
 
 make_nodehosts <- function(phybreakenv) {
   whmodel2 <- all(phybreakenv$v$nodetimes[phybreakenv$v$nodeparents[phybreakenv$v$nodetypes == "s"]] <= 
-                    phybreakenv$v$inftimes[-1]) + 1
+                    phybreakenv$v$inftimes) + 1
   for(i in 1:length(phybreakenv$v$nodetypes %in% c("s", "x"))) {
     nodepath <- .ptr(as.integer(phybreakenv$v$nodeparents), i)
     hostpath <- c(.ptr(phybreakenv$v$infectors, phybreakenv$v$nodehosts[i]), 0)

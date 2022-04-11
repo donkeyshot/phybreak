@@ -2,13 +2,14 @@ rewire_change_infector_complete <- function(ID, newinfector) {
   btnodes <- 2 * pbe0$d$nsamples + ID - 1
   
   if(pbe1$v$infectors[ID] == 0) {
-    coalnodes <- c()
-    pbe1$v$nodeparents[btnodes] <- -1L
-  } else if (pbe1$v$infectors[ID] == 1 & sum(pbe0$v$infectors == 1) == 1){
-    coalnodes <- c()
-    pbe1$v$nodeparents[btnodes] <- -1L
+    if (newinfector == 0 || sum(pbe0$v$infectors == 0) == 1) {
+      coalnodes <- c()
+      pbe1$v$nodeparents[btnodes] <- -1L
+    } else {
+      coalnodes <- take_cnode(btnodes, newinfector)
+    }
   } else {
-    coalnodes <- take_cnode(btnodes)
+    coalnodes <- take_cnode(btnodes, newinfector)
   }
   
   pbe1$v$nodehosts[btnodes] <- newinfector
@@ -17,18 +18,30 @@ rewire_change_infector_complete <- function(ID, newinfector) {
 }
 
 rewire_within_complete_edgewise <- function(ID, tinf) {
-  coalnodes <- which(pbe1$v$nodehosts == ID & pbe1$v$nodetypes == "c")
+  if (pbe1$v$infectors[ID] == 0 & any(pbe1$v$nodehosts[pbe1$v$nodetypes == "c"] == 0)) {
+    coalnodes <- which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes == "c")
+  } else {
+    coalnodes <- NULL
+  }
+  
+  coalnodes <- c(coalnodes, which(pbe1$v$nodehosts == ID & pbe1$v$nodetypes == "c"))
   coaltimes_old <- pbe1$v$nodetimes[coalnodes]
+  
+  if (pbe1$v$infectors[ID] == 0 & any(pbe1$v$nodehosts[pbe1$v$nodetypes == "c"] == 0)) {
+    edgesend_hist <- which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes != "c")
+    edgesendtimes_hist <- pbe1$v$nodetimes[edgesend_hist]
+    coaltimes_new_hist <- sample_coaltimes(edgesendtimes_hist, pbe1$p$hist.time, pbe1$p)
+  } else {
+    coaltimes_new_hist <- NULL
+  }
   
   coaltimes_new <- sample_coaltimes(pbe1$v$nodetimes[pbe1$v$nodehosts == ID & pbe1$v$nodetypes != "c"],
                                     tinf, pbe1$p)
   coaltimes_new <- coaltimes_new[coaltimes_new > tinf]
-  if (ID == 1)
-    coaltimes_new[1] <- coaltimes_old[1] + rnorm(1, mean = 0, sd = 10)
   
   pbe1$logLiktoporatio <- pbe1$logLiktoporatio - lik_topology_host(pbe1, ID)
   
-  coaltimes_new <- coaltimes_new[rank(coaltimes_old)]
+  coaltimes_new <- c(coaltimes_new_hist, coaltimes_new)[rank(coaltimes_old)]
   
   pbe1$v$nodetimes[coalnodes] <- coaltimes_new
   btnodes <- 2 * pbe0$d$nsamples + ID - 1
@@ -55,7 +68,9 @@ rewire_pathA_complete_edgewise <- function() {
 
 rewire_pathB_complete_edgewise <- function() {
   ### Identify new index
-  newindex <- which(pbe1$v$inftimes == sort(pbe1$v$inftimes)[2])
+  #newindex <- which(pbe1$v$inftimes == sort(pbe1$v$inftimes)[2])
+  newindextime <- sort(pbe1$v$inftimes[which(pbe1$v$infectors == pbe1$hostID)])[1]
+  newindex <- which(pbe1$v$inftimes == newindextime)
   
   rewire_change_infector_complete(newindex, 0L)
   rewire_change_infector_complete(pbe1$hostID, pbe1$infector.proposed.ID)
@@ -64,6 +79,7 @@ rewire_pathB_complete_edgewise <- function() {
     rewire_pullnodes_complete(0)
     rewire_pullnodes_complete(pbe1$infector.proposed.ID)
   }
+  rearrange_tree_matrix()
 }
 
 rewire_pathCF_complete_edgewise <- function() {
@@ -83,16 +99,12 @@ rewire_pathCF_complete_edgewise <- function() {
   }
   if(pbe1$logLiktoporatio > -Inf) {
     rewire_pullnodes_complete(newinfector)
-    if (oldinfector == 1 &
-        sum(pbe1$v$infectors==1)==1) {
-      pbe1$v$nodeparents[pbe1$v$nodeparents==-1] <- 2*pbe1$d$nsamples
-    } else 
-      rewire_pullnodes_complete(oldinfector)
+    rewire_pullnodes_complete(oldinfector)
   }
 }
 
 rewire_pathD_complete_edgewise <- function() {
-  currentindex <- which(pbe1$v$infectors == 0)
+  currentindex <- tail(.ptr(pbe1$v$infectors, pbe1$hostID),1)
   
   rewire_change_infector_complete(pbe1$hostID, 0L)
   rewire_within_complete_edgewise(pbe1$hostID, pbe1$tinf.prop)
@@ -101,17 +113,25 @@ rewire_pathD_complete_edgewise <- function() {
     rewire_pullnodes_complete(pbe1$hostID)
     rewire_pullnodes_complete(0L)
   }
+  rearrange_tree_matrix()
 }
 
 rewire_pathE_complete_edgewise <- function() {
   rewire_change_infector_complete(pbe1$hostID, pbe1$infector.proposed.ID)
   rewire_within_complete_edgewise(pbe1$hostID, pbe1$tinf.prop)
   if(pbe1$logLiktoporatio > -Inf) {
-    if (pbe1$v$infectors[pbe1$hostID] == 1 &
-        sum(pbe1$v$infectors==1)==1) {
-      pbe1$v$nodeparents[pbe1$v$nodeparents==-1] <- 2*pbe1$d$nsamples
-    } else {
-      rewire_pullnodes_complete(pbe1$infector.proposed.ID)  
+    rewire_pullnodes_complete(pbe1$infector.proposed.ID)  
+  }
+}
+
+rewire_pathL_complete_edgewise <- function() {
+  rewire_change_infector_complete(pbe1$hostID, pbe1$infector.proposed.ID)
+  rewire_within_complete_edgewise(pbe1$hostID, pbe1$tinf.prop)
+  if(pbe1$logLiktoporatio > -Inf) {
+    rewire_pullnodes_complete(pbe1$infector.proposed.ID)  
+    if (any(pbe1$v$nodeparents[pbe1$v$nodehosts == 0] == -1)) {
+      rewire_pullnodes_complete(0L) 
     }
+    rearrange_tree_matrix()
   }
 }

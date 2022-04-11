@@ -34,11 +34,6 @@ plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplen
   if(inherits(x, "phybreakdata")) {
     if(exists("sim.infection.times", x) && exists("sim.infectors", x) && exists("sim.tree", x)) {
       samplenames <- names(x$sample.times)
-      if(length(x$sample.hosts) != length(x$sim.infectors)){
-        x$sim.infection.times <- x$sim.infection.times[-1]
-        x$sim.infectors <- x$sim.infectors[-1]
-        x$sim.infectors[x$sim.infectors=="history"] <- "index" 
-      }
       x <- transphylo2phybreak(x)
       x$d$names <- samplenames
       plot.which <- "sample"
@@ -80,7 +75,7 @@ plotPhylo <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplen
     simmapplot <- suppressWarnings(phybreak2phylo(x$v, x$d$names, simmap = TRUE))
   }
   phytools::plotSimmap(simmapplot, mar = par("mar"), colors = setNames(nm = unique(as.character(simmapplot$node.state))), ...)
-  rootnodetime <- x$d$reference.date + x$v$inftimes[1] + simmapplot$root.edge
+  rootnodetime <- x$d$reference.date + x$v$inftimes[1] + ifelse(sum(x$v$infectors == 0) > 1, min(x$v$nodetimes) - min(x$v$inftimes), simmapplot$root.edge)
   
   labs <- pretty(par("xaxp")[1:2] + rootnodetime)
   axis(1, at = labs - rootnodetime, labels = labs)
