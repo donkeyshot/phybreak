@@ -61,9 +61,10 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
                          introductions = 1, intro.rate = 1/10,
                          R0 = 1.5, spatial = FALSE,
                          gen.shape = 10, gen.mean = 1, 
-                         sample.shape = 10, sample.mean = 1, histtime = -10,
+                         sample.shape = 10, sample.mean = 1,
                          additionalsampledelay = 0,
                          wh.model = "linear", wh.bottleneck = "auto", wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
+                         wh.history = 1,
                          dist.model = "power", dist.exponent = 2, dist.scale = 1,
                          mu = 0.0001, sequence.length = 10000, ...) {
   ### parameter name compatibility 
@@ -118,7 +119,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
   if(any(samplesperhost < 1)) stop("samplesperhost should be positive")
   if(any(additionalsampledelay < 0)) stop("additionalsampledelay cannot be negative")
   res <- sim_additionalsamples(res, samplesperhost, additionalsampledelay)
-  res <- sim_phylotree(res, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean, histtime)
+  res <- sim_phylotree(res, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, wh.history, sample.mean)
   res <- sim_sequences(res, mu, sequence.length)
 
   hostnames <- paste0("host.", 1:obsize)
@@ -156,7 +157,7 @@ sim_phybreak <- function(obsize = 50, popsize = NA, samplesperhost = 1,
       sim.tree = treeout,
       external.sequence = FALSE
     ))
-    toreturn$sim.hist.time <- histtime
+    #toreturn$sim.hist.time <- histtime
   }
   
   return(toreturn)
@@ -500,22 +501,11 @@ sim_additionalsamples <- function(sim.object, samperh, addsamdelay) {
 }
 
 ### simulate a phylogenetic tree given a transmission tree
-sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, sample.mean, histtime) {
-  # sim.object$inftimes <- c(histtime, sim.object$inftimes)
-  # if(is.null(histtime)) sim.object$infectors <- sim.object$infectors[-1]-1
+sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exponent, wh.level, wh.history, sample.mean) {
   list2env(list(v = sim.object, 
                 p = list(wh.model = wh.model, wh.bottleneck = wh.bottleneck, wh.slope = wh.slope, wh.exponent = wh.exponent,
-                         wh.level = wh.level, sample.mean = sample.mean, hist.time = histtime),
+                         wh.level = wh.level, wh.history = wh.history, sample.mean = sample.mean),
                 d = list(nsamples = sim.object$Nsamples)), pbe1)
-  
-  #if(length(sim.object$infectors) != sim.object$obs){
-    # pbe1$v$nodeparents <- rep(-1, 2 * sim.object$Nsamples + sim.object$obs)  #initialize nodes: will contain parent node in phylotree
-    # pbe1$v$nodetimes <- c(sim.object$samtimes, sim.object$addsampletimes, 
-    #                       rep(0, sim.object$Nsamples - 1), sim.object$inftimes)   #initialize nodes: will contain time of node
-    # pbe1$v$nodehosts <- c(2:(sim.object$obs+1), sim.object$addsamplehosts, 
-    #                       rep(-1, sim.object$Nsamples - 1), sim.object$infectors)   #initialize nodes: will contain host carrying the node
-    # pbe1$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
-    #                       rep("c", sim.object$Nsamples - 1), rep("t", sim.object$obs + 1))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
   
   pbe1$v$nodeparents <- rep(-1, 2 * sim.object$Nsamples + sim.object$obs - 1)  #initialize nodes: will contain parent node in phylotree
   pbe1$v$nodetimes <- c(sim.object$samtimes, sim.object$addsampletimes, 
@@ -533,12 +523,13 @@ sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exp
     v <- pbe1$v
     loosenodes <- which(v$nodehosts == 0 & v$nodetypes != "c") 
     loosenodetimes <- v$nodetimes[loosenodes]
-    coaltimes <- sample_coaltimes(loosenodetimes, histtime, pbe1$p)
+    coaltimes <- sample_coaltimes(loosenodetimes, min(loosenodetimes), pbe1$p, historyhost = TRUE)
     coalnodes <- ((pbe1$d$nsamples + 1):(2*pbe1$d$nsamples - 1))[1:(length(loosenodes)-1)]
     v$nodeparents[coalnodes] <- 
           do.call(c,lapply(1:(length(loosenodes)-1), function(i){
             if (i == 1) return(0)
             else if (i > 1) return(coalnodes[i-1])}))
+    v$nodetimes[coalnodes] <- coaltimes
     v$nodehosts[coalnodes] <- 0L
     v$nodeparents[loosenodes] <- c(coalnodes, tail(coalnodes,1))
     copy2pbe1('v', environment())

@@ -48,7 +48,7 @@ rewire_pullnodes_complete <- function(currentID) {
           coalescenttimesnew <- c(coalescenttimesnew,
                                   sample_singlecoaltime(c(edgesendoldtimes, loosenodetimes),
                                                         c(coalescenttimesold, coalescenttimesnew),
-                                                        pbe1$v$nodetimes[loosenodes[le]], pbe0$p$hist.time, pbe1$p))
+                                                        pbe1$v$nodetimes[loosenodes[le]], -100, pbe1$p))
           
         }
         loosenodetimes <- c(loosenodetimes, pbe1$v$nodetimes[loosenodes[le]])
@@ -271,7 +271,7 @@ rearrange_tree_matrix <- function(){
       }}))
     v$tree[hostID_infectees] <- hostID
   } else if (infector.proposed.ID != 0 & pbe0$v$infectors[hostID] == 0) {
-    v$tree[which(v$tree == v$tree[hostID])] <- v$tree[infector.proposed.ID]
+    v$tree[which(v$tree == v$tree[hostID])] <- tail(.ptr(pbe1$v$infectors, hostID), 1)
   } else if (infector.proposed.ID != pbe0$v$infectors[hostID]) {
     v$infectors[hostID] <- 0
     hostID_infectees <- do.call(c,lapply(which(v$tree == v$tree[hostID]), function(i){

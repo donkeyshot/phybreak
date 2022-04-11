@@ -28,9 +28,9 @@ rewire_within_complete_edgewise <- function(ID, tinf) {
   coaltimes_old <- pbe1$v$nodetimes[coalnodes]
   
   if (pbe1$v$infectors[ID] == 0 & any(pbe1$v$nodehosts[pbe1$v$nodetypes == "c"] == 0)) {
-    edgesend_hist <- which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes != "c")
-    edgesendtimes_hist <- pbe1$v$nodetimes[edgesend_hist]
-    coaltimes_new_hist <- sample_coaltimes(edgesendtimes_hist, pbe1$p$hist.time, pbe1$p)
+    edgesend_hist_old <- setdiff(which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes != "c"), 2*pbe1$d$nsamples - 1 + ID)
+    edgesendtimes_hist_old <- pbe1$v$nodetimes[edgesend_hist]
+    coaltimes_new_hist <- sample_coaltimes(c(edgesendtimes_hist_old, tinf), min(c(edgesendtimes_hist_old, tinf)), pbe1$p, historyhost = TRUE)
   } else {
     coaltimes_new_hist <- NULL
   }
@@ -101,6 +101,7 @@ rewire_pathCF_complete_edgewise <- function() {
     rewire_pullnodes_complete(newinfector)
     rewire_pullnodes_complete(oldinfector)
   }
+  rearrange_tree_matrix()
 }
 
 rewire_pathD_complete_edgewise <- function() {
