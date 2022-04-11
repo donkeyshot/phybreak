@@ -36,13 +36,13 @@
 sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, keepphylo = 0, withinhost_only = 0, 
                             parameter_frequency = 1, status_interval = 10, 
                             verbose = 1,
-                            histtime = -1e5, history = FALSE, keep_history = FALSE,
+                            historydist = 0.5, #history = FALSE, keep_history = FALSE,
                             nchains = 1, heats = NULL, all_chains = FALSE, parallel = FALSE, ...) {
   
   if (parallel)
     return(sample_phybreak_parallel(x, nsample, thin, thinswap, classic, keepphylo, 
                                     withinhost_only, parameter_frequency, status_interval, 
-                                    histtime, history, nchains, heats, all_chains, boost.mcmc))
+                                    histtime, history, nchains, heats, all_chains))
       
   ### tests
   if(nsample < 1) stop("nsample should be positive")
@@ -86,6 +86,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
   }
   
   protocoldistribution <- c(1 - classic - keepphylo - withinhost_only, classic, keepphylo, withinhost_only)
+  historydistribution <- c(historydist, 1 - historydist)
   
   ### create room in s to add the new posterior samples
   s.post <- list(inftimes = with(x, cbind(s$inftimes, matrix(NA, nrow = p$obs, ncol = nsample))),
@@ -163,7 +164,12 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
             which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                      1,
                                      prob = protocoldistribution)
-            update_host(i, which_protocol)
+            history <- sample(c(TRUE, FALSE), 1, prob = historydistribution)
+            if (i > 0) {
+              update_host(i, which_protocol, history)
+            } else if (i == 0 & history) {
+              update_host(i, which_protocol, TRUE)
+            }
           }
         
           if (i == -1 && x$h$est.mu)  update_mu()
@@ -203,13 +209,10 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       vars_to_log <- environment2phybreak(pbe0$v)
       s.post$inftimes[, sa] <- vars_to_log$inftimes
       s.post$infectors[, sa] <- vars_to_log$infectors
-      s.post$nodetimes[, sa] <- c(vars_to_log$nodetimes[vars_to_log$nodetypes == "c"],
-                                  rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c")) ))
-      s.post$nodehosts[, sa] <- c(vars_to_log$nodehosts[vars_to_log$nodetypes == "c"],
-                                  rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c")) ))
-      s.post$nodeparents[, sa] <- c(vars_to_log$nodeparents,
-                                    rep(NA,x$d$nsamples-1-length(which(vars_to_log$nodetypes == "c"))))
-      s.post$introductions[sa] <- sum(vars_to_log$infectors == 1)
+      s.post$nodetimes[, sa] <- vars_to_log$nodetimes[vars_to_log$nodetypes == "c"]
+      s.post$nodehosts[, sa] <- vars_to_log$nodehosts[vars_to_log$nodetypes == "c"]
+      s.post$nodeparents[, sa] <- vars_to_log$nodeparents
+      s.post$introductions[sa] <- sum(vars_to_log$infectors == 0)
       s.post$mu[sa] <- pbe0$p$mu
       s.post$hist_dens[sa] <- pbe0$h$dist[1]
       s.post$hist.mean[sa] <- pbe0$p$hist.mean

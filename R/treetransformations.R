@@ -450,7 +450,7 @@ whichgeneration <- function(infectors, hostID) {
 
 make_nodehosts <- function(phybreakenv) {
   whmodel2 <- all(phybreakenv$v$nodetimes[phybreakenv$v$nodeparents[phybreakenv$v$nodetypes == "s"]] <= 
-                    phybreakenv$v$inftimes[-1]) + 1
+                    phybreakenv$v$inftimes) + 1
   for(i in 1:length(phybreakenv$v$nodetypes %in% c("s", "x"))) {
     nodepath <- .ptr(as.integer(phybreakenv$v$nodeparents), i)
     hostpath <- c(.ptr(phybreakenv$v$infectors, phybreakenv$v$nodehosts[i]), 0)

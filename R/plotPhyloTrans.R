@@ -161,7 +161,7 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
     })
   }
   plotinput <- list(d = list(names = x$d$names,
-                             hostnames = x$d$hostnames[1:(length(x$v$inftimes)-1)],
+                             hostnames = x$d$hostnames[1:length(x$v$inftimes)],
                              sample.times = x$d$sample.times,
                              reference.date = x$d$reference.date,
                              sequences = x$d$sequences), 
@@ -343,7 +343,8 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
       newyscore <- trees2join[[1]]$yscore + trees2join[[2]]$yscore
       newcompleteYN <- 
         if(newrootnode == 0 ||
-           plotinput$v$nodetypes[newrootnode] %in% c("t", "b")) {
+           plotinput$v$nodetypes[newrootnode] %in% c("t", "b") ||
+           plotinput$v$nodehosts[newrootnode] == 0 && plotinput$v$nodetypes[newrootnode] == "c") {
           TRUE
         } else FALSE
       
@@ -376,7 +377,7 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   }
   
   # number of disjoint trees
-  ntrees <- sum(sapply(hosttrees, function(xx) xx[[1]]$rootnode == 0))
+  ntrees <- sum(plotinput$v$infectors == 0)
   if (ntrees > 1){
     rootnodes <- unlist(sapply(hosttrees, function(xx) xx[[1]]$rootnode))
     hosttrees <- hosttrees[order(rootnodes, decreasing = TRUE)]
@@ -385,7 +386,8 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   ### join the trees per host ###
   # final hosttree is index case and is already one tree
   if (ntrees != length(hosttrees)){
-    for(i in (length(hosttrees)-ntrees):1) {
+    for(i in (length(hosttrees)-1):1) {
+      print(i)
       # order trees as transmission nodes in infector
       infector <- plotinput$v$infectors[hosttrees[[i]][[1]]$host]
       infectorhosttree <- 

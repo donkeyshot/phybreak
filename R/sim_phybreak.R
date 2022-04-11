@@ -529,24 +529,22 @@ sim_phylotree <- function (sim.object, wh.model, wh.bottleneck, wh.slope, wh.exp
   if(wh.bottleneck == "wide") {
     invisible(sapply(1:sim.object$obs, rewire_pullnodes_wide))
   } else {
-    invisible(sapply(0:sim.object$obs, rewire_pullnodes_complete))
-  }  
+    ### history host
+    v <- pbe1$v
+    loosenodes <- which(v$nodehosts == 0 & v$nodetypes != "c") 
+    loosenodetimes <- v$nodetimes[loosenodes]
+    coaltimes <- sample_coaltimes(loosenodetimes, histtime, pbe1$p)
+    coalnodes <- ((pbe1$d$nsamples + 1):(2*pbe1$d$nsamples - 1))[1:(length(loosenodes)-1)]
+    v$nodeparents[coalnodes] <- 
+          do.call(c,lapply(1:(length(loosenodes)-1), function(i){
+            if (i == 1) return(0)
+            else if (i > 1) return(coalnodes[i-1])}))
+    v$nodehosts[coalnodes] <- 0L
+    v$nodeparents[loosenodes] <- c(coalnodes, tail(coalnodes,1))
+    copy2pbe1('v', environment())
     
-  # } else {
-  #   pbe1$v$nodeparents <- rep(-1, 2 * sim.object$Nsamples + sim.object$obs - 1)  #initialize nodes: will contain parent node in phylotree
-  #   pbe1$v$nodetimes <- c(sim.object$samtimes, sim.object$addsampletimes, 
-  #                         rep(0, sim.object$Nsamples - 1), sim.object$inftimes)   #initialize nodes: will contain time of node
-  #   pbe1$v$nodehosts <- c(1:sim.object$obs, sim.object$addsamplehosts, 
-  #                         rep(-1, sim.object$Nsamples - 1), sim.object$infectors)   #initialize nodes: will contain host carrying the node
-  #   pbe1$v$nodetypes <- c(rep("s", sim.object$obs), rep("x", sim.object$Nsamples - sim.object$obs), 
-  #                         rep("c", sim.object$Nsamples - 1), rep("t", sim.object$obs))  #initialize nodes: will contain node type (sampling, additional sampling, coalescent)
-  # 
-  #   if(wh.bottleneck == "wide") {
-  #     invisible(sapply(1:sim.object$obs, rewire_pullnodes_wide))
-  #   } else {
-  #     invisible(sapply(0:sim.object$obs, rewire_pullnodes_complete))
-  #   }
-  # }
+    invisible(sapply(1:sim.object$obs, rewire_pullnodes_complete))
+  }  
   res <- as.list.environment(pbe1)$v
   return(res)
   
