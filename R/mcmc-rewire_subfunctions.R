@@ -1,34 +1,42 @@
 ### attach ("pull") new tips to the existing minitree in currentID (complete bottleneck)
 rewire_pullnodes_complete <- function(currentID) {
+  
+  # tips to be connected in currentID
   loosenodes <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodeparents == -1)
+  
+  # only if there is a loose node
   if(length(loosenodes) > 0) {
+    
+    # available coalescent nodes
     free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodeparents == -1)
-    if(currentID == 0) {
-      if (sum(pbe1$v$infectors == 0) == 1) {
-        pbe1$v$nodeparents[loosenodes] <- 0L
-        return()
-      } else {
-        if (length(free_cnodes) == 0) {
-          free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodehosts == 0)
-          free_cnodes <- free_cnodes[which(sapply(free_cnodes, function(i) sum(pbe1$v$nodeparents == i)) == 1)]
-          pbe1$v$nodeparents[loosenodes] <- free_cnodes
-          return()
-        }
+    
+    # edges already entering currentID
+    edgesendold <- setdiff(which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes != "c"), loosenodes)
+    
+    # if no edges already entering, make one by connecting one tip to host's root node
+    if(length(edgesendold) == 0) {
+      # in history host: connect first tip to non-existing node 0
+      if(currentID == 0) {
+        parentnode <- 0
+        edgesendold <- loosenodes[1]
+        pbe1$v$nodeparents[edgesendold] <- parentnode
+        loosenodes <- setdiff(loosenodes, edgesendold)
+      } else 
+        # in other hosts, connect sampling tip to infection node
+        {
+        parentnode <- 2 * pbe1$d$nsamples - 1 + currentID
+        edgesendold <- currentID
+        pbe1$v$nodeparents[edgesendold] <- parentnode
+        pbe1$v$nodehosts[parentnode] <- pbe1$v$infectors[currentID]
+        pbe1$v$nodetimes[parentnode] <- pbe1$v$inftimes[currentID]
+        loosenodes <- setdiff(loosenodes, edgesendold)
       }
     }
 
     # old edges entering currentID, with endtimes
-    edgesendold <- setdiff(which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes != "c"), loosenodes)
-    if(length(edgesendold) == 0) {
-      parentnode <- 2 * pbe1$d$nsamples - 1 + currentID
-      edgesendold <- currentID
-      pbe1$v$nodeparents[edgesendold] <- parentnode
-      pbe1$v$nodehosts[parentnode] <- pbe1$v$infectors[currentID]
-      pbe1$v$nodetimes[parentnode] <- pbe1$v$inftimes[currentID]
-      loosenodes <- setdiff(loosenodes, currentID)
-    }
     edgesendoldtimes <- pbe1$v$nodetimes[edgesendold]
     
+    # only if any loose node still present
     if(length(loosenodes) > 0) {
       # coalescentnodes in currentID, with endtimes
       coalescentnodesold <- which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes == "c")
@@ -39,18 +47,10 @@ rewire_pullnodes_complete <- function(currentID) {
       coalescenttimesnew <- c()
       
       for(le in 1:length(loosenodes)) {
-        if (currentID > 0) {
-          coalescenttimesnew <- c(coalescenttimesnew,
-                                  sample_singlecoaltime(c(edgesendoldtimes, loosenodetimes),
-                                                        c(coalescenttimesold, coalescenttimesnew),
-                                                        pbe1$v$nodetimes[loosenodes[le]], pbe1$v$inftimes[currentID], pbe1$p))
-        } else {
-          coalescenttimesnew <- c(coalescenttimesnew,
-                                  sample_singlecoaltime(c(edgesendoldtimes, loosenodetimes),
-                                                        c(coalescenttimesold, coalescenttimesnew),
-                                                        pbe1$v$nodetimes[loosenodes[le]], -100, pbe1$p))
-          
-        }
+        coalescenttimesnew <- c(coalescenttimesnew,
+                                sample_singlecoaltime(c(edgesendoldtimes, loosenodetimes),
+                                                      c(coalescenttimesold, coalescenttimesnew),
+                                                      pbe1$v$nodetimes[loosenodes[le]], pbe1$v$inftimes[currentID], pbe1$p, currentID == 0))
         loosenodetimes <- c(loosenodetimes, pbe1$v$nodetimes[loosenodes[le]])
       }
       
