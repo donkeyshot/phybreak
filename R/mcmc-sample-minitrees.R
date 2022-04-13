@@ -76,7 +76,7 @@ sample_topology <- function(nodeIDs, nodetimes, nodetypes, infectornodes) {
   return(res)
 }
 
-sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime, parameters) {
+sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime, parameters, historyhost = FALSE) {
   ### return -Inf if there is no existing tree
   if(length(oldtiptimes) + length((oldcoaltimes)) == 0) return(-Inf)
   
@@ -84,8 +84,14 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime
   oldtiptimes <- c(inftime, oldtiptimes)
   oldcoaltimes <- c(inftime, oldcoaltimes)
   
+  
   ### function body
-  switch(
+  if(historyhost) {
+    # transform times so that fixed rate 1 can be used
+    transtiptimes <- (oldtiptimes)/parameters$wh.history
+    transcoaltimes <- (oldcoaltimes)/parameters$wh.history
+    transcurtime <- (newtiptime)/parameters$wh.history
+  } else switch(
     parameters$wh.model,
     #coalescence at transmission
     single = return(min(newtiptime, max(oldtiptimes))),
@@ -128,7 +134,9 @@ sample_singlecoaltime <- function(oldtiptimes, oldcoaltimes, newtiptime, inftime
   transreturntime <- transcurtime - frailty / curnedge
   
   # transform to real time
-  switch(
+  if(historyhost) {
+    parameters$wh.history * transreturntime
+  } else switch(
     parameters$wh.model, single =, infinite = ,
     linear = {
       res <- min(c(10^-5, (oldcoaltimes[-1] - inftime)/2))
