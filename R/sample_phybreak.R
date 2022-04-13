@@ -35,8 +35,7 @@
 #' @export
 sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, keepphylo = 0, withinhost_only = 0, 
                             parameter_frequency = 1, status_interval = 10, 
-                            verbose = 1,
-                            historydist = 0.5, #history = FALSE, keep_history = FALSE,
+                            verbose = 1, historydist = 0.5,
                             nchains = 1, heats = NULL, all_chains = FALSE, parallel = FALSE, ...) {
   
   if (parallel)

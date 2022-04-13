@@ -388,7 +388,7 @@ rewire_pathK_complete_classic <- function() {
   ### Second, rebuild minitree
   # times of coalescent events in hostID and bottleneck size, and distribute coalescent nodes over hostID and pre-hostID
   if(pbe1$hostID == 0)
-    newcoaltimes <- sample_coaltimes(edgeintimes, -100, pbe1$p, history = TRUE)
+    newcoaltimes <- sample_coaltimes(edgeintimes, -100, pbe1$p, historyhost = TRUE)
   else 
     newcoaltimes <- sample_coaltimes(edgeintimes, pbe1$v$inftimes[pbe1$hostID], pbe1$p)
 

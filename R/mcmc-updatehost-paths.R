@@ -364,7 +364,7 @@ update_host_history <- function(hostID, which_protocol) {
                                                 v$inftimes, p,
                                                 nodetimes = v$nodetimes[v$nodetypes=="s"],
                                                 cultimes = v$cultimes) +
-      (tinf.prop - v$inftimes > 0)/pbe0$h$dist[hostID, ]
+      (v$inftimes[hostID] - v$inftimes > 0)/pbe0$h$dist[hostID, ]
     dens.infectorcurrent[which(v$tree != v$tree[hostID])] <- 0
     dens.infectorcurrent[hostID] <- 0
     
@@ -375,7 +375,7 @@ update_host_history <- function(hostID, which_protocol) {
              scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
       dgamma(v$nodetimes[hostID] - tinf.prop,
              shape = tinf.prop.shape.mult * p$sample.shape,
-             scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
+             scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)    
     copy2pbe1("logproposalratio", environment())
     
     ### propose minitrees and accept or reject
