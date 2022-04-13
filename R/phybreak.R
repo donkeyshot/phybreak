@@ -147,7 +147,7 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
   ###########################################
   dataset <- testdataclass_phybreak(dataset, times, ...)
   rownames(as.character(dataset$sequences))
-  if(use.tree) testfortree_phybreak(dataset)
+  if(use.tree) introductions <- testfortree_phybreak(dataset, introductions)
   testargumentsclass_phybreak(environment())
   wh.model <- choose_whmodel(wh.model)
   wh.bottleneck <- choose_whbottleneck(wh.bottleneck, wh.model)
@@ -216,10 +216,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
   ##############################
   ### second slot: variables ###
   ##############################
-  if(length(dataset$sim.infectors) > 0 & use.tree == TRUE)
-    introductions = sum(grepl("index",dataset$sim.infectors))
   phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot,
-                                           introductions)
+                                           introductions = introductions)
   variableslot <- phybreakvariables$v
   # if(length(variableslot$cultimes) == 0)
   #   variableslot <- within(variableslot, rm(cultimes))
@@ -337,13 +335,21 @@ testdataclass_phybreak <- function(dataset, times, ...) {
 }
 
 ### Test for presence of tree
-testfortree_phybreak <- function(dataset) {
+testfortree_phybreak <- function(dataset, introductions) {
   if(is.null(dataset$sim.infection.times) | is.null(dataset$sim.infectors)) {
     warning("transmission tree can only be used if provided in dataset; random tree will be generated")
+  } else {
+    simulatedintroductions <- sum(dataset$sim.infectors == "index")
+    if(introductions != simulatedintroductions) {
+      warning(paste0("Provided transmission tree contains ", simulatedintroductions, " introduction(s) instead of ",
+                     introductions,". Transmission tree will be used"))
+      introductions <- simulatedintroductions
+    }
   }
   if(is.null(dataset$sim.tree)) {
     warning("phylogenetic tree can only be used if provided in dataset; random tree will be generated")
   }
+  return(introductions)
 }
 
 ### Test arguments classes
