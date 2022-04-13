@@ -254,7 +254,8 @@ link_s_to_t <- function(parentnodes, childnodes, snode, tnode) {
 rearrange_tree_matrix <- function(){
   v <- pbe1$v
   hostID <- pbe1$hostID
-  infector.proposed.ID <- pbe1$infector.proposed.ID
+  infector.ID <- pbe0$v$infectors[hostID]
+  infector.proposed.ID <- v$infectors[hostID]
   
   if (is.null(infector.proposed.ID)) {
     if (v$infectors[hostID] == 0 & v$tree[hostID] != hostID) {
@@ -264,15 +265,15 @@ rearrange_tree_matrix <- function(){
     return()
   }
   
-  if (infector.proposed.ID == 0 & pbe0$v$infectors[hostID] != 0) {
+  if (infector.proposed.ID == 0 & infector.ID != 0) {
     hostID_infectees <- do.call(c,lapply(which(v$tree == v$tree[hostID]), function(i){
       if (tail(.ptr(v$infectors, i),1) == hostID) {
         return(i)
       }}))
     v$tree[hostID_infectees] <- hostID
-  } else if (infector.proposed.ID != 0 & pbe0$v$infectors[hostID] == 0) {
+  } else if (infector.proposed.ID != 0 & infector.ID == 0) {
     v$tree[which(v$tree == v$tree[hostID])] <- tail(.ptr(pbe1$v$infectors, hostID), 1)
-  } else if (infector.proposed.ID != pbe0$v$infectors[hostID]) {
+  } else if (infector.proposed.ID != infector.ID) {
     v$infectors[hostID] <- 0
     hostID_infectees <- do.call(c,lapply(which(v$tree == v$tree[hostID]), function(i){
       if (tail(.ptr(v$infectors, i),1) == hostID) {

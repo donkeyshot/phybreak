@@ -29,7 +29,7 @@ rewire_within_complete_edgewise <- function(ID, tinf) {
   
   if (pbe1$v$infectors[ID] == 0 & any(pbe1$v$nodehosts[pbe1$v$nodetypes == "c"] == 0)) {
     edgesend_hist_old <- setdiff(which(pbe1$v$nodehosts == 0 & pbe1$v$nodetypes != "c"), 2*pbe1$d$nsamples - 1 + ID)
-    edgesendtimes_hist_old <- pbe1$v$nodetimes[edgesend_hist]
+    edgesendtimes_hist_old <- pbe1$v$nodetimes[edgesend_hist_old]
     coaltimes_new_hist <- sample_coaltimes(c(edgesendtimes_hist_old, tinf), min(c(edgesendtimes_hist_old, tinf)), pbe1$p, historyhost = TRUE)
   } else {
     coaltimes_new_hist <- NULL
@@ -130,9 +130,10 @@ rewire_pathL_complete_edgewise <- function() {
   rewire_within_complete_edgewise(pbe1$hostID, pbe1$tinf.prop)
   if(pbe1$logLiktoporatio > -Inf) {
     rewire_pullnodes_complete(pbe1$infector.proposed.ID)  
-    if (any(pbe1$v$nodeparents[pbe1$v$nodehosts == 0] == -1)) {
-      rewire_pullnodes_complete(0L) 
-    }
+    hostID <- pbe1$hostID
+    pbe1$hostID <- 0
+    rewire_pathK_complete_classic()
+    pbe1$hostID <- hostID
     rearrange_tree_matrix()
   }
 }

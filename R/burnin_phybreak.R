@@ -33,7 +33,7 @@
 #' @export
 burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_only = 0, 
                             parameter_frequency = 1, status_interval = 10, 
-                            history = FALSE, histtime = -1e5, 
+                            historydist = 0.5,
                             nchains = 1, heats = NULL, swap = 1) {
   ### tests
   if(ncycles < 1) stop("ncycles should be positive")
@@ -66,12 +66,9 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
   }
   
   protocoldistribution <- c(1 - classic - keepphylo - withinhost_only, classic, keepphylo, withinhost_only)
+  historydistribution <- c(historydist, 1 - historydist)
   
-  build_pbe(x, histtime)
-  
-  # envs <- search()
-  # pos <- which(envs == "package:phybreak")
-  # heats <- vector()
+  build_pbe(x)
   
   if (is.null(heats))
     heats <- 1/(1+1*(1:nchains-1))
@@ -114,21 +111,25 @@ burnin_phybreak <- function(x, ncycles, classic = 0, keepphylo = 0, withinhost_o
     envirs <- lapply(envirs, function(e) {
       for (i in ls(envir = e)) copy2pbe0(i,e)
         
-      for(i in sample(c(rep(-(1:13), parameter_frequency), 1:(x$p$obs+1)))) {
-        # print(i)
-        if(i > 0) {
+      for(i in sample(c(rep(-(1:13), parameter_frequency), 0:x$p$obs))) {
+        if(i >= 0) {
           which_protocol <- sample(c("edgewise", "classic", "keepphylo", "withinhost"),
                                    1,
                                    prob = protocoldistribution)
-          update_host(i, which_protocol)
+          history <- sample(c(TRUE, FALSE), 1, prob = historydistribution)
+          if (i > 0) {
+            update_host(i, which_protocol, history)
+          } else if (i == 0 & history) {
+            update_host(i, which_protocol, TRUE)
+          }
         }
       
-        if (i == -1)  update_mu()
+        if (i == -1 && x$h$est.mu)  update_mu()
         if (i == -2 && x$h$est.mG)  update_mG()
         if (i == -3 && x$h$est.mS)  update_mS()
         if (i == -11 && x$h$est.tG) update_tG()
         if (i == -12 && x$h$est.tS) update_tS()
-        if (i == -10 && x$h$est.wh.h) update_wh_history()
+        if (i == -10 && x$h$est.hist.m) update_hist_mean()
         if (i == -4 && x$h$est.wh.s)  update_wh_slope()
         if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
         if (i == -6 && x$h$est.wh.0)  update_wh_level()
@@ -180,7 +181,7 @@ print_screen_log <- function(iteration) {
     message(paste0(
       stringr::str_pad(iteration, 8),
       stringr::str_pad(round(sum(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal + pbe0$logLikdist + pbe0$logLikintro), 2), 12),
-      stringr::str_pad(signif(sum(pbe0$v$infectors==1), 1), 15),
+      stringr::str_pad(signif(sum(pbe0$v$infectors==0), 1), 15),
       stringr::str_pad(signif(pbe0$p$mu, 3), 9),
       stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
       stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
@@ -190,7 +191,7 @@ print_screen_log <- function(iteration) {
     message(paste0(
       stringr::str_pad(iteration, 8),
       stringr::str_pad(round(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal + pbe0$logLikdist, 2), 12),
-      stringr::str_pad(signif(sum(pbe0$v$infectors==1), 1), 15),
+      stringr::str_pad(signif(sum(pbe0$v$infectors==0), 1), 15),
       stringr::str_pad(signif(pbe0$p$mu, 3), 9),
       stringr::str_pad(signif(log((1-pbe0$p$trans.init)/pbe0$p$trans.init)/pbe0$p$trans.growth, 3), 10),
       stringr::str_pad(signif(pbe0$p$sample.mean, 3), 10),
