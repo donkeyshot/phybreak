@@ -82,7 +82,7 @@
 #' @export
 plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), samplenr = 0, 
                            select.how = "trees", select.who = "index", showmutations = FALSE,
-                           mar = 0.1 + c(4, 0, 0, 0), 
+                           showhistory = TRUE, mar = 0.1 + c(4, 0, 0, 0), 
                            tree.lwd = 1, tree.col = NULL, 
                            hostlabel = TRUE, hostlabel.cex = NULL, 
                            hostlabel.pos = "adjacent", hostlabel.col = tree.col,
@@ -169,7 +169,7 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
                     t = phybreak2phylo(x$v))
   plotinput$v$nodetimes <- plotinput$v$nodetimes
 
-  makephylotransplot(plotinput, select.how, select.who, 
+  makephylotransplot(plotinput, select.how, select.who, showhistory,
                      mar = mar, tree.lwd = tree.lwd, tree.col = tree.col, 
                      hostlabel = hostlabel, hostlabel.cex = hostlabel.cex, 
                      hostlabel.pos = hostlabel.pos, hostlabel.col = hostlabel.col,
@@ -186,7 +186,7 @@ plotPhyloTrans <- function(x, plot.which = c("sample", "mpc", "mtcc", "mcc"), sa
 
 
 makephylotransplot <- function(plotinput, select.how = "trees", select.who = "index", 
-                               mar = 0.1 + c(4, 0, 0, 0), 
+                               showhistory = TRUE, mar = 0.1 + c(4, 0, 0, 0), 
                                tree.lwd = 1, tree.col = NULL, 
                                hostlabel = TRUE, hostlabel.cex = NULL, 
                                hostlabel.pos = "adjacent", hostlabel.col = tree.col,
@@ -204,7 +204,8 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   on.exit(par(mar = oldmar))
   obs <- length(plotinput$v$inftimes)
   hosts2plot <- cuttree(select.how, select.who, plotinput$d$hostnames, plotinput$v$infectors)
-
+  if(length(hosts2plot) == obs & showhistory & sum(plotinput$v$infectors==0) > 1) hosts2plot <- c(0, hosts2plot)
+  
   mutationcount <- rep(0, length(plotinput$v$nodeparents))
   if(mutationlabel) {
     ancestralstates <- phangorn::ancestral.pars(plotinput$t, plotinput$d$sequences)
@@ -238,13 +239,18 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   # move along all nodes
   for(i in 1:length(plotinput$v$nodeparents)) {
     # only tips inside hosts
-    if(plotinput$v$nodetypes[i] != "c" &&
-       plotinput$v$nodehosts[i] > 0) {
+    if(plotinput$v$nodetypes[i] != "c") {# &&
+       #plotinput$v$nodehosts[i] > 0) {
+      if (sum(plotinput$v$infectors == 0) == 1 && plotinput$v$nodehosts[i] == 0) {
+        next()
+      }
       # parentnode of tip
       parentnode <- plotinput$v$nodeparents[i]
       # treat index case and pre-index as one host (split later)  
-      if(plotinput$v$nodehosts[parentnode] == 0) {
-        parentnode <- plotinput$v$nodeparents[parentnode]
+      if (sum(plotinput$v$infectors == 0) == 1) {
+        if(plotinput$v$nodehosts[parentnode] == 0) {
+          parentnode <- plotinput$v$nodeparents[parentnode]
+        }
       }
       treelist <- c(
         treelist,
@@ -266,7 +272,9 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
             # give score for 'verticality' of tree, depending on tips
             # transmitting to lower or higher infectees
             yscore = if(plotinput$v$nodetypes[i] %in% c("t", "b")) {
-              if(which(hostorder == plotinput$v$nodehosts[i]) >
+              if (plotinput$v$nodehosts[i] == 0) {
+                0
+              } else if(which(hostorder == plotinput$v$nodehosts[i]) >
                  which(hostorder == plotinput$v$nodehosts[
                    which(plotinput$v$nodeparents == i)
                    ])) {
@@ -327,10 +335,12 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
       
       # find new rootnode: treat index case and pre-index as one host (split later)  
       newrootnode <- plotinput$v$nodeparents[trees2join[[1]]$rootnode]
-      if(newrootnode > 0 &&
-         plotinput$v$nodehosts[newrootnode] == 0 &&
-         plotinput$v$nodetypes[newrootnode] %in% c("t", "b")) {
-        newrootnode <- plotinput$v$nodeparents[newrootnode]
+      if(sum(plotinput$v$infectors == 0) == 1){
+        if(newrootnode > 0 &&
+           plotinput$v$nodehosts[newrootnode] == 0 &&
+           plotinput$v$nodetypes[newrootnode] %in% c("t", "b")) {
+          newrootnode <- plotinput$v$nodeparents[newrootnode]
+        }
       }
       
       # x-coordinate of rootnode: infection time of index case if
@@ -344,7 +354,8 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
       newcompleteYN <- 
         if(newrootnode == 0 ||
            plotinput$v$nodetypes[newrootnode] %in% c("t", "b") ||
-           plotinput$v$nodehosts[newrootnode] == 0 && plotinput$v$nodetypes[newrootnode] == "c") {
+           plotinput$v$nodehosts[newrootnode] == 0 && plotinput$v$nodeparent[newrootnode] == 0 &&
+           length(treelist) == 0) {
           TRUE
         } else FALSE
       
@@ -377,51 +388,50 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
   }
   
   # number of disjoint trees
-  ntrees <- sum(plotinput$v$infectors == 0)
-  if (ntrees > 1){
-    rootnodes <- unlist(sapply(hosttrees, function(xx) xx[[1]]$rootnode))
-    hosttrees <- hosttrees[order(rootnodes, decreasing = TRUE)]
-  }
+  # ntrees <- sum(plotinput$v$infectors == 0)
+  # if (ntrees > 1){
+  #   rootnodes <- unlist(sapply(hosttrees, function(xx) xx[[1]]$rootnode))
+  #   hosttrees <- hosttrees[order(rootnodes, decreasing = TRUE)]
+  # }
 
   ### join the trees per host ###
   # final hosttree is index case and is already one tree
-  if (ntrees != length(hosttrees)){
-    for(i in (length(hosttrees)-1):1) {
-      print(i)
-      # order trees as transmission nodes in infector
-      infector <- plotinput$v$infectors[hosttrees[[i]][[1]]$host]
-      infectorhosttree <- 
-        which(sapply(hosttrees, function(x) x[[1]]$host) == infector)
-      reorderhosttree <-
-        order(match(sapply(hosttrees[[i]], function(xx) xx$rootnode),
-                    hosttrees[[infectorhosttree]][[1]]$nodevec))
-      hosttrees[[i]] <- hosttrees[[i]][reorderhosttree]
-      
-      # create room vertically by moving higher trees upwards
-      yshifts <- cumsum(c(0, 
-                          sapply(hosttrees[[i]], function(xx) 1 + max(xx$y1vec))))
-      for(j in 1:length(hosttrees[[i]])) {
-        hosttrees[[i]][[j]]$y1vec <- hosttrees[[i]][[j]]$y1vec + yshifts[j]
-        hosttrees[[i]][[j]]$y2vec <- hosttrees[[i]][[j]]$y2vec + yshifts[j]
-      }
-      
-      # combine all trees into a single list
-      hosttrees[[i]] <- list(list(
-        x1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x1vec))),
-        x2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x2vec))),
-        y1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y1vec))),
-        y2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y2vec))),
-        nodevec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$nodevec))),
-        host = hosttrees[[i]][[1]]$host
-      ))
+  # if (ntrees != length(hosttrees)){
+  for(i in (length(hosttrees)-1):1) {
+    # order trees as transmission nodes in infector
+    infector <- plotinput$v$infectors[hosttrees[[i]][[1]]$host]
+    infectorhosttree <- 
+      which(sapply(hosttrees, function(x) x[[1]]$host) == infector)
+    reorderhosttree <-
+      order(match(sapply(hosttrees[[i]], function(xx) xx$rootnode),
+                  hosttrees[[infectorhosttree]][[1]]$nodevec))
+    hosttrees[[i]] <- hosttrees[[i]][reorderhosttree]
+    
+    # create room vertically by moving higher trees upwards
+    yshifts <- cumsum(c(0, 
+                        sapply(hosttrees[[i]], function(xx) 1 + max(xx$y1vec))))
+    for(j in 1:length(hosttrees[[i]])) {
+      hosttrees[[i]][[j]]$y1vec <- hosttrees[[i]][[j]]$y1vec + yshifts[j]
+      hosttrees[[i]][[j]]$y2vec <- hosttrees[[i]][[j]]$y2vec + yshifts[j]
     }
+    
+    # combine all trees into a single list
+    hosttrees[[i]] <- list(list(
+      x1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x1vec))),
+      x2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$x2vec))),
+      y1vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y1vec))),
+      y2vec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$y2vec))),
+      nodevec = c(unlist(sapply(hosttrees[[i]], function(xx) xx$nodevec))),
+      host = hosttrees[[i]][[1]]$host
+    ))
   }
+  # }
   
   ### finalize complete tree ###
   #order trees correctly
   hosttrees <- unlist(hosttrees, recursive = F)
-  hosttrees <- hosttrees[match(hostorder, sapply(hosttrees, function(xx) xx$host))]
-  which2plot <- hostorder %in% hosts2plot
+  hosttrees <- hosttrees[match(c(hostorder,0), sapply(hosttrees, function(xx) xx$host))]
+  which2plot <- c(hostorder, 0) %in% hosts2plot
   hosttrees2 <- hosttrees
   hosttrees <- hosttrees2
   hosttrees <- hosttrees[which2plot]
@@ -441,24 +451,46 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
     y1vec = c(unlist(sapply(hosttrees, function(xx) xx$y1vec))),
     y2vec = c(unlist(sapply(hosttrees, function(xx) xx$y2vec))),
     nodevec = c(unlist(sapply(hosttrees, function(xx) xx$nodevec))),
-    hostvec = rep(hostorder[which2plot], sapply(hosttrees, function(xx) length(xx$nodevec)))
+    hostvec = rep(c(hostorder, 0)[which2plot], sapply(hosttrees, function(xx) length(xx$nodevec)))
   )
   
+  for (i in nrow(completetree):1){
+    if(completetree$hostvec[i] != 0) { break()
+    } else {
+      nodevec <- completetree$nodevec[i]
+      childnode <- which(plotinput$v$nodeparents == nodevec)
+      if(length(childnode) == 1) {
+        completetree$y1vec[i] <- completetree$y1vec[completetree$nodevec == childnode][1]
+        completetree$y2vec[i] <- completetree$y1vec[i]
+      } else {
+        if (completetree$y1vec[i] != completetree$y2vec[i]) {
+          completetree$y1vec[i] <- min(completetree$y1vec[i+1], completetree$y2vec[i+2])
+          completetree$y2vec[i] <- max(completetree$y1vec[i+1], completetree$y2vec[i+2])
+        } else {
+          completetree$y1vec[i] <- (completetree$y1vec[i+1] + completetree$y2vec[i+1])/2
+          completetree$y2vec[i] <- completetree$y1vec[i]
+        }
+      }
+    }
+  }
+  
   # extract pre-index part from index case
-  preindexrows <- completetree$x1vec <= min(plotinput$v$inftimes)
-  introtree <- completetree[preindexrows, ]
-  introtree$x2vec <- pmin(introtree$x2vec, min(plotinput$v$inftimes))
-  introtree$hostvec <- pmin(introtree$hostvec, 0)
-  nodevec2replace <- introtree$x2vec == min(plotinput$v$inftimes)
-  introtree$nodevec[nodevec2replace] <-
-    plotinput$v$nodeparents[introtree$nodevec[nodevec2replace]]
-  # remove pre-index part from index case
-  postindexrows <- completetree$x2vec > min(plotinput$v$inftimes)
-  resttree <- completetree[postindexrows, ] 
-  resttree$x1vec <- pmax(resttree$x1vec, min(plotinput$v$inftimes))
-  # add pre-index part as separate subtree
-  completetree <- rbind(introtree, resttree)
-  # completetree$hostvec <- completetree$hostvec
+  if(sum(plotinput$v$infectors == 0) == 1){
+    preindexrows <- completetree$x1vec <= min(plotinput$v$inftimes)
+    introtree <- completetree[preindexrows, ]
+    introtree$x2vec <- pmin(introtree$x2vec, min(plotinput$v$inftimes))
+    introtree$hostvec <- pmin(introtree$hostvec, 0)
+    nodevec2replace <- introtree$x2vec == min(plotinput$v$inftimes)
+    introtree$nodevec[nodevec2replace] <-
+      plotinput$v$nodeparents[introtree$nodevec[nodevec2replace]]
+    # remove pre-index part from index case
+    postindexrows <- completetree$x2vec > min(plotinput$v$inftimes)
+    resttree <- completetree[postindexrows, ]
+    resttree$x1vec <- pmax(resttree$x1vec, min(plotinput$v$inftimes))
+    # add pre-index part as separate subtree
+    completetree <- rbind(introtree, resttree)
+    completetree$hostvec <- completetree$hostvec
+  }
   
   ###########################################
   ### prepare vectors needed for plotting ###
@@ -492,6 +524,7 @@ makephylotransplot <- function(plotinput, select.how = "trees", select.who = "in
     unlist(sapply(hosttrees, function(xx) rep(xx$host, sum(xx$x1vec == min(xx$x1vec) & xx$x1vec >= min(plotinput$v$inftimes))))))
   
   ### input for transmission links ###
+  if(0 %in% hosts2plot) hosts2plot <- hosts2plot[-which(hosts2plot == 0)]
   links2plot <- hosts2plot[plotinput$v$infectors[hosts2plot] %in% hosts2plot]
   xtrans <- plotinput$v$inftimes[links2plot] + plotinput$d$reference.date
   ytrans1 <- sapply(links2plot,

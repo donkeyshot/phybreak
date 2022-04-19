@@ -10,6 +10,18 @@ rewire_pullnodes_complete <- function(currentID) {
     # available coalescent nodes
     free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodeparents == -1)
     
+    if(currentID == 0 & length(free_cnodes) == 0) {
+      if(sum(pbe1$v$infectors==0) == 1){
+        pbe1$v$nodeparents[loosenodes] <- 0L
+      } else {
+        coalnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodehosts == 0)
+        free_cnodes <- coalnodes[sapply(coalnodes, function(x) sum(pbe1$v$nodeparents == x) == 1)]
+        pbe1$v$nodeparents[loosenodes] <- free_cnodes
+      }
+      return()
+    }
+      
+    
     # edges already entering currentID
     edgesendold <- setdiff(which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes != "c"), loosenodes)
     

@@ -3,7 +3,7 @@
 
 sample_coaltimes <- function(tiptimes, inftime, parameters, historyhost = FALSE) {
   ### tests
-  if(!historyhost & min(tiptimes) < inftime) stop("sample_coaltimes with negative tip times")
+  if(!historyhost) if(min(tiptimes) < inftime) stop("sample_coaltimes with negative tip times")
 
   ### function body
   if(length(tiptimes) < 2) return(c())
