@@ -3,7 +3,9 @@ rewire_change_infector_complete <- function(ID, newinfector) {
   
   if(pbe1$v$infectors[ID] == 0) {
     if (newinfector == 0 || sum(pbe0$v$infectors == 0) == 1) {
+      # coalnodes <- pbe1$v$nodeparents[btnodes]
       coalnodes <- c()
+      # pbe1$v$nodehosts[coalnodes] <- -1L
       pbe1$v$nodeparents[btnodes] <- -1L
     } else {
       coalnodes <- take_cnode(btnodes, newinfector)
@@ -62,6 +64,10 @@ rewire_pathA_complete_edgewise <- function() {
   rewire_within_complete_edgewise(pbe1$hostID, pbe1$tinf.prop)
   if(pbe1$logLiktoporatio > -Inf) {
     rewire_pullnodes_complete(0L)
+    hostID <- pbe1$hostID
+    pbe1$hostID <- 0
+    rewire_pathK_complete_classic()
+    pbe1$hostID <- hostID
   }
 }
 

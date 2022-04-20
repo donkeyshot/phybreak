@@ -217,12 +217,8 @@ get_mcmc <- function(x, thin = 1, nkeep = Inf) {
   res <- with(x, cbind(t(s$inftimes[, tokeep]), 
                        t(s$infectors[, tokeep])))
   
-  if (x$p$hist)
-    parnames <- with(x,
-                     c(paste0("tinf.", d$hostnames[1:(p$obs+1)]), paste0("infector.", d$hostnames[1:(p$obs+1)])))
-  else
-    parnames <- with(x,
-                     c(paste0("tinf.", d$hostnames[1:p$obs]), paste0("infector.", d$hostnames[1:p$obs])))
+  parnames <- with(x,
+                   c(paste0("tinf.", d$hostnames[1:p$obs]), paste0("infector.", d$hostnames[1:p$obs])))
   
   if (x$h$est.wh.h) {
     res <- cbind(x$s$wh.h[tokeep], res)
@@ -258,9 +254,9 @@ get_mcmc <- function(x, thin = 1, nkeep = Inf) {
   }
   # res <- cbind(x$s$hist_dens[tokeep], res)
   # parnames <- c("hist.dens", parnames)
-  res <- cbind(x$s$historyinf[tokeep], res)
-  parnames <- c("historyinf", parnames)
-  
+  # res <- cbind(x$s$historyinf[tokeep], res)
+  # parnames <- c("historyinf", parnames)
+  # 
   res <- cbind(x$s$mu[tokeep], x$s$introductions[tokeep], res, x$s$logLik[tokeep])
   parnames <- c("mu", "introductions", parnames, "logLik")
   colnames(res) <- parnames
