@@ -35,7 +35,7 @@
 #'        sampling = FALSE, generation = FALSE) #should give the same result as 'pml'
 #' @export
 logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling = TRUE,
-                            generation = TRUE, intro = TRUE, 
+                            generation = TRUE, 
                             distance = TRUE, ...) {
   
   res <- 0
@@ -50,14 +50,6 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   if (sampling) {
     res <- res + with(object, lik_sampletimes(p$obs, p$sample.shape, p$sample.mean, v$nodetimes, v$inftimes))
   }
-  if (intro) {
-    if (object$p$use.hist) {
-      time <- max(object$d$sample.times) - min(object$v$inftimes)
-      res < res + with(object, lik_introductions(p$hist.mean, sum(v$infectors==0), time))
-    } else {
-      res <- res + 0
-    }
-  }
   if (withinhost) {
     objectenv <- object
     objectenv$v <- phybreak2environment(objectenv$v)
@@ -70,7 +62,7 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
   attributes(res) <- list(
     nobs = object$p$obs,
     df = 1 + object$h$est.mG + object$h$est.mS + object$h$est.wh.s + object$h$est.wh.e + object$h$est.wh.0 +
-      object$h$est.dist.e + object$h$est.dist.s + object$h$est.dist.m,
+      object$h$est.wh.h + object$h$est.dist.e + object$h$est.dist.s + object$h$est.dist.m,
     genetic = genetic, withinhost = withinhost, sampling = sampling, generation = generation, distance = distance
   )
   class(res) <- "logLik"
@@ -82,22 +74,26 @@ logLik.phybreak <- function(object, genetic = TRUE, withinhost = TRUE, sampling 
 # lik_gentimes <- function(shapeG, meanG, sampleScale, cullingScale, transModel, inftimes, infectors,
 #                          nodetimes, cultimes) {
 lik_gentimes <- function(p, v){
-  if(length(v$inftimes) != sum(v$nodetypes=="s"))
+  indices <- v$infectors == 0
+  othercases <- v$infectors > 0
+  
+  # if(length(v$inftimes) != sum(v$nodetypes=="s"))
+  #   0 + # force of infection from external source
+  #   sum(infect_distribution(v$inftimes[v$infectors > 1],
+  #                             v$inftimes[v$infectors[v$infectors > 1]],
+  #                           nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[v$infectors>1]-1],
+  #                           cultimes = v$cultimes[v$infectors[v$infectors>1]],
+  #                           p = p,
+  #                           log = TRUE))
+  # else 
     0 + # force of infection from external source
-    sum(infect_distribution(v$inftimes[v$infectors > 1],
-                              v$inftimes[v$infectors[v$infectors > 1]],
-                            nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[v$infectors>1]-1],
-                            cultimes = v$cultimes[v$infectors[v$infectors>1]],
-                            p = p,
-                            log = TRUE))
-  else 
-    0 + # force of infection from external source
-    sum(infect_distribution(v$inftimes[v$infectors > 0],
-                            v$inftimes[v$infectors[v$infectors > 0]],
-                            nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[v$infectors>0]],
-                            cultimes = v$cultimes[v$infectors[v$infectors>0]],
-                            p = p,
-                            log = TRUE))
+      sum(dexp(diff(sort(v$inftimes[indices])), rate = 1/p$wh.history, log = TRUE)) +
+      sum(infect_distribution(v$inftimes[othercases],
+                              v$inftimes[v$infectors[othercases]],
+                              nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[othercases]],
+                              cultimes = v$cultimes[v$infectors[othercases]],
+                              p = p,
+                              log = TRUE))
 }
 
 ### calculate the log-likelihood of sampling intervals 
@@ -156,7 +152,7 @@ lik_coaltimes <- function(phybreakenv) {
   nrlineages <- 1 + cumsum(dlineage)
   
   whtimes <- nodetimes[orderednodes] - inftimes[orderedhosts + 1]
-  if(phybreakenv$p$use.hist) whtimes[orderedhosts == 0] <- whtimes[orderedhosts == 0] - min(whtimes[orderedhosts == 0])
+  if(phybreakenv$p$mult.intro) whtimes[orderedhosts == 0] <- whtimes[orderedhosts == 0] - min(whtimes[orderedhosts == 0])
   whtimes[c(!duplicated(orderedhosts)[-1], FALSE)] <- 0
   
   logcoalrates <- switch(phybreakenv$p$wh.model, single =, infinite =,
@@ -172,7 +168,7 @@ lik_coaltimes <- function(phybreakenv) {
                        exponential  = -1/(phybreakenv$p$wh.level * phybreakenv$p$wh.exponent * 
                                             exp(phybreakenv$p$wh.exponent * whtimes)),
                        constant = whtimes/phybreakenv$p$wh.level)
-  if (phybreakenv$p$use.hist) {
+  if (phybreakenv$p$mult.intro) {
     logcoalrates[orderedhosts[coalnodes] == 0] <- -log(phybreakenv$p$wh.history)
     cumcoalrates[orderedhosts == 0] <- whtimes[orderedhosts == 0]/phybreakenv$p$wh.history
   }

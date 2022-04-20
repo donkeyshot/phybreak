@@ -117,8 +117,8 @@ build_pbe <- function(phybreak.obj) {
   logLikcoal <- lik_coaltimes(le)
   logLikdist <- lik_distances(p$dist.model, p$dist.exponent, p$dist.scale, p$dist.mean, 
                               v$infectors, d$distances)
-  logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 0), 
-                                   max(d$sample.times) - min(v$inftimes))
+  # logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 0), 
+  #                                  max(d$sample.times) - min(v$inftimes))
   
   ### copy everything into pbe0
   copy2pbe0("d", le)
@@ -132,7 +132,7 @@ build_pbe <- function(phybreak.obj) {
   copy2pbe0("logLikgen", le)
   copy2pbe0("logLikdist", le)
   copy2pbe0("logLikcoal", le)
-  copy2pbe0("logLikintro", le)
+  # copy2pbe0("logLikintro", le)
 }
 
 
@@ -159,7 +159,6 @@ prepare_pbe <- function() {
   copy2pbe1("likarrayfreq", pbe0)
   pbe1$logLikseq <- pbe0$logLikseq + 0 #make a true copy, not a pointer
   pbe1$logLiktoporatio <- 0
-  pbe1$logLikintro <- pbe0$logLikintro + 0 #make a true copy, not a pointer
 }
 
 
@@ -210,7 +209,7 @@ propose_pbe <- function(f) {
     copy2pbe1("logLiksam", le)
   }
   
-  if (f == "trans" || (f == "mS" && p$wh.bottleneck == "wide") || f == "wh.slope" || f == "wh.exponent" || f == "wh.level") {
+  if (f == "trans" || (f == "mS" && p$wh.bottleneck == "wide") || f == "wh.slope" || f == "wh.exponent" || f == "wh.level" || f == "wh.history") {
     logLikcoal <- lik_coaltimes(le)
     copy2pbe1("logLikcoal", le)
   }
@@ -239,7 +238,7 @@ accept_pbe <- function(f) {
     copy2pbe0("v", pbe1)
   }
   
-  if(f == "mG" || f == "mS" || f == "mu" || f == "wh.slope" || f == "wh.exponent" || f == "wh.level" ||
+  if(f == "mG" || f == "mS" || f == "mu" || f == "wh.slope" || f == "wh.exponent" || f == "wh.level" || f == "wh.history" ||
      f == "dist.exponent" || f == "dist.scale" || f == "dist.mean" || f == "hist.mean") {
     copy2pbe0("p", pbe1)
   }
@@ -257,15 +256,11 @@ accept_pbe <- function(f) {
     copy2pbe0("logLikgen", pbe1)
   }
   
-  if(f == "phylotrans" || f == "hist.mean") {
-    copy2pbe0("logLikintro", pbe1)
-  }
-  
   if (f == "trans" || f == "phylotrans" || f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {
     copy2pbe0("logLikdist", pbe1)
   }
   
-  if(f == "trans" || (f == "mS" && pbe0$p$wh.bottleneck == "wide") || f == "wh.slope" || f == "wh.exponent" || f == "wh.level") {
+  if(f == "trans" || (f == "mS" && pbe0$p$wh.bottleneck == "wide") || f == "wh.slope" || f == "wh.exponent" || f == "wh.level" || f == "wh.history") {
     copy2pbe0("logLikcoal", pbe1)
   }
   

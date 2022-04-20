@@ -59,6 +59,14 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       warning("model incompatible with keepphylo-updates: they will not be used", immediate. = TRUE)
     } 
   }
+  if (is.null(heats))
+    heats <- 1/(1+1*(1:nchains-1))
+  else if (inherits(heats, "numeric") & length(heats) != nchains)
+    stop("length of heats is not the same as number of chains")
+  else if (!inherits(heats, "numeric"))
+    stop("heats is not a numeric vector")
+  
+  ### WHY NOT printmessage AND printlog AS INPUT?
   if(verbose == 1){
     printmessage = TRUE
     printlog = TRUE
@@ -95,16 +103,14 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                  nodeparents = with(x, cbind(s$nodeparents, matrix(NA, nrow = 2 * d$nsamples - 1, ncol = nsample))),
                  introductions = c(x$s$introductions, rep(NA, nsample)),
                  mu = c(x$s$mu, rep(NA, nsample)), 
-                 hist_dens = c(x$s$hist_dens, rep(NA, nsample)),
-                 hist.mean = c(x$s$hist.mean, rep(NA, nsample)),
                  mG = c(x$s$mG, rep(NA, nsample)), 
                  mS = c(x$s$mS, rep(NA, nsample)), 
                  tG = c(x$s$tG, rep(NA, nsample)),
                  tS = c(x$s$tS, rep(NA, nsample)),
-                 wh.h = c(x$s$wh.h, rep(NA, nsample)), 
                  wh.s = c(x$s$wh.s, rep(NA, nsample)), 
                  wh.e = c(x$s$wh.e, rep(NA, nsample)), 
                  wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
+                 wh.h = c(x$s$wh.h, rep(NA, nsample)), 
                  dist.e = c(x$s$dist.e, rep(NA, nsample)), 
                  dist.s = c(x$s$dist.s, rep(NA, nsample)), 
                  dist.m = c(x$s$dist.m, rep(NA, nsample)), 
@@ -115,13 +121,6 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
     
   build_pbe(x)
   
-  if (is.null(heats))
-    heats <- 1/(1+1*(1:nchains-1))
-  else if (inherits(heats, "numeric") & length(heats) != nchains)
-    stop("length of heats is not the same as number of chains")
-  else if (!inherits(heats, "numeric"))
-    stop("heats is not a numeric vector")
-    
   envirs <- list()
   
   for (n in 1:nchains){
@@ -164,11 +163,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                                      1,
                                      prob = protocoldistribution)
             history <- sample(c(TRUE, FALSE), 1, prob = historydistribution)
-            if (i > 0) {
-              update_host(i, which_protocol, history)
-            } else if (i == 0 & history) {
-              update_host(i, which_protocol, TRUE)
-            }
+            update_host(i, which_protocol, history || i == 0)
           }
         
           if (i == -1 && x$h$est.mu)  update_mu()
@@ -176,7 +171,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
           if (i == -3 && x$h$est.mS)  update_mS()
           if (i == -11 && x$h$est.tG) update_tG()
           if (i == -12 && x$h$est.tS) update_tS()
-          if (i == -10 && x$h$est.hist.m) update_hist_mean()
+          if (i == -10 && x$h$est.wh.h) update_wh_history()
           if (i == -4 && x$h$est.wh.s)  update_wh_slope()
           if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
           if (i == -6 && x$h$est.wh.0)  update_wh_level()
