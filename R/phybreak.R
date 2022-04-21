@@ -112,20 +112,21 @@
 #' ### but only with single samples per host and not with additional data (future implementation)
 #' MCMCstate <- phybreak(data = sampleSNPdata, times = sampletimedata)
 #' @export
-phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRUE,
+phybreak <- function(dataset, times = NULL, 
          mu = NULL, gen.shape = 3, gen.mean = 1, trans.model = "gamma",
          trans.init = 1e-4, trans.growth = 1, trans.sample = 0.1, trans.culling = 5,
-         sample.shape = 3, sample.mean = 1, hist.mean = 1, histtime = -1e5,
+         sample.shape = 3, sample.mean = 1, 
+         multiple.introductions = FALSE, introductions = 1, 
          wh.model = "linear", wh.bottleneck = "auto", wh.history = 1, wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
          dist.model = "power", dist.exponent = 2, dist.scale = 1, dist.mean = 1,
          est.mu = TRUE, prior.mu.mean = 0, prior.mu.sd = 100,
          est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
          est.sample.mean = TRUE, prior.sample.mean.mean = 1, prior.sample.mean.sd = Inf,
          est.trans.growth = TRUE, est.trans.sample = TRUE, 
-         est.hist.mean = TRUE, prior.hist.mean.mean = 1, prior.hist.mean.shape = 0,
-         est.wh.history = TRUE, est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
+         est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
          est.wh.exponent = TRUE, prior.wh.exponent.shape = 1, prior.wh.exponent.mean = 1,
          est.wh.level = TRUE, prior.wh.level.shape = 1, prior.wh.level.mean = 0.1,
+         est.wh.history = TRUE, prior.wh.history.shape = 1, prior.wh.history.mean = 100,
          est.dist.exponent = TRUE, prior.dist.exponent.shape = 1, prior.dist.exponent.mean = 1,
          est.dist.scale = TRUE, prior.dist.scale.shape = 1, prior.dist.scale.mean = 1,
          est.dist.mean = TRUE, prior.dist.mean.shape = 1, prior.dist.mean.mean = 1,
@@ -147,7 +148,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
   ###########################################
   dataset <- testdataclass_phybreak(dataset, times, ...)
   rownames(as.character(dataset$sequences))
-  if(use.tree) testfortree_phybreak(dataset)
+  if(use.tree) introductions <- testfortree_phybreak(dataset, introductions)
+  if(introductions > 1) multiple.introductions <- TRUE
   testargumentsclass_phybreak(environment())
   wh.model <- choose_whmodel(wh.model)
   wh.bottleneck <- choose_whbottleneck(wh.bottleneck, wh.model)
@@ -199,30 +201,24 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
     trans.culling = trans.culling,
     wh.model = wh.model,
     wh.bottleneck = wh.bottleneck,
-    wh.history = wh.history,
     wh.slope = wh.slope,
     wh.exponent = wh.exponent,
     wh.level = wh.level * (wh.bottleneck == "wide"),
+    wh.history = wh.history,
     dist.model = dist.model,
     dist.exponent = dist.exponent,
     dist.scale = dist.scale,
     dist.mean = dist.mean,
     trans.model = trans.model,
-    hist.mean = hist.mean,
-    hist.time = histtime,
-    use.hist = use.history
+    mult.intro = multiple.introductions
   )
   
   ##############################
   ### second slot: variables ###
   ##############################
-  if(length(dataset$sim.infectors) > 0 & use.tree == TRUE)
-    introductions = sum(grepl("index",dataset$sim.infectors))
   phybreakvariables <- transphylo2phybreak(dataset, resample = !use.tree, resamplepars = parameterslot,
-                                           introductions)
+                                           introductions = introductions)
   variableslot <- phybreakvariables$v
-  # if(length(variableslot$cultimes) == 0)
-  #   variableslot <- within(variableslot, rm(cultimes))
   dataslot$reference.date <- phybreakvariables$d$reference.date
   
   #################
@@ -249,28 +245,27 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
                      est.mS = est.sample.mean,
                      est.tG = est.trans.growth,
                      est.tS = est.trans.sample,
-                     est.wh.h = est.wh.history,
                      est.wh.s = est.wh.slope && wh.model == "linear",
                      est.wh.e = est.wh.exponent && wh.model == "exponential",
                      est.wh.0 = est.wh.level && wh.bottleneck == "wide",
+                     est.wh.h = est.wh.history && multiple.introductions,
                      est.dist.e = est.dist.exponent && dist.model %in% c("power", "exponential"),
                      est.dist.s = est.dist.scale && dist.model == "power",
                      est.dist.m = est.dist.mean && dist.model == "poisson",
-                     est.hist.mean = est.hist.mean,
-                     mu.mean = prior.mu.mean,
+                     mu.av = prior.mu.mean,
                      mu.sd = prior.mu.sd,
                      mG.av = prior.gen.mean.mean,
                      mG.sd = prior.gen.mean.sd,
                      mS.av = prior.sample.mean.mean,
                      mS.sd = prior.sample.mean.sd,
-                     hist.m.av = prior.hist.mean.mean,
-                     hist.m.sh = prior.hist.mean.shape,
                      wh.s.sh = prior.wh.slope.shape,
                      wh.s.av = prior.wh.slope.mean,
                      wh.e.sh = prior.wh.exponent.shape,
                      wh.e.av = prior.wh.exponent.mean,
                      wh.0.sh = prior.wh.level.shape,
                      wh.0.av = prior.wh.level.mean,
+                     wh.h.sh = prior.wh.history.shape,
+                     wh.h.av = prior.wh.history.mean,
                      dist.e.sh = prior.dist.exponent.shape,
                      dist.e.av = prior.dist.exponent.mean,
                      dist.s.sh = prior.dist.scale.shape,
@@ -287,11 +282,8 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
     nodetimes = c(),
     nodehosts = c(),
     nodeparents = c(),
-    histnodetimes = c(),
-    histnodeparents = c(),
-    histnodehosts = c(),
+    introductions = c(),
     mu = c(),
-    hist.mean = c(),
     mG = c(),
     mS = c(),
     tG = c(),
@@ -299,6 +291,7 @@ phybreak <- function(dataset, times = NULL, introductions = 1, use.history = TRU
     wh.s = c(),
     wh.e = c(),
     wh.0 = c(),
+    wh.h = c(),
     dist.e = c(),
     dist.s = c(),
     dist.m = c(),
@@ -337,13 +330,21 @@ testdataclass_phybreak <- function(dataset, times, ...) {
 }
 
 ### Test for presence of tree
-testfortree_phybreak <- function(dataset) {
+testfortree_phybreak <- function(dataset, introductions) {
   if(is.null(dataset$sim.infection.times) | is.null(dataset$sim.infectors)) {
     warning("transmission tree can only be used if provided in dataset; random tree will be generated")
+  } else {
+    simulatedintroductions <- sum(dataset$sim.infectors == "index")
+    if(introductions != simulatedintroductions) {
+      warning(paste0("Provided transmission tree contains ", simulatedintroductions, " introduction(s) instead of ",
+                     introductions,". Transmission tree will be used"))
+      introductions <- simulatedintroductions
+    }
   }
   if(is.null(dataset$sim.tree)) {
     warning("phylogenetic tree can only be used if provided in dataset; random tree will be generated")
   }
+  return(introductions)
 }
 
 ### Test arguments classes
@@ -354,6 +355,7 @@ testargumentsclass_phybreak <- function(env) {
       unlist(
         lapply(
           list(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
+               introductions,
                wh.slope, wh.exponent, wh.level, prior.gen.mean.mean, prior.gen.mean.sd,
                prior.sample.mean.mean, prior.sample.mean.sd,
                prior.wh.slope.shape, prior.wh.slope.mean,
@@ -365,6 +367,7 @@ testargumentsclass_phybreak <- function(env) {
     if(any(numFALSE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
+                    "introductions",
                     "wh.slope", "wh.exponent", "wh.level", "prior.gen.mean.mean", "prior.gen.mean.sd",
                     "prior.shape.mean.mean", "prior.shape.mean.sd",
                     "prior.wh.slope.shape", "prior.wh.slope.mean",
@@ -374,6 +377,7 @@ testargumentsclass_phybreak <- function(env) {
     }
     numNEGATIVE <- 
       c(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
+        introductions,
         wh.slope, wh.exponent, wh.level, prior.gen.mean.mean, prior.gen.mean.sd,
         prior.sample.mean.mean, prior.sample.mean.sd,
         prior.wh.slope.shape, prior.wh.slope.mean,
@@ -383,6 +387,7 @@ testargumentsclass_phybreak <- function(env) {
     if(any(numNEGATIVE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
+                    "introductions",
                     "wh.slope", "wh.exponent", "wh.level", "prior.gen.mean.mean", "prior.gen.mean.sd",
                     "prior.shape.mean.mean", "prior.shape.mean.sd",
                     "prior.wh.slope.shape", "prior.wh.slope.mean",
@@ -393,13 +398,14 @@ testargumentsclass_phybreak <- function(env) {
     logFALSE <- 
       unlist(
         lapply(
-          list(est.gen.mean, est.sample.mean, est.wh.slope, est.wh.exponent, est.wh.level, use.tree),
+          list(multiple.introductions, est.gen.mean, est.sample.mean,
+               est.wh.slope, est.wh.exponent, est.wh.level, use.tree),
           class
         )
       ) != "logical"
     if(any(logFALSE)) {
       stop(paste0("parameters ",
-                  c("est.gen.mean", "est.sample.mean", "est.wh.slope", "est.wh.exponent", 
+                  c("multiple.introductions", "est.gen.mean", "est.sample.mean", "est.wh.slope", "est.wh.exponent", 
                     "est.wh.level", "use.tree")[logFALSE],
                   " should be logical"))
     }
