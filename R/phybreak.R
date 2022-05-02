@@ -116,12 +116,13 @@ phybreak <- function(dataset, times = NULL,
          mu = NULL, gen.shape = 3, gen.mean = 1, trans.model = "gamma",
          trans.init = 1e-4, trans.growth = 1, trans.sample = 0.1, trans.culling = 5,
          sample.shape = 3, sample.mean = 1, 
-         multiple.introductions = FALSE, introductions = 1, 
+         multiple.introductions = FALSE, introductions = 1, intro.rate = 1,
          wh.model = "linear", wh.bottleneck = "auto", wh.history = 1, wh.slope = 1, wh.exponent = 1, wh.level = 0.1,
          dist.model = "power", dist.exponent = 2, dist.scale = 1, dist.mean = 1,
          est.mu = TRUE, prior.mu.mean = 0, prior.mu.sd = 100,
          est.gen.mean = TRUE, prior.gen.mean.mean = 1, prior.gen.mean.sd = Inf,
          est.sample.mean = TRUE, prior.sample.mean.mean = 1, prior.sample.mean.sd = Inf,
+         est.intro.rate = TRUE, prior.intro.rate.mean = 1, prior.intro.rate.sd = Inf,
          est.trans.growth = TRUE, est.trans.sample = TRUE, 
          est.wh.slope = TRUE, prior.wh.slope.shape = 3, prior.wh.slope.mean = 1,
          est.wh.exponent = TRUE, prior.wh.exponent.shape = 1, prior.wh.exponent.mean = 1,
@@ -150,6 +151,10 @@ phybreak <- function(dataset, times = NULL,
   rownames(as.character(dataset$sequences))
   if(use.tree) introductions <- testfortree_phybreak(dataset, introductions)
   if(introductions > 1) multiple.introductions <- TRUE
+  if(!multiple.introductions) {
+    intro.rate <- 1
+    est.intro.rate <- FALSE
+    }
   testargumentsclass_phybreak(environment())
   wh.model <- choose_whmodel(wh.model)
   wh.bottleneck <- choose_whbottleneck(wh.bottleneck, wh.model)
@@ -199,6 +204,7 @@ phybreak <- function(dataset, times = NULL,
     trans.growth = trans.growth,
     trans.sample = trans.sample,
     trans.culling = trans.culling,
+    intro.rate = intro.rate,
     wh.model = wh.model,
     wh.bottleneck = wh.bottleneck,
     wh.slope = wh.slope,
@@ -237,6 +243,7 @@ phybreak <- function(dataset, times = NULL,
   ### fourth slot: helper input ###
   #################################
   helperslot <- list(si.mu = if(dataslot$nSNPs == 0) 0 else 2.38*sqrt(trigamma(dataslot$nSNPs)),
+                     si.ir = 2.38*sqrt(trigamma(introductions)),
                      si.wh = 2.38*sqrt(trigamma(dataslot$nsamples - 1)),
                      si.dist = 2.38*sqrt(trigamma(parameterslot$obs - 1)),
                      dist = distmatrix_phybreak(subset(dataslot$sequences, subset = 1:parameterslot$obs)),
@@ -245,6 +252,7 @@ phybreak <- function(dataset, times = NULL,
                      est.mS = est.sample.mean,
                      est.tG = est.trans.growth,
                      est.tS = est.trans.sample,
+                     est.ir = est.intro.rate,
                      est.wh.s = est.wh.slope && wh.model == "linear",
                      est.wh.e = est.wh.exponent && wh.model == "exponential",
                      est.wh.0 = est.wh.level && wh.bottleneck == "wide",
@@ -257,6 +265,8 @@ phybreak <- function(dataset, times = NULL,
                      mG.av = prior.gen.mean.mean,
                      mG.sd = prior.gen.mean.sd,
                      mS.av = prior.sample.mean.mean,
+                     ir.av = prior.intro.rate.mean,
+                     ir.sd = prior.intro.rate.sd,
                      mS.sd = prior.sample.mean.sd,
                      wh.s.sh = prior.wh.slope.shape,
                      wh.s.av = prior.wh.slope.mean,
@@ -288,6 +298,7 @@ phybreak <- function(dataset, times = NULL,
     mS = c(),
     tG = c(),
     tS = c(),
+    ir = c(),
     wh.s = c(),
     wh.e = c(),
     wh.0 = c(),
@@ -334,7 +345,7 @@ testfortree_phybreak <- function(dataset, introductions) {
   if(is.null(dataset$sim.infection.times) | is.null(dataset$sim.infectors)) {
     warning("transmission tree can only be used if provided in dataset; random tree will be generated")
   } else {
-    simulatedintroductions <- sum(dataset$sim.infectors == "index")
+    simulatedintroductions <- sum(dataset$sim.infectors == "index") * 1
     if(introductions != simulatedintroductions) {
       warning(paste0("Provided transmission tree contains ", simulatedintroductions, " introduction(s) instead of ",
                      introductions,". Transmission tree will be used"))
@@ -355,7 +366,7 @@ testargumentsclass_phybreak <- function(env) {
       unlist(
         lapply(
           list(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-               introductions,
+               introductions, intro.rate,
                wh.slope, wh.exponent, wh.level, prior.gen.mean.mean, prior.gen.mean.sd,
                prior.sample.mean.mean, prior.sample.mean.sd,
                prior.wh.slope.shape, prior.wh.slope.mean,
@@ -367,7 +378,7 @@ testargumentsclass_phybreak <- function(env) {
     if(any(numFALSE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "introductions",
+                    "introductions", "intro.rate",
                     "wh.slope", "wh.exponent", "wh.level", "prior.gen.mean.mean", "prior.gen.mean.sd",
                     "prior.shape.mean.mean", "prior.shape.mean.sd",
                     "prior.wh.slope.shape", "prior.wh.slope.mean",
@@ -377,7 +388,7 @@ testargumentsclass_phybreak <- function(env) {
     }
     numNEGATIVE <- 
       c(mutest, gen.shape, gen.mean, sample.shape, sample.mean,
-        introductions,
+        introductions, intro.rate,
         wh.slope, wh.exponent, wh.level, prior.gen.mean.mean, prior.gen.mean.sd,
         prior.sample.mean.mean, prior.sample.mean.sd,
         prior.wh.slope.shape, prior.wh.slope.mean,
@@ -387,7 +398,7 @@ testargumentsclass_phybreak <- function(env) {
     if(any(numNEGATIVE)) {
       stop(paste0("parameters ",
                   c("mu", "gen.shape", "gen.mean", "sample.shape", "sample.mean",
-                    "introductions",
+                    "introductions", "intro.rate",
                     "wh.slope", "wh.exponent", "wh.level", "prior.gen.mean.mean", "prior.gen.mean.sd",
                     "prior.shape.mean.mean", "prior.shape.mean.sd",
                     "prior.wh.slope.shape", "prior.wh.slope.mean",
@@ -470,6 +481,7 @@ distmatrix_phybreak <- function(sequences) {
   
 
   #add 1 to avoid division by 0, and make distances proportional
-  return((res + 1) / max(res + 1))
+  res <- (res + 1) / max(res + 1)
+  return(res / min(res))
 }
 

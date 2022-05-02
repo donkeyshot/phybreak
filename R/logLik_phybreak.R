@@ -87,7 +87,8 @@ lik_gentimes <- function(p, v){
   #                           log = TRUE))
   # else 
     0 + # force of infection from external source
-      sum(dexp(diff(sort(v$inftimes[indices])), rate = 1/p$wh.history, log = TRUE)) +
+      sum(dexp(diff(c(sort(v$inftimes[indices]), max(v$nodetimes))), rate = p$intro.rate, log = TRUE)) -
+      log(p$intro.rate) +
       sum(infect_distribution(v$inftimes[othercases],
                               v$inftimes[v$infectors[othercases]],
                               nodetimes = v$nodetimes[v$nodetypes=="s"][v$infectors[othercases]],

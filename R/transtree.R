@@ -201,21 +201,25 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
 ### with multiple root candidates, plus (if requested) means and standard deviations of infection times called by transtree
 ### calls: .edmondsiterative
 .transtreeedmonds <- function(x, samplesize, includetimes) {
-    ### initialize some constants
-    chainlength <- length(x$s$mu)
-    nsamples <- x$d$nsamples
-    obsize <- x$p$obs
-    samplerange <- (chainlength - samplesize + 1):chainlength
-    
-    ### obtaining the result in steps
-    
-    # matrix with support for each infector (row) per host (column), with 0 as maximum, and a column for the index
-    supportmatrix <- cbind(c(0, rep(-1, obsize)), apply(1 + x$s$infectors[, samplerange], 
-        1, tabulate, nbins = obsize + 1))
-    maxsupportperhost <- apply(supportmatrix, 2, max)
-    supportmatrix <- supportmatrix - rep(maxsupportperhost, each = obsize + 1)
-    maxsupportperhost <- maxsupportperhost[-1]
-    
+  ### initialize some constants
+  chainlength <- length(x$s$mu)
+  nsamples <- x$d$nsamples
+  obsize <- x$p$obs
+  samplerange <- (chainlength - samplesize + 1):chainlength
+  
+  ### obtaining the result in steps
+  
+  # matrix with support for each infector (row) per host (column), with 0 as maximum, and a column for the index
+  supportmatrix <- cbind(c(0, rep(-1, obsize)), apply(1 + x$s$infectors[, samplerange], 
+                                                      1, tabulate, nbins = obsize + 1))
+  maxsupportperhost <- apply(supportmatrix, 2, max)
+  supportmatrix <- supportmatrix - rep(maxsupportperhost, each = obsize + 1)
+  maxsupportperhost <- maxsupportperhost[-1]
+  
+  if(x$p$mult.intro) {
+    besttree <- .edmondsiterative(supportmatrix, samplesize, obsize)[-1] - 1
+    treesupport <- rowSums(x$s$infectors[, samplerange] == besttree)
+  } else {
     # vector with hosts, ordered by support to be index, and vector with these supports
     candidateindex <- order(apply(x$s$infectors[, samplerange] == 0, 1, sum), decreasing = TRUE)
     indexsupports <- apply(x$s$infectors[, samplerange] == 0, 1, sum)[candidateindex]
@@ -230,24 +234,24 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
     treesupports <- c()
     # then make trees as long as bestYN == FALSE
     while (!bestYN) {
-        # make copy of supportmatrix, maximally supporting the next candidate index
-        suppmat <- supportmatrix
-        suppmat[1, ] <- -samplesize
-        suppmat[1, candidateindex[nextcandidate] + 1] <- 0
-        
-        # make the tree
-        thistree <- .edmondsiterative(suppmat, samplesize, obsize)[-1] - 1
-        alltrees <- c(alltrees, thistree)
-        thissupport <- rowSums(x$s$infectors[, samplerange] == thistree)
-        allsupports <- c(allsupports, thissupport)
-        treesupports <- c(treesupports, sum(thissupport))
-        
-        # test if next candidate index must result in lower tree support only by its own loss in support
-        nextcandidate <- nextcandidate + 1
-        highestsupportthusfar <- max(treesupports)
-        maxsupportwithnextcandidate <- sum(maxsupportperhost[-candidateindex[nextcandidate]]) + 
-          indexsupports[candidateindex[nextcandidate]]
-        if(highestsupportthusfar > maxsupportwithnextcandidate || nextcandidate > obsize) bestYN <- TRUE
+      # make copy of supportmatrix, maximally supporting the next candidate index
+      suppmat <- supportmatrix
+      suppmat[1, ] <- -samplesize
+      suppmat[1, candidateindex[nextcandidate] + 1] <- 0
+      
+      # make the tree
+      thistree <- .edmondsiterative(suppmat, samplesize, obsize)[-1] - 1
+      alltrees <- c(alltrees, thistree)
+      thissupport <- rowSums(x$s$infectors[, samplerange] == thistree)
+      allsupports <- c(allsupports, thissupport)
+      treesupports <- c(treesupports, sum(thissupport))
+      
+      # test if next candidate index must result in lower tree support only by its own loss in support
+      nextcandidate <- nextcandidate + 1
+      highestsupportthusfar <- max(treesupports)
+      maxsupportwithnextcandidate <- sum(maxsupportperhost[-candidateindex[nextcandidate]]) + 
+        indexsupports[candidateindex[nextcandidate]]
+      if(highestsupportthusfar > maxsupportwithnextcandidate || nextcandidate > obsize) bestYN <- TRUE
     }
     
     # find the tree with maximum support
@@ -255,18 +259,20 @@ transtree <- function(x, method = c("count", "edmonds", "mpc", "mtcc"), samplesi
     dim(allsupports) <- dim(alltrees)
     besttree <- alltrees[, which(colSums(allsupports) == max(colSums(allsupports)))]
     treesupport <- allsupports[, which(colSums(allsupports) == max(colSums(allsupports)))]
-    res <- matrix(c(besttree, treesupport), ncol = 2)
-    
-    ### get time summaries
-    if (includetimes) {
-        timesums <- with(x, rowSums(s$inftimes[, samplerange] * (s$infectors[, samplerange] == res[, 1])))
-        timesumsqs <- with(x, rowSums((s$inftimes[, samplerange]^2) * (s$infectors[, samplerange] == res[, 1])))
-        res <- cbind(res, timesums/res[, 2])
-        res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
-    }
-    
-    ### return result
-    return(res)
+  }
+  
+  res <- matrix(c(besttree, treesupport), ncol = 2)
+  
+  ### get time summaries
+  if (includetimes) {
+    timesums <- with(x, rowSums(s$inftimes[, samplerange] * (s$infectors[, samplerange] == res[, 1])))
+    timesumsqs <- with(x, rowSums((s$inftimes[, samplerange]^2) * (s$infectors[, samplerange] == res[, 1])))
+    res <- cbind(res, timesums/res[, 2])
+    res <- cbind(res, sqrt((timesumsqs - res[, 3]^2 * res[, 2])/(res[, 2] - 1)))
+  }
+  
+  ### return result
+  return(res)
 }
 
 

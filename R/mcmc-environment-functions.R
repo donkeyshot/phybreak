@@ -101,9 +101,6 @@ build_pbe <- function(phybreak.obj) {
   ### change the variables slot to an environmental variables slot (with transmission nodes in the tree)
   v <- phybreak2environment(v)
   
-  indices <- which(v$infectors == 0)
-  v$tree <- sapply(1:p$obs, function(i) tail(.ptr(v$infectors, i), 1))
-
   #history <- add_history(d, v, p, h, s, build = TRUE, hist.inf = histtime)
   #v <- history$v
   #h <- history$h
@@ -199,7 +196,7 @@ propose_pbe <- function(f) {
     .likseqenv(pbe1, chnodes, nodetips)
   }
   
-  if (f == "phylotrans" || f == "trans" || f == "mG") {
+  if (f == "phylotrans" || f == "trans" || f == "mG" || f == "ir") {
     logLikgen <- lik_gentimes(p, v)
     copy2pbe1("logLikgen", le)
   }
@@ -220,11 +217,11 @@ propose_pbe <- function(f) {
     copy2pbe1("logLikdist", le)
   }
   
-  if (f == "phylotrans" || f == "hist.mean"){
-    logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 1), 
-                                     max(d$sample.times) - min(v$inftimes[-1]))
-    copy2pbe1("logLikintro", le)
-  }
+  # if (f == "phylotrans" || f == "hist.mean"){
+  #   logLikintro <- lik_introductions(p$hist.mean, sum(v$infectors == 1), 
+  #                                    max(d$sample.times) - min(v$inftimes[-1]))
+  #   copy2pbe1("logLikintro", le)
+  # }
   
   if (f == "mS" && p$wh.bottleneck == "complete") {
     copy2pbe1("logLikcoal", pbe0)
@@ -238,8 +235,9 @@ accept_pbe <- function(f) {
     copy2pbe0("v", pbe1)
   }
   
-  if(f == "mG" || f == "mS" || f == "mu" || f == "wh.slope" || f == "wh.exponent" || f == "wh.level" || f == "wh.history" ||
-     f == "dist.exponent" || f == "dist.scale" || f == "dist.mean" || f == "hist.mean") {
+  if(f == "mG" || f == "mS" || f == "mu" || f == "ir" || 
+     f == "wh.slope" || f == "wh.exponent" || f == "wh.level" || f == "wh.history" ||
+     f == "dist.exponent" || f == "dist.scale" || f == "dist.mean") {
     copy2pbe0("p", pbe1)
   }
   
@@ -252,7 +250,7 @@ accept_pbe <- function(f) {
     copy2pbe0("logLiksam", pbe1)
   }
   
-  if(f == "phylotrans" || f == "trans" || f == "mG") {
+  if(f == "phylotrans" || f == "trans" || f == "mG" || f == "ir") {
     copy2pbe0("logLikgen", pbe1)
   }
   

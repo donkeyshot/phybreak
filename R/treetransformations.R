@@ -1,12 +1,11 @@
 phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   ### extract variables
-  introductions <- 1L
   nodetimes <- vars$nodetimes
   nodeparents <- as.integer(vars$nodeparents)
-  nodehosts <- as.integer(vars$nodehosts) + introductions
+  nodehosts <- as.integer(vars$nodehosts) + 1L
   nodetypes <- vars$nodetypes
-  inftimes <- c(rep(-Inf,introductions), vars$inftimes)
-  infectors <- c(rep(0,introductions), vars$infectors + introductions)
+  inftimes <- c(-Inf, vars$inftimes)
+  infectors <- c(0, vars$infectors + 1L)
   nhosts <- length(inftimes)
   nsamples <- sum(nodetypes %in% c("s", "x"))
   if(is.null(samplenames)) samplenames <- 1:nsamples
@@ -17,45 +16,24 @@ phybreak2phylo <- function(vars, samplenames = c(), simmap = FALSE) {
   
   ### give first coalescent node number nsamples + 1 for compatibility with phylo
   currentrootnode <- which(nodeparents == 0)
-  if (length(currentrootnode) == 1) {
-    if(currentrootnode != nsamples + 1) {
-      #swap hosts and times
-      nodehosts[c(nsamples + 1, currentrootnode)] <- nodehosts[c(currentrootnode, nsamples + 1)]
-      nodetimes[c(nsamples + 1, currentrootnode)] <- nodetimes[c(currentrootnode, nsamples + 1)]
-      
-      #swap parents
-      nodeparents[c(nsamples + 1, currentrootnode)] <- nodeparents[c(currentrootnode, nsamples + 1)]
-      
-      #change parents of all nodes
-      tooldroot <- nodeparents == currentrootnode
-      tonewroot <- nodeparents == nsamples + 1
-      nodeparents[tooldroot] <- nsamples + 1
-      nodeparents[tonewroot] <- currentrootnode
-    }
+  if(currentrootnode != nsamples + 1) {
+    #swap hosts and times
+    nodehosts[c(nsamples + 1, currentrootnode)] <- nodehosts[c(currentrootnode, nsamples + 1)]
+    nodetimes[c(nsamples + 1, currentrootnode)] <- nodetimes[c(currentrootnode, nsamples + 1)]
     
-    edges <- cbind(nodeparents, 1:(2*nsamples - 1))[-(nsamples + 1), ]
-  } else {
-    # artificial host
-    nodehosts <- c(nodehosts[1:nsamples], 1:introductions, nodehosts[nodetypes == "c"])
+    #swap parents
+    nodeparents[c(nsamples + 1, currentrootnode)] <- nodeparents[c(currentrootnode, nsamples + 1)]
     
-    # artificial times
-    nodetimes <- c(nodetimes[1:nsamples], 
-                   min(nodetimes)-(1+((introductions-1):0)*1e-3), 
-                   nodetimes[nodetypes == "c"])
-    
-    # artificial parents
-    nodeparents[currentrootnode] <- nsamples
-    if (introductions == 1)
-      nodeparents <- c(nodeparents[1:nsamples]+1L, 0, nodeparents[nodetypes == "c"]+1L)
-    else 
-      nodeparents <- c(nodeparents[1:nsamples]+introductions, 
-                       c(0,nsamples+(1:(introductions-1))),
-                       nodeparents[nodetypes == "c"]+introductions)
-    
-    edges <- cbind(nodeparents, 1:length(nodeparents))[-(nsamples + 1), ]
+    #change parents of all nodes
+    tooldroot <- nodeparents == currentrootnode
+    tonewroot <- nodeparents == nsamples + 1
+    nodeparents[tooldroot] <- nsamples + 1
+    nodeparents[tonewroot] <- currentrootnode
   }
   
   ### topology for phylo
+  
+  edges <- cbind(nodeparents, 1:(2*nsamples - 1))[-(nsamples + 1), ]
   
   edgelengths <- apply(edges, 1, function(x) nodetimes[x[2]] - nodetimes[x[1]])
   
@@ -339,6 +317,8 @@ phybreak2environment <- function(vars) {
       }
     }
   }
+  
+  vars$tree <- sapply(1:obs, function(i) tail(.ptr(vars$infectors, i), 1))
   
   return(vars)
 } 

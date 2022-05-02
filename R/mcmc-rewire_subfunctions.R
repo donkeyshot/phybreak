@@ -10,17 +10,16 @@ rewire_pullnodes_complete <- function(currentID) {
     # available coalescent nodes
     free_cnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodeparents == -1)
     
-    if(currentID == 0 & length(free_cnodes) == 0) {
-      if(sum(pbe1$v$infectors==0) == 1){
-        pbe1$v$nodeparents[loosenodes] <- 0L
-      } else {
-        coalnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodehosts == 0)
-        free_cnodes <- coalnodes[sapply(coalnodes, function(x) sum(pbe1$v$nodeparents == x) == 1)]
-        pbe1$v$nodeparents[loosenodes] <- free_cnodes
-      }
-      return()
-    }
-      
+    # if(currentID == 0 && length(free_cnodes) == 0) {
+    #   if(sum(pbe1$v$infectors==0) == 1){
+    #     pbe1$v$nodeparents[loosenodes] <- 0L
+    #   } else {
+    #     coalnodes <- which(pbe1$v$nodetypes == "c" & pbe1$v$nodehosts == 0)
+    #     free_cnodes <- coalnodes[sapply(coalnodes, function(x) sum(pbe1$v$nodeparents == x) == 1)]
+    #     pbe1$v$nodeparents[loosenodes] <- free_cnodes
+    #   }
+    #   return()
+    # }
     
     # edges already entering currentID
     edgesendold <- setdiff(which(pbe1$v$nodehosts == currentID & pbe1$v$nodetypes != "c"), loosenodes)
@@ -35,7 +34,7 @@ rewire_pullnodes_complete <- function(currentID) {
         loosenodes <- setdiff(loosenodes, edgesendold)
       } else 
         # in other hosts, connect sampling tip to infection node
-        {
+      {
         parentnode <- 2 * pbe1$d$nsamples - 1 + currentID
         edgesendold <- currentID
         pbe1$v$nodeparents[edgesendold] <- parentnode
@@ -44,7 +43,7 @@ rewire_pullnodes_complete <- function(currentID) {
         loosenodes <- setdiff(loosenodes, edgesendold)
       }
     }
-
+    
     # old edges entering currentID, with endtimes
     edgesendoldtimes <- pbe1$v$nodetimes[edgesendold]
     
@@ -228,7 +227,7 @@ rewire_pullnodes_wide <- function(currentID) {
 }
 
 ### remove tips from existing minitree, and return the coalescent node
-take_cnode <- function(childnode, newinfector = 1) {
+take_cnode <- function(childnode) {
   parentnode <- pbe1$v$nodeparents[childnode]
   while(pbe1$v$nodetypes[parentnode] %in% c("t", "b")) {
     pbe1$v$nodehosts[childnode] <- -1L
@@ -265,35 +264,9 @@ link_s_to_t <- function(parentnodes, childnodes, snode, tnode) {
 
 rearrange_tree_matrix <- function(){
   v <- pbe1$v
-  hostID <- pbe1$hostID
-  infector.ID <- pbe0$v$infectors[hostID]
-  infector.proposed.ID <- v$infectors[hostID]
-  
-  if (is.null(infector.proposed.ID)) {
-    if (v$infectors[hostID] == 0 & v$tree[hostID] != hostID) {
-      v$tree[v$tree == v$tree[hostID]] <- hostID
-    }
-    copy2pbe1("v", environment())
-    return()
-  }
-  
-  if (infector.proposed.ID == 0 & infector.ID != 0) {
-    hostID_infectees <- do.call(c,lapply(which(v$tree == v$tree[hostID]), function(i){
-      if (tail(.ptr(v$infectors, i),1) == hostID) {
-        return(i)
-      }}))
-    v$tree[hostID_infectees] <- hostID
-  } else if (infector.proposed.ID != 0 & infector.ID == 0) {
-    v$tree[which(v$tree == v$tree[hostID])] <- tail(.ptr(pbe1$v$infectors, hostID), 1)
-  } else if (infector.proposed.ID != infector.ID) {
-    v$infectors[hostID] <- 0
-    hostID_infectees <- do.call(c,lapply(which(v$tree == v$tree[hostID]), function(i){
-      if (tail(.ptr(v$infectors, i),1) == hostID) {
-        return(i)
-      }}))
-    v$tree[hostID_infectees] <- v$tree[infector.proposed.ID]
-    v$infectors[hostID] <- infector.proposed.ID
-  }
+  p <- pbe1$p
+
+  v$tree <- sapply(1:p$obs, function(x) tail(.ptr(v$infectors, x), 1))
   
   copy2pbe1("v", environment())
 }

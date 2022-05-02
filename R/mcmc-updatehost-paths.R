@@ -163,10 +163,10 @@ update_host_phylotrans <- function(hostID, which_protocol) {
     }
   } else {
     # N (hostID is not index case)
-    if (tinf.prop < v$inftimes[tail(.ptr(v$infectors, hostID), 1)]) {
+    if (tinf.prop < v$inftimes[v$tree[hostID]]) {
       # NY (... & tinf.prop before infection of hostID's index case)
       update_pathD(which_protocol)
-      return()
+      # return()
     } else {
       # NN (... & tinf.prop after infection of hostID's index case)
       if (tinf.prop < min(c(v$inftimes[v$infectors == hostID], Inf))) {
@@ -222,15 +222,12 @@ update_host_history <- function(hostID, which_protocol) {
     
     ### calculate proposal ratio
     # logproposalratio <- 0
-    logproposalratio <- infect_distribution(v$nodetimes[hostID],
-                                            v$inftimes[hostID],
-                                            p,
-                                            nodetimes = v$nodetimes[v$nodetypes=="s"],
-                                            cultimes = v$cultimes, log = TRUE) -
-      infect_distribution(v$nodetimes[hostID], tinf.prop,
-                          p,
-                          nodetimes = v$nodetimes[v$nodetypes=="s"],
-                          cultimes = v$cultimes, log = TRUE)
+    logproposalratio <- dgamma(v$nodetimes[hostID] - v$inftimes[hostID],
+                               shape = tinf.prop.shape.mult * p$sample.shape,
+                               scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE) -
+      dgamma(v$nodetimes[hostID] - tinf.prop,
+             shape = tinf.prop.shape.mult * p$sample.shape,
+             scale = p$sample.mean/(tinf.prop.shape.mult * p$sample.shape), log = TRUE)
     copy2pbe1("logproposalratio", environment())
     
     ### propose minitrees and accept or reject
@@ -574,8 +571,8 @@ update_host_history <- function(hostID, which_protocol) {
     if(pbe1$logLiktoporatio > -Inf) {
       propose_pbe("phylotrans")
       logacceptanceprob <- pbe0$heat * 
-        (pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikintro + pbe1$logLikdist + pbe1$logLiktoporatio -
-        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikintro - pbe0$logLikdist) + pbe1$logproposalratio
+        (pbe1$logLikseq + pbe1$logLikgen + pbe1$logLiksam + pbe1$logLikdist + pbe1$logLiktoporatio -
+        pbe0$logLikseq - pbe0$logLikgen - pbe0$logLiksam - pbe0$logLikdist) + pbe1$logproposalratio
       
       if (runif(1) < exp(logacceptanceprob)) {
         accept_pbe("phylotrans")

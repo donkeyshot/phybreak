@@ -73,11 +73,11 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
   
   if(inherits(x, "phybreakdata")) {
     if(exists("sim.infection.times", x) && exists("sim.infectors", x)) {
-      if(length(x$sample.hosts) != length(x$sim.infectors)){
-        x$sim.infection.times <- x$sim.infection.times[-1]
-        x$sim.infectors <- x$sim.infectors[-1]
-        x$sim.infectors[x$sim.infectors=="history"] <- "index" 
-      }
+      # if(length(x$sample.hosts) != length(x$sim.infectors)){
+      #   x$sim.infection.times <- x$sim.infection.times[-1]
+      #   x$sim.infectors <- x$sim.infectors[-1]
+      #   x$sim.infectors[x$sim.infectors=="history"] <- "index" 
+      # }
       vars <- x
       names(vars$sample.times) <- vars$sample.hosts
       tg.mean <- NA
@@ -100,9 +100,9 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
     # make vars-list with the tree to plot
     if (plot.which != "sample") {
       tree2plot <- suppressWarnings(transtree(x, plot.which, 
-                                              infection.times = "infector", time.quantiles = 0.5)$transtree)
-      tree2plot$infector[tree2plot$infector=="history"] <- "index"
-      tree2plot <- tree2plot[-1,]
+                                              infection.times = "infector", time.quantiles = 0.5))
+      # tree2plot$infector[tree2plot$infector=="history"] <- "index"
+      # tree2plot <- tree2plot[-1,]
       
       vars <- list(sample.times = x$d$sample.times,
                    sample.hosts = x$d$hostnames,
@@ -125,8 +125,8 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
                      trans.growth = median(x$s$tG))
     } else if (samplenr == 0) {
       # plot.which == "sample"
-      if(x$p$obs != length(x$v$inftimes))
-        x$v <- remove_history(x)
+      # if(x$p$obs != length(x$v$inftimes))
+      #   x$v <- remove_history(x)
       vars <- phybreak2trans(x$v, x$d$hostnames, x$d$reference.date,
                              x$d$culling.times)
       if(is.null(arrow.col)) {
@@ -135,15 +135,10 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         arrow.col <- arrow.col[1]
       }
       
-      if(is.null(unlist(x$s))){
-        trans.sample = x$p$trans.sample
-        trans.growth = x$p$trans.growth
-      } else {
-        trans.sample = median(x$s$tS)
-        trans.growth = median(x$s$tG)
-      }
       tg.mean <- x$p$gen.mean
       tg.shape <- x$p$gen.shape
+      trans.sample = x$p$trans.sample
+      trans.growth = x$p$trans.growth
       ttrans <- list(trans.model = x$p$trans.model,
                      trans.sample = trans.sample,
                      trans.init = x$p$trans.init,
@@ -160,8 +155,8 @@ plotTrans <- function(x, plot.which = c("sample", "edmonds", "mpc", "mtcc"), sam
         inftimes = x$s$inftimes[, samplenr],
         infectors = x$s$infectors[, samplenr]
       )
-      x$v <- vars
-      vars <- remove_history(x)
+      # x$v <- vars
+      # vars <- remove_history(x)
       
       vars <- phybreak2trans(vars, unique(x$d$hostnames), x$d$reference.date,
                              x$d$culling.times)

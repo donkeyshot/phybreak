@@ -152,6 +152,37 @@ update_tS <- function() {
   }
 }
 
+update_ir <- function() {
+  ### create an up-to-date proposal-environment
+  prepare_pbe()
+  
+  ### making variables and parameters available within the function
+  le <- environment()
+  h <- pbe0$h
+  p <- pbe1$p
+  v <- pbe1$v
+  
+  p$intro.rate <- exp(log(p$intro.rate) + rnorm(1, 0, h$si.ir))
+  # 
+  
+  ### update proposal environment
+  copy2pbe1("p", le)
+  
+  ### calculate proposalratio
+  logproposalratio <- log(p$intro.rate) - log(pbe0$p$intro.rate)
+  
+  ### calculate likelihood
+  propose_pbe("ir")
+  
+  ### calculate acceptance probability
+  logaccprob <- pbe1$logLikgen - pbe0$logLikgen
+  
+  ### accept
+  if (runif(1) < exp(logaccprob)) {
+    accept_pbe("ir")
+  }
+}
+
 update_wh_history <- function(){
     ### create an up-to-date proposal-environment
     prepare_pbe()

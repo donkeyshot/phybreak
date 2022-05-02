@@ -107,6 +107,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
                  mS = c(x$s$mS, rep(NA, nsample)), 
                  tG = c(x$s$tG, rep(NA, nsample)),
                  tS = c(x$s$tS, rep(NA, nsample)),
+                 ir = c(x$s$ir, rep(NA, nsample)),
                  wh.s = c(x$s$wh.s, rep(NA, nsample)), 
                  wh.e = c(x$s$wh.e, rep(NA, nsample)), 
                  wh.0 = c(x$s$wh.0, rep(NA, nsample)), 
@@ -171,6 +172,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
           if (i == -3 && x$h$est.mS)  update_mS()
           if (i == -11 && x$h$est.tG) update_tG()
           if (i == -12 && x$h$est.tS) update_tS()
+          if (i == -13 && x$h$est.ir) update_ir()
           if (i == -10 && x$h$est.wh.h) update_wh_history()
           if (i == -4 && x$h$est.wh.s)  update_wh_slope()
           if (i == -5 && x$h$est.wh.e)  update_wh_exponent()
@@ -214,6 +216,7 @@ sample_phybreak <- function(x, nsample, thin = 1, thinswap = 1, classic = 0, kee
       s.post$mS[sa] <- pbe0$p$sample.mean
       s.post$tG[sa] <- pbe0$p$trans.growth
       s.post$tS[sa] <- pbe0$p$trans.sample
+      s.post$ir[sa] <- pbe0$p$intro.rate
       s.post$wh.h[sa] <- pbe0$p$wh.history
       s.post$wh.s[sa] <- pbe0$p$wh.slope
       s.post$wh.e[sa] <- pbe0$p$wh.exponent
