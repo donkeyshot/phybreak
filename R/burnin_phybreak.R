@@ -180,7 +180,7 @@ print_screen_log <- function(iteration) {
   if(pbe0$p$trans.model == "gamma"){
     message(paste0(
       stringr::str_pad(iteration, 8),
-      stringr::str_pad(round(sum(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal + pbe0$logLikdist + pbe0$logLikintro), 2), 12),
+      stringr::str_pad(round(sum(pbe0$logLikseq + pbe0$logLiksam + pbe0$logLikgen + pbe0$logLikcoal + pbe0$logLikdist), 2), 12),
       stringr::str_pad(signif(sum(pbe0$v$infectors==0), 1), 15),
       stringr::str_pad(signif(pbe0$p$mu, 3), 9),
       stringr::str_pad(signif(pbe0$p$gen.mean, 3), 10),
